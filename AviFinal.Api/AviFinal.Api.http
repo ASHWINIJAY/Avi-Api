@@ -1,0 +1,6 @@
+@AviFinal.Api_HostAddress = http://localhost:5081
+
+GET {{AviFinal.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
