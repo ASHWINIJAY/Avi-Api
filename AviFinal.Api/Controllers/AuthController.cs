@@ -1,4 +1,4 @@
-using AviFinal.Api.Models;
+﻿using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -29,7 +29,7 @@ namespace AviFinal.Api.Controllers
             public string Password { get; set; }
             public string UserRole { get; set; }
         }
-        [AllowAnonymous]
+
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
@@ -67,12 +67,32 @@ namespace AviFinal.Api.Controllers
             public string Username { get; set; }
             public string Password { get; set; }
         }
+        private string GenerateJwtToken(LeaseCoUser user)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+            var claims = new[]
+            {
+        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+        new Claim(ClaimTypes.Name, user.UserName),
+      new Claim("UserId", user.UserId.ToString()),
+                    new Claim("UserRole", user.UserRole)
+    };
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireMinutes"])),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
         [AllowAnonymous]
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            try { 
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
                 return BadRequest("Username and password are required.");
 
@@ -93,30 +113,10 @@ namespace AviFinal.Api.Controllers
                 return Unauthorized("Invalid credentials");
 
             // Generate JWT
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim("UserId", user.UserId.ToString()),
-                    new Claim("UserRole", user.UserRole)
-                }),
-                Expires = DateTime.UtcNow.AddHours(4),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+            var token1 = GenerateJwtToken(user);
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
 
-            return Ok(new { token = tokenString, userId = user.UserId, userRole = user.UserRole });
-        }
-            catch (Exception ex)
-    {
-                Console.WriteLine(ex); // log to console
-                return StatusCode(500, new { message = ex.Message });
-            }
+            return Ok(new { token = token1, userId = user.UserId, userRole = user.UserRole });
         }
     }
 }
