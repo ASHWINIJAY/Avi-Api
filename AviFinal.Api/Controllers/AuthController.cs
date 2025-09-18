@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace AviFinal.Api.Controllers
 {
@@ -25,9 +26,32 @@ namespace AviFinal.Api.Controllers
         public class CreateUserRequest
         {
             public string Username { get; set; }
-            public string Email { get; set; }
-            public string Password { get; set; }
+            public string? Email { get; set; }
+            public string? UserEmail { get; set; }
+            public string Name { get; set; }
+            public string? Password { get; set; }
             public string UserRole { get; set; }
+        }
+        [HttpGet("list")]
+        public IActionResult List()
+        {
+            var users = _context.LeaseCoUsers.ToList();
+            return Ok(users);
+        }
+        [HttpPost("update")]
+        public async Task<IActionResult> UpdateUser([FromBody] CreateUserRequest request)
+        {
+          var user =  _context.LeaseCoUsers.Where(u => u.UserName == request.Username).FirstOrDefault();
+
+
+          user.UserName = request.Username;
+            user.UserEmail = request.UserEmail;
+            user.UserRole= request.UserRole;
+            user.Name = request.Name;
+            
+            //await _context.SaveChangesAsync();
+
+            return Ok(new { message = "User updated successfully", userId = user.UserId });
         }
 
         [HttpPost("create")]
@@ -37,7 +61,7 @@ namespace AviFinal.Api.Controllers
                 return BadRequest("All fields are required.");
 
             if (_context.LeaseCoUsers.Any(u => u.UserName == request.Username))
-                return BadRequest("Username already exists.");
+                return BadRequest(new { message = "Username already exists." });
 
             // Hash password WITHOUT salt
             string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
@@ -51,6 +75,7 @@ namespace AviFinal.Api.Controllers
             var user = new LeaseCoUser
             {
                 UserName = request.Username,
+                Name = request.Name,
                 UserEmail = request.Email,
                 UserPassword = hashedPassword,
                 UserRole = request.UserRole

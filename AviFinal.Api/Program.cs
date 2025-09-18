@@ -17,12 +17,12 @@ builder.Services.AddDbContext<AviDbContext>(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
-
+builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost/","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
+        policy.WithOrigins("http://localhost:5173","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -62,7 +62,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 //app.UseHttpsRedirection();
 
 var summaries = new[]

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AviFinal.Api.Models;
 
-[Table("InfoLocosFinal")]
 public partial class InfoLocosFinal
 {
-    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public string InfoId { get; set; } = null!;
 
     public int LocoNumber { get; set; }

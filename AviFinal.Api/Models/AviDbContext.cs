@@ -59,7 +59,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-    
+   
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<BatSwitchInspect>(entity =>
@@ -680,8 +680,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.InfoId)
                 .HasMaxLength(8)
                 .IsUnicode(false)
-                .HasDefaultValueSql("(concat('INFO',right(concat('00',CONVERT([varchar](3),NEXT VALUE FOR [dbo].[Seq_InfoLocoFinal])),(3))))")
-                .ValueGeneratedOnAdd();
+                .HasDefaultValueSql("(concat('INFO',right(concat('00',CONVERT([varchar](3),NEXT VALUE FOR [dbo].[Seq_InfoLocoFinal])),(3))))");
             entity.Property(e => e.BodyDamage)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -728,6 +727,7 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValueSql("(concat('U',right(concat('00',CONVERT([varchar](3),NEXT VALUE FOR [dbo].[Seq_LeaseCoUser])),(3))))")
                 .HasColumnName("UserID");
+            entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.UserEmail)
                 .HasMaxLength(300)
                 .IsUnicode(false);

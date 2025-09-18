@@ -15,6 +15,8 @@ public partial class LeaseCoUser
 
     public string UserRole { get; set; } = null!;
 
+    public string? Name { get; set; }
+
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();
