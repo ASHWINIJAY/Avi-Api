@@ -41,70 +41,77 @@ namespace AviFinal.Api.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
-            Directory.CreateDirectory(uploadsFolder);
-
-            // ✅ Save Loco Photo safely
-            string locoPhotoPath = null;
-            if (model.LocoPhoto != null)
-            {
-                locoPhotoPath = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(model.LocoPhoto.FileName));
-                using var fs = new FileStream(Path.Combine(_env.WebRootPath, locoPhotoPath), FileMode.Create);
-                await model.LocoPhoto.CopyToAsync(fs);
-            }
-
-            // ✅ Save Body Photos safely
-            List<string> bodyPhotoPaths = new();
-            if (model.BodyPhotos != null && model.BodyPhotos.Count > 0)
-            {
-                foreach (var file in model.BodyPhotos)
-                {
-                    string path = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(file.FileName));
-                    using var fs = new FileStream(Path.Combine(_env.WebRootPath, path), FileMode.Create);
-                    await file.CopyToAsync(fs);
-                    bodyPhotoPaths.Add(path);
-                }
-            }
-
-            // ✅ Save Lifting Photos safely
-            List<string> liftingPhotoPaths = new();
-            if (model.LiftingPhotos != null && model.LiftingPhotos.Count > 0)
-            {
-                foreach (var file in model.LiftingPhotos)
-                {
-                    string path = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(file.FileName));
-                    using var fs = new FileStream(Path.Combine(_env.WebRootPath, path), FileMode.Create);
-                    await file.CopyToAsync(fs);
-                    liftingPhotoPaths.Add(path);
-                }
-            }
-
-            // ✅ Create InfoLocosFinal entity safely
-            var info = new InfoLocosFinal
-            {
-                LocoNumber = model.LocoNumTxt,
-                GpsLatitude = model.GpsLat ?? "",
-                GpsLongitude = model.GpsLong ?? "",
-                PhotoPath = locoPhotoPath ?? "",
-                ProMain = model.ProMainSelect ?? "",
-                FleetRenewPro = model.FleetRenewSelect ?? "",
-                BodyDamage = model.BodyDamageTxt ?? "No",
-                BodyPhotoPaths = bodyPhotoPaths.Count > 0 ? string.Join(";", bodyPhotoPaths) : null,
-                BodyRepairValue = string.IsNullOrWhiteSpace(model.BodyRepairVal) ? null : model.BodyRepairVal,
-                LiftingRequired = model.LiftingReqTxt ?? "No",
-                LiftingPhotoPaths = liftingPhotoPaths.Count > 0 ? string.Join(";", liftingPhotoPaths) : null,
-                LiftDate = model.LiftDateTxt.HasValue ? DateOnly.FromDateTime(model.LiftDateTxt.Value) : null,
-                InventoryNumber = model.InventoryNumTxt ?? "",
-                LocoType = model.LocoTypeTxt ?? "",
-                NetBookValue = string.IsNullOrWhiteSpace(model.NetBookVal) ? null : model.NetBookVal
-            };
-
             try
             {
-                _context.InfoLocosFinals.Add(info);
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Form submitted successfully" });
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
+                Directory.CreateDirectory(uploadsFolder);
+
+                // ✅ Save Loco Photo safely
+                string locoPhotoPath = null;
+                if (model.LocoPhoto != null)
+                {
+                    locoPhotoPath = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(model.LocoPhoto.FileName));
+                    using var fs = new FileStream(Path.Combine(_env.WebRootPath, locoPhotoPath), FileMode.Create);
+                    await model.LocoPhoto.CopyToAsync(fs);
+                }
+
+                // ✅ Save Body Photos safely
+                List<string> bodyPhotoPaths = new();
+                if (model.BodyPhotos != null && model.BodyPhotos.Count > 0)
+                {
+                    foreach (var file in model.BodyPhotos)
+                    {
+                        string path = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(file.FileName));
+                        using var fs = new FileStream(Path.Combine(_env.WebRootPath, path), FileMode.Create);
+                        await file.CopyToAsync(fs);
+                        bodyPhotoPaths.Add(path);
+                    }
+                }
+
+                // ✅ Save Lifting Photos safely
+                List<string> liftingPhotoPaths = new();
+                if (model.LiftingPhotos != null && model.LiftingPhotos.Count > 0)
+                {
+                    foreach (var file in model.LiftingPhotos)
+                    {
+                        string path = Path.Combine("uploads", Guid.NewGuid() + Path.GetExtension(file.FileName));
+                        using var fs = new FileStream(Path.Combine(_env.WebRootPath, path), FileMode.Create);
+                        await file.CopyToAsync(fs);
+                        liftingPhotoPaths.Add(path);
+                    }
+                }
+
+                // ✅ Create InfoLocosFinal entity safely
+                var info = new InfoLocosFinal
+                {
+                    LocoNumber = model.LocoNumTxt,
+                    GpsLatitude = model.GpsLat ?? "",
+                    GpsLongitude = model.GpsLong ?? "",
+                    PhotoPath = locoPhotoPath ?? "",
+                    ProMain = model.ProMainSelect ?? "",
+                    FleetRenewPro = model.FleetRenewSelect ?? "",
+                    BodyDamage = model.BodyDamageTxt ?? "No",
+                    BodyPhotoPaths = bodyPhotoPaths.Count > 0 ? string.Join(";", bodyPhotoPaths) : null,
+                    BodyRepairValue = string.IsNullOrWhiteSpace(model.BodyRepairVal) ? null : model.BodyRepairVal,
+                    LiftingRequired = model.LiftingReqTxt ?? "No",
+                    LiftingPhotoPaths = liftingPhotoPaths.Count > 0 ? string.Join(";", liftingPhotoPaths) : null,
+                    LiftDate = model.LiftDateTxt.HasValue ? DateOnly.FromDateTime(model.LiftDateTxt.Value) : null,
+                    InventoryNumber = model.InventoryNumTxt ?? "",
+                    LocoType = model.LocoTypeTxt ?? "",
+                    NetBookValue = string.IsNullOrWhiteSpace(model.NetBookVal) ? null : model.NetBookVal
+                };
+
+                try
+                {
+                    _context.InfoLocosFinals.Add(info);
+                    await _context.SaveChangesAsync();
+                    return Ok(new { message = "Form submitted successfully" });
+                }
+                catch (Exception ex)
+                {
+                    // Return exact error detail for debugging
+                    return StatusCode(500, new { message = "Internal Server Error", detail = ex.Message });
+                }
             }
             catch (Exception ex)
             {

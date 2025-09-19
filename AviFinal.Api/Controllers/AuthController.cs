@@ -49,7 +49,7 @@ namespace AviFinal.Api.Controllers
             user.UserRole= request.UserRole;
             user.Name = request.Name;
             
-            //await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return Ok(new { message = "User updated successfully", userId = user.UserId });
         }
@@ -141,7 +141,7 @@ namespace AviFinal.Api.Controllers
             var token1 = GenerateJwtToken(user);
 
 
-            return Ok(new { token = token1, userId = user.UserId, userRole = user.UserRole });
+            return Ok(new { token = token1, userId = user.UserId, userRole = user.UserRole,name = user.Name??string.Empty });
         }
     }
 }
