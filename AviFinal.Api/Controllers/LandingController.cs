@@ -1,7 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
+using AviFinal.Api.Models;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace AviFinal.Api.Controllers
 {
@@ -10,15 +13,28 @@ namespace AviFinal.Api.Controllers
     public class LandingController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-
-        public LandingController(IConfiguration configuration)
+        private readonly AviDbContext _context;
+        public LandingController(IConfiguration configuration,AviDbContext context)
         {
             _configuration = configuration;
+            _context = context;
         }
 
         public class LocoRequest
         {
             public string LocoNumber { get; set; }
+        }
+        public class LocoResponse
+        {
+            public int LocoNumber { get; set; }
+        }
+        [Authorize]
+        [HttpGet("list")]
+        public async Task<IActionResult> GetLocoList()
+        {
+            var locos = await _context.MasterLocos
+            .Select(l => new LocoResponse { LocoNumber = l.LocoNumber }).ToListAsync();
+            return Ok(locos); // returns JSON array
         }
 
         [Authorize]
