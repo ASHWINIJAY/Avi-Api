@@ -35,6 +35,89 @@ namespace AviFinal.Api.Controllers
             public List<WalkAroundRowModel> Rows { get; set; } = new();
         }
 
+        [HttpGet("getParts/{locoClass}/{inspectFormId}")]
+        public async Task<IActionResult> GetParts(string locoClass, string inspectFormId)
+        {
+            if (string.IsNullOrEmpty(locoClass) || string.IsNullOrEmpty(inspectFormId))
+                return BadRequest("Loco class or Inspect Form ID is missing.");
+
+            List<string> partDescriptions = new List<string>();
+
+            try
+            {
+                // Example: Dynamically select table based on locoClass
+                if (locoClass == "D34")
+                {
+                    partDescriptions = await _context.D34parts
+                        .Where(p => p.FormId == inspectFormId)
+                        .Select(p => p.PartDescr)
+                        .ToListAsync();
+                }
+                else if (locoClass == "D35")
+                {
+                    partDescriptions = await _context.D35parts
+                        .Where(p => p.FormId == inspectFormId)
+                        .Select(p => p.PartDescr)
+                        .ToListAsync();
+                }
+                else
+                {
+                    return NotFound("Class not supported.");
+                }
+
+                return Ok(partDescriptions);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving parts: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getPartCost")]
+        public async Task<IActionResult> GetPartCost(string locoClass, string partDescription, string field)
+        {
+            if (string.IsNullOrEmpty(locoClass) || string.IsNullOrEmpty(partDescription) || string.IsNullOrEmpty(field))
+                return BadRequest("Invalid parameters.");
+
+            try
+            {
+                string refurbishCost = "";
+
+                if (locoClass == "D34")
+                {
+                    var part = await _context.D34parts
+                        .Where(p => p.PartDescr == partDescription)
+                        .FirstOrDefaultAsync();
+
+                    if (part != null)
+                    {
+                        refurbishCost = field == "Refurbish" ? part.RefurbishValue : "0.00";
+                    }
+                }
+                else if (locoClass == "D35")
+                {
+                    var part = await _context.D35parts
+                        .Where(p => p.PartDescr == partDescription)
+                        .FirstOrDefaultAsync();
+
+                    if (part != null)
+                    {
+                        refurbishCost = field == "Refurbish" ? part.RefurbishValue : "0.00";
+                    }
+                }
+                else
+                {
+                    return NotFound("Class not supported.");
+                }
+
+                return Ok(new { refurbishCost });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving part cost: {ex.Message}");
+            }
+        }
+
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitForm([FromBody] WalkAroundFormModel model)
         {

@@ -29,7 +29,19 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<CoupGearInspect> CoupGearInspects { get; set; }
 
+    public virtual DbSet<D34loco> D34locos { get; set; }
+
+    public virtual DbSet<D34part> D34parts { get; set; }
+
+    public virtual DbSet<D35loco> D35locos { get; set; }
+
+    public virtual DbSet<D35part> D35parts { get; set; }
+
+    public virtual DbSet<D36loco> D36locos { get; set; }
+
     public virtual DbSet<DashBoardItem> DashBoardItems { get; set; }
+
+    public virtual DbSet<E18loco> E18locos { get; set; }
 
     public virtual DbSet<ElectCabInspect> ElectCabInspects { get; set; }
 
@@ -59,7 +71,10 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-   
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=XBSVM01\\SQLEXPRESS;Database=AVIDB;User Id=sa;Password=Codexx4b0s3;TrustServerCertificate=True;");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<BatSwitchInspect>(entity =>
@@ -398,6 +413,107 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_CoupGearInspects_LeaseCoUsers");
         });
 
+        modelBuilder.Entity<D34loco>(entity =>
+        {
+            entity.HasKey(e => e.Num).HasName("PK__D34Locos__C7D08B63D4D77B66");
+
+            entity.ToTable("D34Locos");
+
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass).HasMaxLength(50);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(2)
+                .IsUnicode(false);
+            entity.Property(e => e.NetBookValue).HasMaxLength(100);
+
+            entity.HasOne(d => d.AssetCodeNavigation).WithMany(p => p.D34locos)
+                .HasForeignKey(d => d.AssetCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_D34Locos");
+        });
+
+        modelBuilder.Entity<D34part>(entity =>
+        {
+            entity.ToTable("D34Parts");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<D35loco>(entity =>
+        {
+            entity.HasKey(e => e.Num).HasName("PK__D35Locos__C7D08B63DD959730");
+
+            entity.ToTable("D35Locos");
+
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass).HasMaxLength(50);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(2)
+                .IsUnicode(false);
+            entity.Property(e => e.NetBookValue).HasMaxLength(100);
+
+            entity.HasOne(d => d.AssetCodeNavigation).WithMany(p => p.D35locos)
+                .HasForeignKey(d => d.AssetCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_D35Locos");
+        });
+
+        modelBuilder.Entity<D35part>(entity =>
+        {
+            entity.ToTable("D35Parts");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<D36loco>(entity =>
+        {
+            entity.HasKey(e => e.Num).HasName("PK__D36Locos__C7D08B637F1DD3F5");
+
+            entity.ToTable("D36Locos");
+
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass).HasMaxLength(50);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(2)
+                .IsUnicode(false);
+            entity.Property(e => e.NetBookValue).HasMaxLength(100);
+
+            entity.HasOne(d => d.AssetCodeNavigation).WithMany(p => p.D36locos)
+                .HasForeignKey(d => d.AssetCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_D36Locos");
+        });
+
         modelBuilder.Entity<DashBoardItem>(entity =>
         {
             entity.HasKey(e => e.Record);
@@ -435,6 +551,27 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.LocoNumber)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DashBoardItems");
+        });
+
+        modelBuilder.Entity<E18loco>(entity =>
+        {
+            entity.HasKey(e => e.Num).HasName("PK__E18Locos__C7D08B63833E7455");
+
+            entity.ToTable("E18Locos");
+
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass).HasMaxLength(50);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(2)
+                .IsUnicode(false);
+            entity.Property(e => e.NetBookValue).HasMaxLength(100);
+
+            entity.HasOne(d => d.AssetCodeNavigation).WithMany(p => p.E18locos)
+                .HasForeignKey(d => d.AssetCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_E18Locos");
         });
 
         modelBuilder.Entity<ElectCabInspect>(entity =>

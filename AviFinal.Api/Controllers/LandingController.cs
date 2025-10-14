@@ -38,6 +38,45 @@ namespace AviFinal.Api.Controllers
         }
 
         [Authorize]
+        [HttpGet("validateLoco/{locoNumber}")]
+        public async Task<IActionResult> ValidateLoco(int locoNumber)
+        {
+            if (locoNumber <= 0)
+                return BadRequest(new { isValid = false, message = "Invalid Asset Code." });
+
+            var masterLoco = await _context.MasterLocos
+                .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
+
+            if (masterLoco == null)
+                return NotFound(new { isValid = false, message = "Asset Code not found." });
+
+            bool existsInDashboard = await _context.DashBoardItems
+                .AnyAsync(d => d.LocoNumber == locoNumber);
+
+            if (existsInDashboard)
+            {
+                return Ok(new
+                {
+                    isValid = true,
+                    message = "Asset Code has already been inspected."
+                });
+            }
+
+            string locoClass = masterLoco.LocoClass;
+
+            if (string.IsNullOrEmpty(locoClass))
+            {
+                return BadRequest(new { isValid = false, message = "Loco Class not found." });
+            }
+
+            return Ok(new
+            {
+                isValid = true,
+                locoClass = locoClass,
+            });
+        }
+
+        [Authorize]
         [HttpPost("validateloco")]
         public IActionResult ValidateLoco([FromBody] LocoRequest request)
         {

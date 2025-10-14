@@ -87,7 +87,15 @@ public partial class MasterLoco
 
     public virtual ICollection<CoupGearInspect> CoupGearInspects { get; set; } = new List<CoupGearInspect>();
 
+    public virtual ICollection<D34loco> D34locos { get; set; } = new List<D34loco>();
+
+    public virtual ICollection<D35loco> D35locos { get; set; } = new List<D35loco>();
+
+    public virtual ICollection<D36loco> D36locos { get; set; } = new List<D36loco>();
+
     public virtual ICollection<DashBoardItem> DashBoardItems { get; set; } = new List<DashBoardItem>();
+
+    public virtual ICollection<E18loco> E18locos { get; set; } = new List<E18loco>();
 
     public virtual ICollection<ElectCabInspect> ElectCabInspects { get; set; } = new List<ElectCabInspect>();
 
