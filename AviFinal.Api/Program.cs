@@ -22,7 +22,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5081","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
+        policy.WithOrigins("http://localhost:5173", "http://www.avi-app.co.za", "https://www.avi-app.co.za", "http://localhost:5081","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

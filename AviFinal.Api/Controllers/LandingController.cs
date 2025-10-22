@@ -44,35 +44,53 @@ namespace AviFinal.Api.Controllers
             if (locoNumber <= 0)
                 return BadRequest(new { isValid = false, message = "Invalid Asset Code." });
 
+            // Log the connection string for debugging
+            //Console.WriteLine($"DEBUG: Using connection string: {_configuration.GetConnectionString("DefaultConnection")}");
+
+            // Check MasterLocos first
             var masterLoco = await _context.MasterLocos
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
 
             if (masterLoco == null)
-                return NotFound(new { isValid = false, message = "Asset Code not found." });
+                return NotFound(new { isValid = false, message = "Asset Code not found in MasterLocos." });
 
+            // Check if it already exists in dashboard
             bool existsInDashboard = await _context.DashBoardItems
+                .AsNoTracking()
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 
             if (existsInDashboard)
-            {
-                return Ok(new
-                {
-                    isValid = true,
-                    message = "Asset Code has already been inspected."
-                });
-            }
+                return Ok(new { isValid = true, message = "Asset Code has already been inspected." });
 
             string locoClass = masterLoco.LocoClass;
-
             if (string.IsNullOrEmpty(locoClass))
-            {
                 return BadRequest(new { isValid = false, message = "Loco Class not found." });
-            }
+
+            // RAW SQL check in E18Locos for debugging
+            var e18Rows = await _context.E18locos
+                .FromSqlRaw("SELECT * FROM E18Locos WHERE AssetCode = {0}", locoNumber)
+                .AsNoTracking()
+                .ToListAsync();
+
+            //Console.WriteLine($"DEBUG: Found {e18Rows.Count} rows in E18Locos for AssetCode {locoNumber}");
+
+            // Take the first row if exists
+            var model = e18Rows.FirstOrDefault();
+
+            if (model == null)
+                return NotFound(new { isValid = false, message = $"No E18Locos record found for AssetCode {locoNumber}." });
+
+            // Safe null handling for locoModel
+            string locoModel = model.LocoModel ?? "";
+
+            //Console.WriteLine($"DEBUG: locoNumber={locoNumber}, locoClass={locoClass}, locoModel={locoModel}");
 
             return Ok(new
             {
                 isValid = true,
                 locoClass = locoClass,
+                locoModel = locoModel
             });
         }
 

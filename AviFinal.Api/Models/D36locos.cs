@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class D36loco
+public partial class D36locos
 {
     public int Num { get; set; }
 
@@ -19,5 +19,5 @@ public partial class D36loco
 
     public string? LocoModel { get; set; }
 
-    public virtual MasterLoco AssetCodeNavigation { get; set; } = null!;
+    public virtual MasterLocos AssetCodeNavigation { get; set; } = null!;
 }

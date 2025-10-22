@@ -17,5 +17,7 @@ public partial class D34loco
 
     public string? NetBookValue { get; set; }
 
+    public string? LocoModel { get; set; }
+
     public virtual MasterLoco AssetCodeNavigation { get; set; } = null!;
 }

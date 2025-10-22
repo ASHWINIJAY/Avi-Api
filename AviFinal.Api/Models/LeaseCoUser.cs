@@ -31,6 +31,8 @@ public partial class LeaseCoUser
 
     public virtual ICollection<CoupGearInspect> CoupGearInspects { get; set; } = new List<CoupGearInspect>();
 
+    public virtual ICollection<E18inspect> E18inspects { get; set; } = new List<E18inspect>();
+
     public virtual ICollection<ElectCabInspect> ElectCabInspects { get; set; } = new List<ElectCabInspect>();
 
     public virtual ICollection<EndDeckInspect> EndDeckInspects { get; set; } = new List<EndDeckInspect>();
@@ -38,6 +40,12 @@ public partial class LeaseCoUser
     public virtual ICollection<EngineDeckInspect> EngineDeckInspects { get; set; } = new List<EngineDeckInspect>();
 
     public virtual ICollection<FrontLocoInspect> FrontLocoInspects { get; set; } = new List<FrontLocoInspect>();
+
+    public virtual ICollection<Ge34inspect> Ge34inspects { get; set; } = new List<Ge34inspect>();
+
+    public virtual ICollection<Ge35inspect> Ge35inspects { get; set; } = new List<Ge35inspect>();
+
+    public virtual ICollection<Ge36inspect> Ge36inspects { get; set; } = new List<Ge36inspect>();
 
     public virtual ICollection<LeftMidDoorInspect> LeftMidDoorInspects { get; set; } = new List<LeftMidDoorInspect>();
 
