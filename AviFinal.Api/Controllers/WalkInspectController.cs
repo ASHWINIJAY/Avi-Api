@@ -48,21 +48,17 @@ namespace AviFinal.Api.Controllers
                 // Example: Dynamically select table based on locoClass
                 if (locoClass == "D34")
                 {
-                    /*partDescriptions = await _context.D34Parts
+                    partDescriptions = await _context.D34parts
                         .Where(p => p.FormId == inspectFormId)
                         .Select(p => p.PartDescr)
-                        .ToListAsync();*/
+                        .ToListAsync();
                 }
                 else if (locoClass == "D35")
                 {
-                    /*partDescriptions = await _context.D35Parts
+                    partDescriptions = await _context.D35parts
                         .Where(p => p.FormId == inspectFormId)
                         .Select(p => p.PartDescr)
-                        .ToListAsync();*/
-                }
-                else if (locoClass == "D36")
-                {
-
+                        .ToListAsync();
                 }
                 else
                 {
@@ -89,25 +85,25 @@ namespace AviFinal.Api.Controllers
 
                 if (locoClass == "D34")
                 {
-                    /*var part = await _context.D34Parts
+                    var part = await _context.D34parts
                         .Where(p => p.PartDescr == partDescription)
                         .FirstOrDefaultAsync();
 
                     if (part != null)
                     {
                         refurbishCost = field == "Refurbish" ? part.RefurbishValue : "0.00";
-                    }*/
+                    }
                 }
                 else if (locoClass == "D35")
                 {
-                    /*var part = await _context.D35Parts
+                    var part = await _context.D35parts
                         .Where(p => p.PartDescr == partDescription)
                         .FirstOrDefaultAsync();
 
                     if (part != null)
                     {
                         refurbishCost = field == "Refurbish" ? part.RefurbishValue : "0.00";
-                    }*/
+                    }
                 }
                 else
                 {

@@ -55,6 +55,8 @@ public partial class LeaseCoUser
 
     public virtual ICollection<ShortNoseInspect> ShortNoseInspects { get; set; } = new List<ShortNoseInspect>();
 
+    public virtual ICollection<TeamInspector> TeamInspectors { get; set; } = new List<TeamInspector>();
+
     public virtual ICollection<TopRightPanInspect> TopRightPanInspects { get; set; } = new List<TopRightPanInspect>();
 
     public virtual ICollection<WalkAroundInspect> WalkAroundInspects { get; set; } = new List<WalkAroundInspect>();

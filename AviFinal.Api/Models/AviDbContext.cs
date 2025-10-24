@@ -83,6 +83,10 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<ShortNoseInspect> ShortNoseInspects { get; set; }
 
+    public virtual DbSet<Team> Teams { get; set; }
+
+    public virtual DbSet<TeamInspector> TeamInspectors { get; set; }
+
     public virtual DbSet<TopRightPanInspect> TopRightPanInspects { get; set; }
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
@@ -1488,6 +1492,41 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ShortNoseInspects_LeaseCoUsers");
+        });
+
+        modelBuilder.Entity<Team>(entity =>
+        {
+            entity.HasKey(e => e.TeamId).HasName("PK__Teams__123AE7B979585803");
+
+            entity.Property(e => e.TeamId).HasColumnName("TeamID");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.TeamName).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<TeamInspector>(entity =>
+        {
+            entity.HasKey(e => e.TeamInspectorId).HasName("PK__TeamInsp__644125C4C0756182");
+
+            entity.Property(e => e.TeamInspectorId).HasColumnName("TeamInspectorID");
+            entity.Property(e => e.AssignedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.InspectorId)
+                .HasMaxLength(5)
+                .IsUnicode(false)
+                .HasColumnName("InspectorID");
+            entity.Property(e => e.TeamId).HasColumnName("TeamID");
+
+            entity.HasOne(d => d.Inspector).WithMany(p => p.TeamInspectors)
+                .HasForeignKey(d => d.InspectorId)
+                .HasConstraintName("FK_TeamInspectors_Users");
+
+            entity.HasOne(d => d.Team).WithMany(p => p.TeamInspectors)
+                .HasForeignKey(d => d.TeamId)
+                .HasConstraintName("FK_TeamInspectors_Teams");
         });
 
         modelBuilder.Entity<TopRightPanInspect>(entity =>
