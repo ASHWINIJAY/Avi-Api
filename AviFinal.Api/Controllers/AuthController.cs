@@ -30,6 +30,7 @@ namespace AviFinal.Api.Controllers
             public string? UserEmail { get; set; }
             public string Name { get; set; }
             public string? Password { get; set; }
+            public string? UserPassword { get; set; }
             public string UserRole { get; set; }
         }
         [HttpGet("list")]
@@ -48,7 +49,15 @@ namespace AviFinal.Api.Controllers
             user.UserEmail = request.UserEmail;
             user.UserRole= request.UserRole;
             user.Name = request.Name;
-            
+            // 🔒 Handle password reset (only if new password is provided)
+            if (!string.IsNullOrEmpty(request.UserPassword))
+            {
+                // ✅ Option 1: Hash the password before saving (recommended)
+                user.UserPassword = BCrypt.Net.BCrypt.HashPassword(request.UserPassword);
+
+                // ✅ Option 2 (if your column is plain-text, not recommended)
+                // user.Password = request.NewPassword;
+            }
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "User updated successfully", userId = user.UserId });
