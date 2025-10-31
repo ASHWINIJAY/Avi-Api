@@ -9,7 +9,7 @@ public partial class Team
 
     public string TeamName { get; set; } = null!;
 
-    public int? CreatedBy { get; set; }
+    public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }
 

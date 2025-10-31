@@ -7,6 +7,8 @@ public partial class E18finalPart
 {
     public int Id { get; set; }
 
+    public string LocoModel { get; set; } = null!;
+
     public string FormId { get; set; } = null!;
 
     public string PartId { get; set; } = null!;
@@ -18,6 +20,4 @@ public partial class E18finalPart
     public string MissingValue { get; set; } = null!;
 
     public string ReplaceValue { get; set; } = null!;
-
-    public string? LocoModel { get; set; }
 }

@@ -60,6 +60,13 @@ namespace AviFinal.Api.Controllers
                         .Select(p => p.PartDescr)
                         .ToListAsync();
                 }
+                else if (locoClass == "18E")
+                {
+                    partDescriptions = await _context.E18finalParts
+                        .Where(p => p.FormId == inspectFormId)
+                        .Select(p => p.PartDescr)
+                        .ToListAsync();
+                }
                 else
                 {
                     return NotFound("Class not supported.");

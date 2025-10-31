@@ -87,7 +87,6 @@ namespace AviFinal.Api.Controllers
 
 
             //Get InspectFormId for inspection screens
-            var walkAround = await _context.WalkAroundInspects.FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
             var frontLoco = await _context.FrontLocoInspects.FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
             var shortNose = await _context.ShortNoseInspects.FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
             var cabLoco = await _context.CabLocoInspects.FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
@@ -107,7 +106,6 @@ namespace AviFinal.Api.Controllers
 
 
             //Store InspectFormId for inspection screens
-            string walkAroundID = walkAround?.InspectFormId ?? "Unknown";
             string frontLocoID = frontLoco?.InspectFormId ?? "Unknown";
             string shortNoseID = shortNose?.InspectFormId ?? "Unknown";
             string cabLocoID = cabLoco?.InspectFormId ?? "Unknown";
@@ -160,24 +158,6 @@ namespace AviFinal.Api.Controllers
 
             var replaceValues = new List<decimal>();
             var refurbishValues = new List<decimal>();
-
-            var WalkReplaceStrings = await _context.WalkAroundInspects
-                .Where(x => x.LocoNumber == model.LocoNumber)
-                .Select(x => x.ReplaceCost)
-                .ToListAsync();
-
-            replaceValues.AddRange(
-                WalkReplaceStrings.Select(s => decimal.TryParse(s, out var v) ? v : 0)
-            );
-
-            var WalkRefurbishStrings = await _context.WalkAroundInspects
-                .Where(x => x.LocoNumber == model.LocoNumber)
-                .Select(x => x.RefurbishCost)
-                .ToListAsync();
-
-            refurbishValues.AddRange(
-                WalkRefurbishStrings.Select(s => decimal.TryParse(s, out var v) ? v : 0)
-            );
 
             var FrontLocoReplaceStrings = await _context.FrontLocoInspects
                 .Where(x => x.LocoNumber == model.LocoNumber)
@@ -470,10 +450,6 @@ namespace AviFinal.Api.Controllers
             decimal totalReplaceValue = replaceValues.Sum();
             decimal totalRefurbishValue = refurbishValues.Sum();
 
-            var walkAroundRows = await _context.WalkAroundInspects
-            .Where(x => x.LocoNumber == model.LocoNumber)
-            .ToListAsync();
-
             var frontLocoRows = await _context.FrontLocoInspects
             .Where(x => x.LocoNumber == model.LocoNumber)
             .ToListAsync();
@@ -537,9 +513,6 @@ namespace AviFinal.Api.Controllers
             var roofRows = await _context.RoofInspects
             .Where(x => x.LocoNumber == model.LocoNumber)
             .ToListAsync();
-
-            decimal walkAroundReplace = walkAroundRows.Sum(r => decimal.TryParse(r.ReplaceCost, out var v) ? v : 0);
-            decimal walkAroundRefurbish = walkAroundRows.Sum(r => decimal.TryParse(r.RefurbishCost, out var v) ? v : 0);
 
             decimal frontLocoReplace = frontLocoRows.Sum(r => decimal.TryParse(r.ReplaceCost, out var v) ? v : 0);
             decimal frontLocoRefurbish = frontLocoRows.Sum(r => decimal.TryParse(r.RefurbishCost, out var v) ? v : 0);
@@ -606,11 +579,10 @@ namespace AviFinal.Api.Controllers
             string pdfQuotePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "quotes", pdfQuote);
             Directory.CreateDirectory(Path.GetDirectoryName(pdfQuotePath)!);
 
-            GenerateQuotePdf(
+            /*GenerateQuotePdf(
                 pdfQuotePath,
                 model.LocoNumber,
                 inspectorName,
-                walkAroundID,
                 frontLocoID,
                 shortNoseID,
                 cabLocoID,
@@ -628,8 +600,6 @@ namespace AviFinal.Api.Controllers
                 coupGearID,
                 roofID,
                 netBookValue,
-                walkAroundRefurbish,
-                walkAroundReplace,
                 frontLocoRefurbish,
                 frontLocoReplace,
                 shortNoseRefurbish,
@@ -656,15 +626,9 @@ namespace AviFinal.Api.Controllers
                 engineReplace,
                 comFanRefurbish,
                 comFanReplace,
-                endRefurbish,
-                endReplace,
-                coupGearRefurbish,
-                coupGearReplace,
-                roofRefurbish,
-                roofReplace,
                 subTotal,
                 finalTotal
-            );
+            );*/
 
             // Step 5: Insert into DashBoardItems
             var dashItem = new DashBoardItem

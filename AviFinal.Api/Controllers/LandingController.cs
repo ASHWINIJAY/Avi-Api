@@ -37,12 +37,116 @@ namespace AviFinal.Api.Controllers
             return Ok(locos); // returns JSON array
         }
 
+        //[Authorize]
+        //[HttpGet("validateLoco/{locoNumber}")]
+        //public async Task<IActionResult> ValidateLoco(int locoNumber)
+        //{
+        //    if (locoNumber <= 0)
+        //        return BadRequest(new { isValid = false, message = "Invalid Asset Code." });
+
+        //    // Log the connection string for debugging
+        //    //Console.WriteLine($"DEBUG: Using connection string: {_configuration.GetConnectionString("DefaultConnection")}");
+
+        //    // Check MasterLocos first
+        //    var masterLoco = await _context.MasterLocos
+        //        .AsNoTracking()
+        //        .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
+
+        //    if (masterLoco == null)
+        //        return NotFound(new { isValid = false, message = "Asset Code not found in MasterLocos." });
+
+        //    // Check if it already exists in dashboard
+        //    bool existsInDashboard = await _context.DashBoardItems
+        //        .AsNoTracking()
+        //        .AnyAsync(d => d.LocoNumber == locoNumber);
+
+        //    if (existsInDashboard)
+        //        return Ok(new { isValid = true, message = "Asset Code has already been inspected." });
+
+        //    string locoClass = masterLoco.LocoClass;
+        //    if (string.IsNullOrEmpty(locoClass))
+        //        return BadRequest(new { isValid = false, message = "Loco Class not found." });
+
+        //    // RAW SQL check in E18Locos for debugging
+        // //   var e18Rows = await _context.E18locos
+        //       // .FromSqlRaw("SELECT * FROM E18Locos WHERE AssetCode = {0}", locoNumber)
+        //        //.AsNoTracking()
+        //        //.ToListAsync();
+
+        //    //Console.WriteLine($"DEBUG: Found {e18Rows.Count} rows in E18Locos for AssetCode {locoNumber}");
+
+        //    // Take the first row if exists
+        //    //var model = e18Rows.FirstOrDefault();
+
+        //    if (masterLoco == null)
+        //        return NotFound(new { isValid = false, message = $"No E18Locos record found for AssetCode {locoNumber}." });
+
+        //    // Safe null handling for locoModel
+        //    string locoModel = "";
+        //    if (locoClass == "18E")
+        //    {
+        //        var e18Rows = await _context.E18locos
+        //        .FromSqlRaw("SELECT * FROM E18Locos WHERE AssetCode = {0}", locoNumber)
+        //        .AsNoTracking()
+        //        .ToListAsync();
+        //        var model = e18Rows.FirstOrDefault();
+        //        if (model != null)
+        //        {
+        //            locoModel = model.LocoModel?.ToString();
+        //        }
+        //    }
+        //    else if (locoClass == "D34")
+        //    {
+        //        var e18Rows = await _context.E18locos
+        //        .FromSqlRaw("SELECT * FROM D34Locos WHERE AssetCode = {0}", locoNumber)
+        //        .AsNoTracking()
+        //        .ToListAsync();
+        //        var model = e18Rows.FirstOrDefault();
+        //        if (model != null)
+        //        {
+        //            locoModel = model.LocoModel?.ToString();
+        //        }
+        //    }
+        //    else if (locoClass == "D35")
+        //    {
+        //        var e18Rows = await _context.E18locos
+        //        .FromSqlRaw("SELECT * FROM D35Locos WHERE AssetCode = {0}", locoNumber)
+        //        .AsNoTracking()
+        //        .ToListAsync();
+        //        var model = e18Rows.FirstOrDefault();
+        //        if (model != null)
+        //        {
+        //            locoModel = model.LocoModel?.ToString();
+        //        }
+        //    }
+        //    else if (locoClass == "D36")
+        //    {
+        //        var e18Rows = await _context.E18locos
+        //        .FromSqlRaw("SELECT * FROM D36Locos WHERE AssetCode = {0}", locoNumber)
+        //        .AsNoTracking()
+        //        .ToListAsync();
+        //        var model = e18Rows.FirstOrDefault();
+        //        if (model != null)
+        //        {
+        //            locoModel = model.LocoModel?.ToString();
+        //        }
+        //    }
+
+        //    //Console.WriteLine($"DEBUG: locoNumber={locoNumber}, locoClass={locoClass}, locoModel={locoModel}");
+
+        //    return Ok(new
+        //    {
+        //        isValid = true,
+        //        locoClass = locoClass,
+        //        locoModel = locoModel
+        //    });
+        //}
         [Authorize]
         [HttpGet("validateLoco/{locoNumber}")]
         public async Task<IActionResult> ValidateLoco(int locoNumber)
         {
             if (locoNumber <= 0)
-                return BadRequest(new { isValid = false, message = "Invalid Asset Code." });
+                return BadRequest(new { isValid = false, message = "Invalid Loco Number." });
 
             // Log the connection string for debugging
             //Console.WriteLine($"DEBUG: Using connection string: {_configuration.GetConnectionString("DefaultConnection")}");
@@ -53,7 +157,7 @@ namespace AviFinal.Api.Controllers
                 .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
 
             if (masterLoco == null)
-                return NotFound(new { isValid = false, message = "Asset Code not found in MasterLocos." });
+                return NotFound(new { isValid = false, message = "Loco Number not found in MasterLocos." });
 
             // Check if it already exists in dashboard
             bool existsInDashboard = await _context.DashBoardItems
@@ -61,30 +165,15 @@ namespace AviFinal.Api.Controllers
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 
             if (existsInDashboard)
-                return Ok(new { isValid = true, message = "Asset Code has already been inspected." });
+                return Ok(new { isValid = true, message = "Loco Number has already been inspected." });
 
             string locoClass = masterLoco.LocoClass;
             if (string.IsNullOrEmpty(locoClass))
                 return BadRequest(new { isValid = false, message = "Loco Class not found." });
 
-            // RAW SQL check in E18Locos for debugging
-            var e18Rows = await _context.E18locos
-                .FromSqlRaw("SELECT * FROM E18Locos WHERE AssetCode = {0}", locoNumber)
-                .AsNoTracking()
-                .ToListAsync();
-
-            //Console.WriteLine($"DEBUG: Found {e18Rows.Count} rows in E18Locos for AssetCode {locoNumber}");
-
-            // Take the first row if exists
-            var model = e18Rows.FirstOrDefault();
-
-            if (model == null)
-                return NotFound(new { isValid = false, message = $"No E18Locos record found for AssetCode {locoNumber}." });
-
-            // Safe null handling for locoModel
-            string locoModel = model.LocoModel ?? "";
-
-            //Console.WriteLine($"DEBUG: locoNumber={locoNumber}, locoClass={locoClass}, locoModel={locoModel}");
+            string locoModel = masterLoco.LocoModel;
+            if (string.IsNullOrEmpty(locoModel))
+                return BadRequest(new { isValid = false, message = "Loco Model not found." });
 
             return Ok(new
             {
@@ -93,7 +182,6 @@ namespace AviFinal.Api.Controllers
                 locoModel = locoModel
             });
         }
-
         [Authorize]
         [HttpPost("validateloco")]
         public IActionResult ValidateLoco([FromBody] LocoRequest request)

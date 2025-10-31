@@ -52,11 +52,15 @@ namespace AviFinal.Api.Controllers
             // 🔒 Handle password reset (only if new password is provided)
             if (!string.IsNullOrEmpty(request.UserPassword))
             {
-                // ✅ Option 1: Hash the password before saving (recommended)
-                user.UserPassword = BCrypt.Net.BCrypt.HashPassword(request.UserPassword);
+                string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                 password: request.UserPassword,
+                 salt: Encoding.UTF8.GetBytes("static_salt_here"), // optional static salt
+                 prf: KeyDerivationPrf.HMACSHA256,
+                 iterationCount: 10000,
+                 numBytesRequested: 256 / 8
+             ));
+                user.UserPassword = hashedPassword;
 
-                // ✅ Option 2 (if your column is plain-text, not recommended)
-                // user.Password = request.NewPassword;
             }
             await _context.SaveChangesAsync();
 

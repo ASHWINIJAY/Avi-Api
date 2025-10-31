@@ -47,6 +47,12 @@ public partial class LeaseCoUser
 
     public virtual ICollection<Ge36inspect> Ge36inspects { get; set; } = new List<Ge36inspect>();
 
+    public virtual ICollection<Gm34inspect> Gm34inspects { get; set; } = new List<Gm34inspect>();
+
+    public virtual ICollection<Gm35inspect> Gm35inspects { get; set; } = new List<Gm35inspect>();
+
+    public virtual ICollection<Gm36inspect> Gm36inspects { get; set; } = new List<Gm36inspect>();
+
     public virtual ICollection<LeftMidDoorInspect> LeftMidDoorInspects { get; set; } = new List<LeftMidDoorInspect>();
 
     public virtual ICollection<MidPanInspect> MidPanInspects { get; set; } = new List<MidPanInspect>();

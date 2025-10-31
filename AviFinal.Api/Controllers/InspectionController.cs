@@ -39,7 +39,7 @@ namespace AviFinal.Api.Controllers
             try
             {
                 // Each FinalParts table should be exposed in your DbContext:
-                // GE34FinalParts, GE35FinalParts, GE36FinalParts, E18FinalParts
+                // Ge34finalParts, Ge35finalParts, Ge36finalParts, E18FinalParts
                 if (locoModel == "GE34")
                 {
                     var parts = await _context.Ge34finalParts
@@ -47,6 +47,17 @@ namespace AviFinal.Api.Controllers
                         .OrderBy(p => p.PartId)
                         .Select(p => new { PartId = p.PartId, PartDescr = p.PartDescr })
                         .ToListAsync();
+                    return Ok(parts);
+                }
+
+                if (locoModel == "GM34")
+                {
+                    var parts = await _context.Gm34finalParts
+                        .Where(p => p.FormId.Trim() == formId)
+                        .OrderBy(p => p.PartId)
+                        .Select(p => new { PartId = p.PartId, PartDescr = p.PartDescr })
+                        .ToListAsync();
+
                     return Ok(parts);
                 }
 
@@ -60,6 +71,17 @@ namespace AviFinal.Api.Controllers
                     return Ok(parts);
                 }
 
+                if (locoModel == "GM35")
+                {
+                    var parts = await _context.Gm35finalParts
+                        .Where(p => p.FormId.Trim() == formId)
+                        .OrderBy(p => p.PartId)
+                        .Select(p => new { PartId = p.PartId, PartDescr = p.PartDescr })
+                        .ToListAsync();
+
+                    return Ok(parts);
+                }
+
                 if (locoModel == "GE36")
                 {
                     var parts = await _context.Ge36finalParts
@@ -67,6 +89,17 @@ namespace AviFinal.Api.Controllers
                         .OrderBy(p => p.PartId)
                         .Select(p => new { PartId = p.PartId, PartDescr = p.PartDescr })
                         .ToListAsync();
+                    return Ok(parts);
+                }
+
+                if (locoModel == "GM36")
+                {
+                    var parts = await _context.Gm36finalParts
+                        .Where(p => p.FormId.Trim() == formId)
+                        .OrderBy(p => p.PartId)
+                        .Select(p => new { PartId = p.PartId, PartDescr = p.PartDescr })
+                        .ToListAsync();
+
                     return Ok(parts);
                 }
 
@@ -122,14 +155,29 @@ namespace AviFinal.Api.Controllers
                     var p = await _context.Ge34finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
                     value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
                 }
+                else if (locoModel == "GM34")
+                {
+                    var p = await _context.Gm34finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
+                    value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
+                }
                 else if (locoModel == "GE35")
                 {
                     var p = await _context.Ge35finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
                     value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
                 }
+                else if (locoModel == "GM35")
+                {
+                    var p = await _context.Gm35finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
+                    value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
+                }
                 else if (locoModel == "GE36")
                 {
                     var p = await _context.Ge36finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
+                    value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
+                }
+                else if (locoModel == "GM36")
+                {
+                    var p = await _context.Gm36finalParts.FirstOrDefaultAsync(x => x.PartId == partId);
                     value = (field == "refurbish") ? p?.RefurbishValue : (field == "missing") ? p?.MissingValue : p?.ReplaceValue;
                 }
                 else if (locoModel == "E18")
@@ -210,7 +258,7 @@ namespace AviFinal.Api.Controllers
                 return StatusCode(500, "Error saving file.");
             }
         }
-        
+
         [HttpPost]
         public IActionResult DeletePhoto([FromBody] dynamic data)
         {
@@ -357,6 +405,29 @@ namespace AviFinal.Api.Controllers
                         };
                         _context.Ge34inspects.Add(ent);
                     }
+                    else if (locoModelUpper == "GM34")
+                    {
+                        var ent = new Gm34inspect
+                        {
+                            UserId = r.UserId,
+                            LocoNumber = r.LocoNumber,
+                            LocoClass = r.LocoClass ?? "",
+                            LocoModel = r.LocoModel,
+                            FormId = r.FormId,
+                            PartId = r.PartId,
+                            PartDescr = r.PartDescr ?? "",
+                            GoodCheck = checks["GoodCheck"],
+                            RefurbishCheck = checks["RefurbishCheck"],
+                            MissingCheck = checks["MissingCheck"],
+                            ReplaceCheck = checks["DamageCheck"],
+                            RefurbishValue = string.IsNullOrWhiteSpace(r.RefurbishValue) ? "0.00" : r.RefurbishValue,
+                            MissingValue = string.IsNullOrWhiteSpace(r.MissingValue) ? "0.00" : r.MissingValue,
+                            ReplaceValue = string.IsNullOrWhiteSpace(r.ReplaceValue) ? "0.00" : r.ReplaceValue,
+                            DamagePhoto = string.IsNullOrWhiteSpace(r.DamagePhoto) ? null : r.DamagePhoto,
+                            MissingPhoto = string.IsNullOrWhiteSpace(r.MissingPhoto) ? null : r.MissingPhoto
+                        };
+                        _context.Gm34inspects.Add(ent);
+                    }
                     else if (locoModelUpper == "GE35")
                     {
                         var ent = new Ge35inspect
@@ -379,6 +450,29 @@ namespace AviFinal.Api.Controllers
                             MissingPhoto = string.IsNullOrWhiteSpace(r.MissingPhoto) ? null : r.MissingPhoto
                         };
                         _context.Ge35inspects.Add(ent);
+                    }
+                    else if (locoModelUpper == "GM35")
+                    {
+                        var ent = new Gm35inspect
+                        {
+                            UserId = r.UserId,
+                            LocoNumber = r.LocoNumber,
+                            LocoClass = r.LocoClass ?? "",
+                            LocoModel = r.LocoModel,
+                            FormId = r.FormId,
+                            PartId = r.PartId,
+                            PartDescr = r.PartDescr ?? "",
+                            GoodCheck = checks["GoodCheck"],
+                            RefurbishCheck = checks["RefurbishCheck"],
+                            MissingCheck = checks["MissingCheck"],
+                            ReplaceCheck = checks["DamageCheck"],
+                            RefurbishValue = string.IsNullOrWhiteSpace(r.RefurbishValue) ? "0.00" : r.RefurbishValue,
+                            MissingValue = string.IsNullOrWhiteSpace(r.MissingValue) ? "0.00" : r.MissingValue,
+                            ReplaceValue = string.IsNullOrWhiteSpace(r.ReplaceValue) ? "0.00" : r.ReplaceValue,
+                            DamagePhoto = string.IsNullOrWhiteSpace(r.DamagePhoto) ? null : r.DamagePhoto,
+                            MissingPhoto = string.IsNullOrWhiteSpace(r.MissingPhoto) ? null : r.MissingPhoto
+                        };
+                        _context.Gm35inspects.Add(ent);
                     }
                     else if (locoModelUpper == "GE36")
                     {
@@ -403,6 +497,29 @@ namespace AviFinal.Api.Controllers
                         };
                         _context.Ge36inspects.Add(ent);
                     }
+                    else if (locoModelUpper == "GM36")
+                    {
+                        var ent = new Gm36inspect
+                        {
+                            UserId = r.UserId,
+                            LocoNumber = r.LocoNumber,
+                            LocoClass = r.LocoClass ?? "",
+                            LocoModel = r.LocoModel,
+                            FormId = r.FormId,
+                            PartId = r.PartId,
+                            PartDescr = r.PartDescr ?? "",
+                            GoodCheck = checks["GoodCheck"],
+                            RefurbishCheck = checks["RefurbishCheck"],
+                            MissingCheck = checks["MissingCheck"],
+                            ReplaceCheck = checks["DamageCheck"],
+                            RefurbishValue = string.IsNullOrWhiteSpace(r.RefurbishValue) ? "0.00" : r.RefurbishValue,
+                            MissingValue = string.IsNullOrWhiteSpace(r.MissingValue) ? "0.00" : r.MissingValue,
+                            ReplaceValue = string.IsNullOrWhiteSpace(r.ReplaceValue) ? "0.00" : r.ReplaceValue,
+                            DamagePhoto = string.IsNullOrWhiteSpace(r.DamagePhoto) ? null : r.DamagePhoto,
+                            MissingPhoto = string.IsNullOrWhiteSpace(r.MissingPhoto) ? null : r.MissingPhoto
+                        };
+                        _context.Gm36inspects.Add(ent);
+                    }
                     else
                     {
                         errors.Add($"Unsupported LocoModel: {r.LocoModel} for PartId {r.PartId}");
@@ -426,24 +543,24 @@ namespace AviFinal.Api.Controllers
         }
 
         // DTO used by SubmitInspection
-    public class InspectionRowDto
-    {
-        public string UserId { get; set; } = null!;
-        public int LocoNumber { get; set; }
-        public string? LocoClass { get; set; }
-        public string LocoModel { get; set; } = null!;
-        public string FormId { get; set; } = null!;
-        public string PartId { get; set; } = null!;
-        public string? PartDescr { get; set; }
-        public string? GoodCheck { get; set; } // expected "Yes"/"No" or null
-        public string? RefurbishCheck { get; set; }
-        public string? MissingCheck { get; set; }
-        public string? DamageCheck { get; set; }
-        public string? RefurbishValue { get; set; }
-        public string? MissingValue { get; set; }
-        public string? ReplaceValue { get; set; }
-        public string? DamagePhoto { get; set; } // relative url if already uploaded
-        public string? MissingPhoto { get; set; } // relative url if already uploaded
-    }
+        public class InspectionRowDto
+        {
+            public string UserId { get; set; } = null!;
+            public int LocoNumber { get; set; }
+            public string? LocoClass { get; set; }
+            public string LocoModel { get; set; } = null!;
+            public string FormId { get; set; } = null!;
+            public string PartId { get; set; } = null!;
+            public string? PartDescr { get; set; }
+            public string? GoodCheck { get; set; } // expected "Yes"/"No" or null
+            public string? RefurbishCheck { get; set; }
+            public string? MissingCheck { get; set; }
+            public string? DamageCheck { get; set; }
+            public string? RefurbishValue { get; set; }
+            public string? MissingValue { get; set; }
+            public string? ReplaceValue { get; set; }
+            public string? DamagePhoto { get; set; } // relative url if already uploaded
+            public string? MissingPhoto { get; set; } // relative url if already uploaded
+        }
     }
 }

@@ -73,6 +73,8 @@ public partial class MasterLoco
 
     public string? CompareLocosAgainst695List { get; set; }
 
+    public string? LocoModel { get; set; }
+
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();
@@ -112,6 +114,12 @@ public partial class MasterLoco
     public virtual ICollection<Ge35inspect> Ge35inspects { get; set; } = new List<Ge35inspect>();
 
     public virtual ICollection<Ge36inspect> Ge36inspects { get; set; } = new List<Ge36inspect>();
+
+    public virtual ICollection<Gm34inspect> Gm34inspects { get; set; } = new List<Gm34inspect>();
+
+    public virtual ICollection<Gm35inspect> Gm35inspects { get; set; } = new List<Gm35inspect>();
+
+    public virtual ICollection<Gm36inspect> Gm36inspects { get; set; } = new List<Gm36inspect>();
 
     public virtual ICollection<InfoLoco> InfoLocos { get; set; } = new List<InfoLoco>();
 
