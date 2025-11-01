@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class Ge36sninspect
+public partial class WagonPartsInspect
 {
     public int Id { get; set; }
 
-    public int LocoNumber { get; set; }
+    public int WagonNumber { get; set; }
 
-    public string LocoClass { get; set; } = null!;
+    public string WagonGroup { get; set; } = null!;
 
-    public string LocoModel { get; set; } = null!;
+    public string WagonType { get; set; } = null!;
 
     public string FormId { get; set; } = null!;
 

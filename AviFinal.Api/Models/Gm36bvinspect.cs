@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class Ge36sninspect
+public partial class Gm36bvinspect
 {
     public int Id { get; set; }
 

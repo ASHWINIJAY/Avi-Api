@@ -15,10 +15,15 @@ public partial class AviDbContext : DbContext
     {
     }
 
+    public virtual DbSet<AirBrakeFinalPart> AirBrakeFinalParts { get; set; }
+
+    public virtual DbSet<AirBrakePartsInspect> AirBrakePartsInspects { get; set; }
+
     public virtual DbSet<BatSwitchInspect> BatSwitchInspects { get; set; }
-    public virtual DbSet<GE36SNInspect> GE36SNInspects { get; set; }
 
     public virtual DbSet<BotLeftPanInspect> BotLeftPanInspects { get; set; }
+
+    public virtual DbSet<BottomDischargeInspect> BottomDischargeInspects { get; set; }
 
     public virtual DbSet<CabLocoInspect> CabLocoInspects { get; set; }
 
@@ -41,6 +46,8 @@ public partial class AviDbContext : DbContext
     public virtual DbSet<D36loco> D36locos { get; set; }
 
     public virtual DbSet<DashBoardItem> DashBoardItems { get; set; }
+
+    public virtual DbSet<DoorsInspect> DoorsInspects { get; set; }
 
     public virtual DbSet<E18bdinspect> E18bdinspects { get; set; }
 
@@ -85,6 +92,8 @@ public partial class AviDbContext : DbContext
     public virtual DbSet<EndDeckInspect> EndDeckInspects { get; set; }
 
     public virtual DbSet<EngineDeckInspect> EngineDeckInspects { get; set; }
+
+    public virtual DbSet<FloorInspect> FloorInspects { get; set; }
 
     public virtual DbSet<FrontLocoInspect> FrontLocoInspects { get; set; }
 
@@ -172,6 +181,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<Ge36rfinspect> Ge36rfinspects { get; set; }
 
+    public virtual DbSet<Ge36sninspect> Ge36sninspects { get; set; }
+
     public virtual DbSet<Gm34bdinspect> Gm34bdinspects { get; set; }
 
     public virtual DbSet<Gm34blinspect> Gm34blinspects { get; set; }
@@ -208,21 +219,81 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<Gm34trinspect> Gm34trinspects { get; set; }
 
+    public virtual DbSet<Gm35blinspect> Gm35blinspects { get; set; }
+
+    public virtual DbSet<Gm35bsinspect> Gm35bsinspects { get; set; }
+
+    public virtual DbSet<Gm35cainspect> Gm35cainspects { get; set; }
+
+    public virtual DbSet<Gm35cbinspect> Gm35cbinspects { get; set; }
+
+    public virtual DbSet<Gm35cfinspect> Gm35cfinspects { get; set; }
+
+    public virtual DbSet<Gm35clinspect> Gm35clinspects { get; set; }
+
+    public virtual DbSet<Gm35deinspect> Gm35deinspects { get; set; }
+
+    public virtual DbSet<Gm35edinspect> Gm35edinspects { get; set; }
+
+    public virtual DbSet<Gm35elinspect> Gm35elinspects { get; set; }
+
     public virtual DbSet<Gm35finalPart> Gm35finalParts { get; set; }
+
+    public virtual DbSet<Gm35flinspect> Gm35flinspects { get; set; }
 
     public virtual DbSet<Gm35inspect> Gm35inspects { get; set; }
 
+    public virtual DbSet<Gm35lminspect> Gm35lminspects { get; set; }
+
+    public virtual DbSet<Gm35mpinspect> Gm35mpinspects { get; set; }
+
+    public virtual DbSet<Gm35rfinspect> Gm35rfinspects { get; set; }
+
+    public virtual DbSet<Gm35sninspect> Gm35sninspects { get; set; }
+
+    public virtual DbSet<Gm35trinspect> Gm35trinspects { get; set; }
+
     public virtual DbSet<Gm35wainspect> Gm35wainspects { get; set; }
+
+    public virtual DbSet<Gm36bpinspect> Gm36bpinspects { get; set; }
+
+    public virtual DbSet<Gm36bsinspect> Gm36bsinspects { get; set; }
+
+    public virtual DbSet<Gm36bvinspect> Gm36bvinspects { get; set; }
+
+    public virtual DbSet<Gm36cainspect> Gm36cainspects { get; set; }
+
+    public virtual DbSet<Gm36cbinspect> Gm36cbinspects { get; set; }
+
+    public virtual DbSet<Gm36clinspect> Gm36clinspects { get; set; }
+
+    public virtual DbSet<Gm36deinspect> Gm36deinspects { get; set; }
+
+    public virtual DbSet<Gm36ecinspect> Gm36ecinspects { get; set; }
 
     public virtual DbSet<Gm36finalPart> Gm36finalParts { get; set; }
 
+    public virtual DbSet<Gm36flinspect> Gm36flinspects { get; set; }
+
     public virtual DbSet<Gm36inspect> Gm36inspects { get; set; }
+
+    public virtual DbSet<Gm36lcinspect> Gm36lcinspects { get; set; }
+
+    public virtual DbSet<Gm36lminspect> Gm36lminspects { get; set; }
+
+    public virtual DbSet<Gm36rfinspect> Gm36rfinspects { get; set; }
+
+    public virtual DbSet<Gm36sninspect> Gm36sninspects { get; set; }
+
+    public virtual DbSet<Gm36trinspect> Gm36trinspects { get; set; }
 
     public virtual DbSet<Gm36wainspect> Gm36wainspects { get; set; }
 
     public virtual DbSet<InfoLoco> InfoLocos { get; set; }
 
     public virtual DbSet<InfoLocosFinal> InfoLocosFinals { get; set; }
+
+    public virtual DbSet<InternalFinalPart> InternalFinalParts { get; set; }
 
     public virtual DbSet<LeaseCoUser> LeaseCoUsers { get; set; }
 
@@ -240,21 +311,97 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<ShortNoseInspect> ShortNoseInspects { get; set; }
 
+    public virtual DbSet<StanchionsInspect> StanchionsInspects { get; set; }
+
+    public virtual DbSet<TankersInspect> TankersInspects { get; set; }
+
     public virtual DbSet<Team> Teams { get; set; }
 
     public virtual DbSet<TeamInspector> TeamInspectors { get; set; }
 
     public virtual DbSet<TopRightPanInspect> TopRightPanInspects { get; set; }
 
+    public virtual DbSet<TwistlocksInspect> TwistlocksInspects { get; set; }
+
+    public virtual DbSet<VacBrakeFinalPart> VacBrakeFinalParts { get; set; }
+
+    public virtual DbSet<VacBrakePartsInspect> VacBrakePartsInspects { get; set; }
+
+    public virtual DbSet<WagonDashboard> WagonDashboards { get; set; }
+
+    public virtual DbSet<WagonFinalPart> WagonFinalParts { get; set; }
+
     public virtual DbSet<WagonGroup> WagonGroups { get; set; }
 
     public virtual DbSet<WagonInfoCapture> WagonInfoCaptures { get; set; }
+
+    public virtual DbSet<WagonPartsInspect> WagonPartsInspects { get; set; }
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AirBrakeFinalPart>(entity =>
+        {
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<AirBrakePartsInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__AirBrake__3214EC27FBB6D888");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<BatSwitchInspect>(entity =>
         {
             entity.HasKey(e => e.ItemId);
@@ -349,6 +496,41 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BotLeftPanInspects_LeaseCoUsers");
+        });
+
+        modelBuilder.Entity<BottomDischargeInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BottomDi__3214EC27E686597E");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<CabLocoInspect>(entity =>
@@ -738,6 +920,41 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.LocoNumber)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DashBoardItems");
+        });
+
+        modelBuilder.Entity<DoorsInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__DoorsIns__3214EC2777278499");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<E18bdinspect>(entity =>
@@ -1647,6 +1864,41 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EngineDeckInspects_LeaseCoUsers");
+        });
+
+        modelBuilder.Entity<FloorInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FloorIns__3214EC27B3B41DE4");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<FrontLocoInspect>(entity =>
@@ -3429,46 +3681,43 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
-        modelBuilder.Entity<GE36SNInspect>(entity =>
-        {
-            entity.HasKey(e => e.ID).HasName("PK__GE36SNIn__3214EC273B4B4E04");
 
-            entity.Property(e => e.FormID)
-                .IsRequired()
+        modelBuilder.Entity<Ge36sninspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GE36SNIn__3214EC2733FE329C");
+
+            entity.ToTable("GE36SNInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
                 .HasMaxLength(10)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasColumnName("FormID");
             entity.Property(e => e.GoodCheck)
-                .IsRequired()
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.LocoClass)
-                .IsRequired()
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.LocoModel)
-                .IsRequired()
                 .HasMaxLength(80)
                 .IsUnicode(false);
             entity.Property(e => e.MissingCheck)
-                .IsRequired()
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.PartDescr)
-                .IsRequired()
                 .HasMaxLength(300)
                 .IsUnicode(false);
-            entity.Property(e => e.PartID)
-                .IsRequired()
+            entity.Property(e => e.PartId)
                 .HasMaxLength(10)
-                .IsUnicode(false);
+                .IsUnicode(false)
+                .HasColumnName("PartID");
             entity.Property(e => e.RefurbishCheck)
-                .IsRequired()
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.RefurbishValue).HasMaxLength(100);
             entity.Property(e => e.ReplaceCheck)
-                .IsRequired()
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
@@ -4215,6 +4464,375 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
+        modelBuilder.Entity<Gm35blinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35BLIn__3214EC27BC255F9D");
+
+            entity.ToTable("GM35BLInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35bsinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35BSIn__3214EC27737E78CD");
+
+            entity.ToTable("GM35BSInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35cainspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35CAIn__3214EC27D94CE393");
+
+            entity.ToTable("GM35CAInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35cbinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35CBIn__3214EC278811D7F2");
+
+            entity.ToTable("GM35CBInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35cfinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35CFIn__3214EC2781D46C58");
+
+            entity.ToTable("GM35CFInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35clinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35CLIn__3214EC275A6C0145");
+
+            entity.ToTable("GM35CLInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35deinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35DEIn__3214EC27C78B2990");
+
+            entity.ToTable("GM35DEInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35edinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35EDIn__3214EC272BD075BC");
+
+            entity.ToTable("GM35EDInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35elinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35ELIn__3214EC27A3A29251");
+
+            entity.ToTable("GM35ELInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
         modelBuilder.Entity<Gm35finalPart>(entity =>
         {
             entity.ToTable("GM35FinalParts");
@@ -4238,6 +4856,47 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("PartID");
             entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35flinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35FLIn__3214EC270BFA6A7B");
+
+            entity.ToTable("GM35FLInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
@@ -4300,11 +4959,544 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_GM35_User");
         });
 
+        modelBuilder.Entity<Gm35lminspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35LMIn__3214EC279F06B783");
+
+            entity.ToTable("GM35LMInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35mpinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35MPIn__3214EC2716EC08CE");
+
+            entity.ToTable("GM35MPInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35rfinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35RFIn__3214EC279F2BA3A2");
+
+            entity.ToTable("GM35RFInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35sninspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35SNIn__3214EC27049AF422");
+
+            entity.ToTable("GM35SNInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm35trinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM35TRIn__3214EC27F1E3124A");
+
+            entity.ToTable("GM35TRInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
         modelBuilder.Entity<Gm35wainspect>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__GM35WAIn__3214EC27236CFDB6");
 
             entity.ToTable("GM35WAInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36bpinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36BPIn__3214EC2799CAC7F8");
+
+            entity.ToTable("GM36BPInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36bsinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36BSIn__3214EC272CFA249E");
+
+            entity.ToTable("GM36BSInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36bvinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36BVIn__3214EC275183B5A0");
+
+            entity.ToTable("GM36BVInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36cainspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36CAIn__3214EC27770E48EC");
+
+            entity.ToTable("GM36CAInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36cbinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36CBIn__3214EC27C1277FA9");
+
+            entity.ToTable("GM36CBInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36clinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36CLIn__3214EC27FFA189AA");
+
+            entity.ToTable("GM36CLInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36deinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36DEIn__3214EC27406761B2");
+
+            entity.ToTable("GM36DEInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36ecinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36ECIn__3214EC276BD49E2E");
+
+            entity.ToTable("GM36ECInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.FormId)
@@ -4367,6 +5559,47 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
+        modelBuilder.Entity<Gm36flinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36FLIn__3214EC275B1A8D94");
+
+            entity.ToTable("GM36FLInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
         modelBuilder.Entity<Gm36inspect>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__GM36Insp__3214EC2786F7E1BD");
@@ -4424,6 +5657,211 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GM36_User");
+        });
+
+        modelBuilder.Entity<Gm36lcinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36LCIn__3214EC277F104086");
+
+            entity.ToTable("GM36LCInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36lminspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36LMIn__3214EC2792B75C6E");
+
+            entity.ToTable("GM36LMInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36rfinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36RFIn__3214EC278D719077");
+
+            entity.ToTable("GM36RFInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36sninspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36SNIn__3214EC27E624D92E");
+
+            entity.ToTable("GM36SNInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Gm36trinspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__GM36TRIn__3214EC27B81475A8");
+
+            entity.ToTable("GM36TRInspects");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Gm36wainspect>(entity =>
@@ -4550,6 +5988,26 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.LocoNumber)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_InfoLocosFinal_MasterLocos");
+        });
+
+        modelBuilder.Entity<InternalFinalPart>(entity =>
+        {
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<LeaseCoUser>(entity =>
@@ -4935,6 +6393,76 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_ShortNoseInspects_LeaseCoUsers");
         });
 
+        modelBuilder.Entity<StanchionsInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Stanchio__3214EC276621156E");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<TankersInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__TankersI__3214EC27F56C1141");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<Team>(entity =>
         {
             entity.HasKey(e => e.TeamId).HasName("PK__Teams__123AE7B979585803");
@@ -5019,6 +6547,168 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_TopRightPanInspects_LeaseCoUsers");
         });
 
+        modelBuilder.Entity<TwistlocksInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Twistloc__3214EC275F0B0EE9");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<VacBrakeFinalPart>(entity =>
+        {
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<VacBrakePartsInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__VacBrake__3214EC2798A78EB9");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<WagonDashboard>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__WagonDas__3214EC27D940424E");
+
+            entity.ToTable("WagonDashboard");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.BarrelDate).HasMaxLength(50);
+            entity.Property(e => e.BarrelLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.BodyDamage)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.BrakeDate).HasMaxLength(50);
+            entity.Property(e => e.BrakeLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.DateAssessed).HasMaxLength(50);
+            entity.Property(e => e.InspectorId)
+                .HasMaxLength(5)
+                .IsUnicode(false)
+                .HasColumnName("InspectorID");
+            entity.Property(e => e.InspectorName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LiftDate).HasMaxLength(50);
+            entity.Property(e => e.LiftLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.TimeAssessed).HasMaxLength(50);
+            entity.Property(e => e.UploadDate).HasMaxLength(50);
+            entity.Property(e => e.UploadStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<WagonFinalPart>(entity =>
+        {
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        });
+
         modelBuilder.Entity<WagonGroup>(entity =>
         {
             entity.Property(e => e.Id)
@@ -5084,6 +6774,45 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.WagonType)
                 .HasMaxLength(30)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<WagonPartsInspect>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__WagonPar__3214EC2762228DF7");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.FormId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("FormID");
+            entity.Property(e => e.GoodCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.PartDescr)
+                .HasMaxLength(300)
+                .IsUnicode(false);
+            entity.Property(e => e.PartId)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("PartID");
+            entity.Property(e => e.RefurbishCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceCheck)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
                 .IsUnicode(false);
         });
 

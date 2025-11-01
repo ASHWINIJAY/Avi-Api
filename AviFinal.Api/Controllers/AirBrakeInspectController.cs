@@ -10,13 +10,13 @@ namespace AviAppFinal.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GE36SN001Controller : ControllerBase
+    public class AirBrakeInspectController : ControllerBase
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<GE36SN001Controller> _logger;
+        private readonly ILogger<AirBrakeInspectController> _logger;
 
-        public GE36SN001Controller(AviDbContext context, IWebHostEnvironment env, ILogger<GE36SN001Controller> logger)
+        public AirBrakeInspectController(AviDbContext context, IWebHostEnvironment env, ILogger<AirBrakeInspectController> logger)
         {
             _context = context;
             _env = env;
@@ -31,7 +31,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var partsList = await _context.Ge36finalParts
+                var partsList = await _context.AirBrakeFinalParts
                     .Where(p => p.FormId == formID)
                     .ToListAsync();
 
@@ -72,7 +72,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var part = await _context.Ge36finalParts
+                var part = await _context.AirBrakeFinalParts
                     .FirstOrDefaultAsync(p => p.PartId == partId);
 
                 if (part == null) return NotFound();
@@ -95,14 +95,14 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpPost("UploadPhoto")]
-        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string locoNumber, [FromForm] string locoModel)
+        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string wagonNumber, [FromForm] string wagonGroup)
         {
             if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partId))
                 return BadRequest("Missing required parameters.");
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "GE36", formId.ToUpper());
+                string baseFolder = Path.Combine(_env.WebRootPath, "ABP", formId.ToUpper());
 
                 string subFolder = photoType.ToLower() switch
                 {
@@ -119,9 +119,9 @@ namespace AviAppFinal.Server.Controllers
 
                 // Generate file name: LocoNumber_LocoModel_PhotoType_yyyyMMdd_HHmmss.ext
                 string fileExtension = Path.GetExtension(file.FileName);
-                string sanitizedLocoModel = locoModel.Replace(" ", "_"); // optional
+                string sanitizedWagonGroup = wagonGroup.Replace(" ", "_"); // optional
                 string sanitizedPhotoType = photoType.Equals("damage", StringComparison.OrdinalIgnoreCase) ? "Damage" : "Missing";
-                string fileName = $"{locoNumber}_{sanitizedLocoModel}_{sanitizedPhotoType}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
+                string fileName = $"{wagonNumber}_{sanitizedWagonGroup}_{sanitizedPhotoType}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
 
                 string fullPath = Path.Combine(fullFolderPath, fileName);
 
@@ -132,7 +132,7 @@ namespace AviAppFinal.Server.Controllers
                 }
 
                 // Return relative path for front-end
-                string relativePath = Path.Combine("GE36", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                string relativePath = Path.Combine("ABP", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
                 return Ok(new { path = relativePath });
             }
             catch (Exception ex)
@@ -174,11 +174,11 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        public class GE36SN001InspectDto
+        public class AirBrakeInspectDto
         {
-            public int LocoNumber { get; set; }
-            public string LocoClass { get; set; } = null!;
-            public string? LocoModel { get; set; }
+            public int WagonNumber { get; set; }
+            public string WagonGroup { get; set; } = null!;
+            public string? WagonType { get; set; }
             public string FormId { get; set; } = null!;
             public string PartId { get; set; } = null!;
             public string PartDescr { get; set; } = null!;
@@ -194,18 +194,18 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<GE36SN001InspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<AirBrakeInspectDto> dtos)
         {
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
 
             try
             {
-                var entities = dtos.Select(d => new Ge36sninspect
+                var entities = dtos.Select(d => new AirBrakePartsInspect
                 {
-                    LocoNumber = d.LocoNumber,
-                    LocoClass = d.LocoClass ?? "",
-                    LocoModel = d.LocoModel ?? "",
+                    WagonNumber = d.WagonNumber,
+                    WagonGroup = d.WagonGroup ?? "",
+                    WagonType = d.WagonType ?? "",
                     FormId = d.FormId ?? "",
                     PartId = d.PartId ?? "",
                     PartDescr = d.PartDescr ?? "",
@@ -221,10 +221,25 @@ namespace AviAppFinal.Server.Controllers
                 }).ToList();
 
                 // Bulk insert
-                await _context.Ge36sninspects.AddRangeAsync(entities);
+                await _context.AirBrakePartsInspects.AddRangeAsync(entities);
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                var wagonNumber = dtos.FirstOrDefault()?.WagonNumber;
+
+                if (wagonNumber == null)
+                {
+                    return BadRequest("Wagon number missing.");
+                }
+
+                var brakeType = await _context.WagonInfoCaptures
+               .Where(w => w.WagonNumber == wagonNumber)
+               .Select(w => w.BrakeType)
+               .FirstOrDefaultAsync();
+
+                if (string.IsNullOrEmpty(brakeType))
+                    return Ok(new { message = "Inspection saved, but Brake Type not found.", brakeType = (string?)null });
+
+                return Ok(new {brakeType});
             }
             catch (Exception ex)
             {

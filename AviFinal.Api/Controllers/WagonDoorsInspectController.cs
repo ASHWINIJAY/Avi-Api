@@ -10,13 +10,13 @@ namespace AviAppFinal.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GE36SN001Controller : ControllerBase
+    public class WagonDoorsInspectController : ControllerBase
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<GE36SN001Controller> _logger;
+        private readonly ILogger<WagonDoorsInspectController> _logger;
 
-        public GE36SN001Controller(AviDbContext context, IWebHostEnvironment env, ILogger<GE36SN001Controller> logger)
+        public WagonDoorsInspectController(AviDbContext context, IWebHostEnvironment env, ILogger<WagonDoorsInspectController> logger)
         {
             _context = context;
             _env = env;
@@ -31,7 +31,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var partsList = await _context.Ge36finalParts
+                var partsList = await _context.InternalFinalParts
                     .Where(p => p.FormId == formID)
                     .ToListAsync();
 
@@ -43,7 +43,7 @@ namespace AviAppFinal.Server.Controllers
                     .OrderBy(p =>
                     {
                         // Extract numeric part of PartId (e.g., "PRT12" → 12)
-                        var numPart = new string(p.PartId?.Where(char.IsDigit).ToArray());
+                        var numPart = new string(p.PartType?.Where(char.IsDigit).ToArray());
                         return int.TryParse(numPart, out int n) ? n : int.MaxValue;
                     })
                     .ToList();
@@ -51,7 +51,7 @@ namespace AviAppFinal.Server.Controllers
                 // Step 3: Project and return
                 var result = orderedParts.Select(p => new
                 {
-                    PartID = p.PartId,
+                    PartType = p.PartType,
                     PartDescr = p.PartDescr
                 });
 
@@ -65,15 +65,15 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpGet("getPartCost")]
-        public async Task<IActionResult> GetPartCost(string partId, string field)
+        public async Task<IActionResult> GetPartCost(string partType, string field)
         {
-            if (string.IsNullOrWhiteSpace(partId) || string.IsNullOrWhiteSpace(field))
-                return BadRequest("partId and field are required.");
+            if (string.IsNullOrWhiteSpace(partType) || string.IsNullOrWhiteSpace(field))
+                return BadRequest("partType and field are required.");
 
             try
             {
-                var part = await _context.Ge36finalParts
-                    .FirstOrDefaultAsync(p => p.PartId == partId);
+                var part = await _context.InternalFinalParts
+                    .FirstOrDefaultAsync(p => p.PartType == partType);
 
                 if (part == null) return NotFound();
 
@@ -89,20 +89,20 @@ namespace AviAppFinal.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetPartCost failed for {partId}", partId);
+                _logger.LogError(ex, "GetPartCost failed for {partType}", partType);
                 return StatusCode(500, "Error getting part cost.");
             }
         }
 
         [HttpPost("UploadPhoto")]
-        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string locoNumber, [FromForm] string locoModel)
+        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partType, [FromForm] string photoType, [FromForm] string wagonNumber, [FromForm] string wagonGroup)
         {
-            if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partId))
+            if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partType))
                 return BadRequest("Missing required parameters.");
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "GE36", formId.ToUpper());
+                string baseFolder = Path.Combine(_env.WebRootPath, "DRS", formId.ToUpper());
 
                 string subFolder = photoType.ToLower() switch
                 {
@@ -119,9 +119,9 @@ namespace AviAppFinal.Server.Controllers
 
                 // Generate file name: LocoNumber_LocoModel_PhotoType_yyyyMMdd_HHmmss.ext
                 string fileExtension = Path.GetExtension(file.FileName);
-                string sanitizedLocoModel = locoModel.Replace(" ", "_"); // optional
+                string sanitizedWagonGroup = wagonGroup.Replace(" ", "_"); // optional
                 string sanitizedPhotoType = photoType.Equals("damage", StringComparison.OrdinalIgnoreCase) ? "Damage" : "Missing";
-                string fileName = $"{locoNumber}_{sanitizedLocoModel}_{sanitizedPhotoType}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
+                string fileName = $"{wagonNumber}_{sanitizedWagonGroup}_{sanitizedPhotoType}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
 
                 string fullPath = Path.Combine(fullFolderPath, fileName);
 
@@ -132,12 +132,12 @@ namespace AviAppFinal.Server.Controllers
                 }
 
                 // Return relative path for front-end
-                string relativePath = Path.Combine("GE36", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                string relativePath = Path.Combine("DRS", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
                 return Ok(new { path = relativePath });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Photo upload failed for part {PartId}", partId);
+                _logger.LogError(ex, "Photo upload failed for part {PartType}", partType);
                 return StatusCode(500, "Photo upload failed.");
             }
         }
@@ -174,18 +174,18 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        public class GE36SN001InspectDto
+        public class WagonDoorInspectDto
         {
-            public int LocoNumber { get; set; }
-            public string LocoClass { get; set; } = null!;
-            public string? LocoModel { get; set; }
+            public int WagonNumber { get; set; }
+            public string WagonGroup { get; set; } = null!;
+            public string? WagonType { get; set; }
             public string FormId { get; set; } = null!;
-            public string PartId { get; set; } = null!;
             public string PartDescr { get; set; } = null!;
             public string GoodCheck { get; set; } = null!;
             public string RefurbishCheck { get; set; } = null!;
             public string MissingCheck { get; set; } = null!;
             public string DamageCheck { get; set; } = null!;
+            public int DoorQty { get; set; }
             public string? RefurbishValue { get; set; }
             public string? MissingValue { get; set; }
             public string? MissingPhoto { get; set; }
@@ -194,20 +194,19 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<GE36SN001InspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<WagonDoorInspectDto> dtos)
         {
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
 
             try
             {
-                var entities = dtos.Select(d => new Ge36sninspect
+                var entities = dtos.Select(d => new DoorsInspect
                 {
-                    LocoNumber = d.LocoNumber,
-                    LocoClass = d.LocoClass ?? "",
-                    LocoModel = d.LocoModel ?? "",
+                    WagonNumber = d.WagonNumber,
+                    WagonGroup = d.WagonGroup ?? "",
+                    WagonType = d.WagonType ?? "",
                     FormId = d.FormId ?? "",
-                    PartId = d.PartId ?? "",
                     PartDescr = d.PartDescr ?? "",
                     GoodCheck = d.GoodCheck ?? "No",
                     RefurbishCheck = d.RefurbishCheck ?? "No",
@@ -217,11 +216,12 @@ namespace AviAppFinal.Server.Controllers
                     MissingValue = d.MissingValue,
                     ReplaceValue = d.ReplaceValue,
                     MissingPhoto = d.MissingPhoto,
-                    ReplacePhoto = d.DamagePhoto
+                    ReplacePhoto = d.DamagePhoto,
+                    DoorQty = d.DoorQty
                 }).ToList();
 
                 // Bulk insert
-                await _context.Ge36sninspects.AddRangeAsync(entities);
+                await _context.DoorsInspects.AddRangeAsync(entities);
                 await _context.SaveChangesAsync();
 
                 return Ok();

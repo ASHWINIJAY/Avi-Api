@@ -3,19 +3,17 @@ using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class Ge36sninspect
+public partial class BottomDischargeInspect
 {
     public int Id { get; set; }
 
-    public int LocoNumber { get; set; }
+    public int WagonNumber { get; set; }
 
-    public string LocoClass { get; set; } = null!;
+    public string WagonGroup { get; set; } = null!;
 
-    public string LocoModel { get; set; } = null!;
+    public string WagonType { get; set; } = null!;
 
     public string FormId { get; set; } = null!;
-
-    public string PartId { get; set; } = null!;
 
     public string PartDescr { get; set; } = null!;
 
@@ -36,4 +34,6 @@ public partial class Ge36sninspect
     public string? ReplaceValue { get; set; }
 
     public string? ReplacePhoto { get; set; }
+
+    public int MechanismQty { get; set; }
 }

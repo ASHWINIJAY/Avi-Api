@@ -1,0 +1,59 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace AviFinal.Api.Models;
+
+public partial class WagonDashboard
+{
+    public int Id { get; set; }
+
+    public string InspectorId { get; set; } = null!;
+
+    public string InspectorName { get; set; } = null!;
+
+    public int WagonNumber { get; set; }
+
+    public string WagonGroup { get; set; } = null!;
+
+    public string WagonType { get; set; } = null!;
+
+    public string DateAssessed { get; set; } = null!;
+
+    public string TimeAssessed { get; set; } = null!;
+
+    public string BodyDamage { get; set; } = null!;
+
+    public string? BodyPhotos { get; set; }
+
+    public string? LiftPhoto { get; set; }
+
+    public string? LiftDate { get; set; }
+
+    public string? LiftLapsed { get; set; }
+
+    public string? BarrelPhoto { get; set; }
+
+    public string? BarrelDate { get; set; }
+
+    public string? BarrelLapsed { get; set; }
+
+    public string? BrakePhoto { get; set; }
+
+    public string? BrakeDate { get; set; }
+
+    public string? BrakeLapsed { get; set; }
+
+    public string RefurbishValue { get; set; } = null!;
+
+    public string MissingValue { get; set; } = null!;
+
+    public string ReplaceValue { get; set; } = null!;
+
+    public string? AssessmentQuote { get; set; }
+
+    public string? AssessmentCert { get; set; }
+
+    public string UploadStatus { get; set; } = null!;
+
+    public string UploadDate { get; set; } = null!;
+}

@@ -1,9 +1,9 @@
-﻿using AviFinal.Api.Models;
+using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace AviFinal.Api.Controllers
+namespace AviAppFinal.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -28,8 +28,8 @@ namespace AviFinal.Api.Controllers
                 .Where(w => w.WagonNumber == wagonNumber)
                 .Select(w => new
                 {
-                    InventoryNumber = w.InventoryNumber,
-                    NetBookValue = w.NetBookValue,
+                    w.InventoryNumber,
+                    w.NetBookValue,
                 })
                 .FirstOrDefaultAsync();
 
@@ -110,57 +110,36 @@ namespace AviFinal.Api.Controllers
                 wagonInfo.WagonPhoto = "N/A";
             }
 
-            // Body photos — save with sequence number to avoid collisions
             wagonInfo.BodyPhoto1 = await SaveBodyPhoto(model.BodyPhoto1, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 1);
             wagonInfo.BodyPhoto2 = await SaveBodyPhoto(model.BodyPhoto2, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 2);
             wagonInfo.BodyPhoto3 = await SaveBodyPhoto(model.BodyPhoto3, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 3);
 
-            string liftLapsed = "N/A";
+            wagonInfo.LiftPhoto = await SaveSinglePhoto(model.LiftPhoto, model.WagonNumber, model.WagonGroup, liftFolder, "Lift", date, time);
+            wagonInfo.LiftDate = NormalizeDate(model.LiftDate);
+            wagonInfo.LiftLapsed = ComputeLapsed(model.LiftDate);
+
+            wagonInfo.BrakePhoto = await SaveSinglePhoto(model.BrakePhoto, model.WagonNumber, model.WagonGroup, brakeFolder, "Brake", date, time);
+            wagonInfo.BrakeDate = NormalizeDate(model.BrakeDate);
+            wagonInfo.BrakeLapsed = ComputeLapsed(model.BrakeDate);
+
             string barrelLapsed = "N/A";
-            string brakeLapsed = "N/A";
 
             if (string.Equals(model.WagonType, "Tanker", StringComparison.OrdinalIgnoreCase))
             {
-
-                // Save lift photo and normalized lift date
-                wagonInfo.LiftPhoto = await SaveSinglePhoto(model.LiftPhoto, model.WagonNumber, model.WagonGroup, liftFolder, "Lift", date, time);
-                wagonInfo.LiftDate = NormalizeDate(model.LiftDate);
-
-                // compute LiftLapsed
-                liftLapsed = ComputeLapsed(model.LiftDate);
-
-                // Barrel
                 wagonInfo.BarrelPhoto = await SaveSinglePhoto(model.BarrelPhoto, model.WagonNumber, model.WagonGroup, barrelFolder, "Barrel", date, time);
                 wagonInfo.BarrelDate = NormalizeDate(model.BarrelDate);
                 barrelLapsed = ComputeLapsed(model.BarrelDate);
-
-                // Brake 
-                wagonInfo.BrakePhoto = await SaveSinglePhoto(model.BrakePhoto, model.WagonNumber, model.WagonGroup, brakeFolder, "Brake", date, time);
-                wagonInfo.BrakeDate = NormalizeDate(model.BrakeDate);
-                brakeLapsed = ComputeLapsed(model.BrakeDate);
             }
             else
             {
-                // Non-tanker defaults
-                wagonInfo.LiftPhoto = "N/A";
-                wagonInfo.LiftDate = "N/A";
-                wagonInfo.LiftLapsed = "N/A";
-
                 wagonInfo.BarrelPhoto = "N/A";
                 wagonInfo.BarrelDate = "N/A";
                 wagonInfo.BarrelLapsed = "N/A";
-
-                wagonInfo.BrakePhoto = "N/A";
-                wagonInfo.BrakeDate = "N/A";
-                wagonInfo.BrakeLapsed = "N/A";
             }
-
-            // Set entity lapsed flags
+            
             if (string.Equals(model.WagonType, "Tanker", StringComparison.OrdinalIgnoreCase))
             {
-                wagonInfo.LiftLapsed = liftLapsed;
                 wagonInfo.BarrelLapsed = barrelLapsed;
-                wagonInfo.BrakeLapsed = brakeLapsed;
             }
 
             _context.WagonInfoCaptures.Add(wagonInfo);
@@ -172,7 +151,7 @@ namespace AviFinal.Api.Controllers
                 LiftLapsed = wagonInfo.LiftLapsed ?? "N/A",
                 BarrelLapsed = wagonInfo.BarrelLapsed ?? "N/A",
                 BrakeLapsed = wagonInfo.BrakeLapsed ?? "N/A",
-                BrakeType = wagonInfo.BrakeType ?? string.Empty
+                BrakeType = wagonInfo.BrakeType ?? string.Empty   
             });
         }
 
