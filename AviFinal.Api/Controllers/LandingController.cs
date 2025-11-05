@@ -160,7 +160,10 @@ namespace AviFinal.Api.Controllers
                 return NotFound(new { isValid = false, message = "Loco Number not found in MasterLocos." });
 
             // Check if it already exists in dashboard
-            bool existsInDashboard = await _context.DashBoardItems
+            //bool existsInDashboard = await _context.DashBoardItems
+            //    .AsNoTracking()
+            //    .AnyAsync(d => d.LocoNumber == locoNumber);
+            bool existsInDashboard = await _context.LocoInfoCaptures
                 .AsNoTracking()
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 

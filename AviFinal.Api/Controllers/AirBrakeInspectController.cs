@@ -239,8 +239,41 @@ namespace AviAppFinal.Server.Controllers
                 if (string.IsNullOrEmpty(brakeType))
                     return Ok(new { message = "Inspection saved, but Brake Type not found.", brakeType = (string?)null });
 
-                return Ok(new {brakeType});
-            }
+                // (Luca) Add
+                var group = dtos.FirstOrDefault()?.WagonGroup;
+
+                if (group == null)
+                {
+                    return BadRequest("Wagon group missing.");
+                }
+
+                // (Luca) Add
+                var wagonData = await _context.WagonGroups
+                    .Where(w => w.Group == group)
+                    .Select(w => new
+                    {
+                        Doors = w.Doors ?? "N/A",
+                        Twistlocks = w.Twistlocks ?? "N/A",
+                        Stanchions = w.Stanchions ?? "N/A"
+                    })
+                    .FirstOrDefaultAsync() ?? new
+                    {
+                        Doors = "N/A",
+                        Twistlocks = "N/A",
+                        Stanchions = "N/A"
+                    };
+
+                var wagonDoors = wagonData.Doors;
+                var wagonTwist = wagonData.Twistlocks;
+                var wagonStan = wagonData.Stanchions;
+
+                return Ok(new {
+                    brakeType,
+                    wagonDoors, // (Luca) Add
+                    wagonTwist, // (Luca) Add
+                    wagonStan, // (Luca) Add
+                   });
+                }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SubmitInspection failed");

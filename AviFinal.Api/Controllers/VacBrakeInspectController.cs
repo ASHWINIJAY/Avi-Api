@@ -5,19 +5,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 
 namespace AviAppFinal.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WagonFloorInspectController : ControllerBase
+    public class VacBrakeInspectController : ControllerBase
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<WagonFloorInspectController> _logger;
+        private readonly ILogger<VacBrakeInspectController> _logger;
 
-        public WagonFloorInspectController(AviDbContext context, IWebHostEnvironment env, ILogger<WagonFloorInspectController> logger)
+        public VacBrakeInspectController(AviDbContext context, IWebHostEnvironment env, ILogger<VacBrakeInspectController> logger)
         {
             _context = context;
             _env = env;
@@ -32,7 +31,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var partsList = await _context.InternalFinalParts
+                var partsList = await _context.VacBrakeFinalParts
                     .Where(p => p.FormId == formID)
                     .ToListAsync();
 
@@ -44,7 +43,7 @@ namespace AviAppFinal.Server.Controllers
                     .OrderBy(p =>
                     {
                         // Extract numeric part of PartId (e.g., "PRT12" → 12)
-                        var numPart = new string(p.PartType?.Where(char.IsDigit).ToArray());
+                        var numPart = new string(p.PartId?.Where(char.IsDigit).ToArray());
                         return int.TryParse(numPart, out int n) ? n : int.MaxValue;
                     })
                     .ToList();
@@ -52,7 +51,7 @@ namespace AviAppFinal.Server.Controllers
                 // Step 3: Project and return
                 var result = orderedParts.Select(p => new
                 {
-                    PartType = p.PartType,
+                    PartID = p.PartId,
                     PartDescr = p.PartDescr
                 });
 
@@ -66,15 +65,15 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpGet("getPartCost")]
-        public async Task<IActionResult> GetPartCost(string partType, string field)
+        public async Task<IActionResult> GetPartCost(string partId, string field)
         {
-            if (string.IsNullOrWhiteSpace(partType) || string.IsNullOrWhiteSpace(field))
-                return BadRequest("partType and field are required.");
+            if (string.IsNullOrWhiteSpace(partId) || string.IsNullOrWhiteSpace(field))
+                return BadRequest("partId and field are required.");
 
             try
             {
-                var part = await _context.InternalFinalParts
-                    .FirstOrDefaultAsync(p => p.PartType == partType);
+                var part = await _context.VacBrakeFinalParts
+                    .FirstOrDefaultAsync(p => p.PartId == partId);
 
                 if (part == null) return NotFound();
 
@@ -90,20 +89,20 @@ namespace AviAppFinal.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetPartCost failed for {partType}", partType);
+                _logger.LogError(ex, "GetPartCost failed for {partId}", partId);
                 return StatusCode(500, "Error getting part cost.");
             }
         }
 
         [HttpPost("UploadPhoto")]
-        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partType, [FromForm] string photoType, [FromForm] string wagonNumber, [FromForm] string wagonGroup)
+        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string wagonNumber, [FromForm] string wagonGroup)
         {
-            if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partType))
+            if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partId))
                 return BadRequest("Missing required parameters.");
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "FLR", formId.ToUpper());
+                string baseFolder = Path.Combine(_env.WebRootPath, "VCB", formId.ToUpper());
 
                 string subFolder = photoType.ToLower() switch
                 {
@@ -133,12 +132,12 @@ namespace AviAppFinal.Server.Controllers
                 }
 
                 // Return relative path for front-end
-                string relativePath = Path.Combine("FLR", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                string relativePath = Path.Combine("VCB", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
                 return Ok(new { path = relativePath });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Photo upload failed for part {PartType}", partType);
+                _logger.LogError(ex, "Photo upload failed for part {PartId}", partId);
                 return StatusCode(500, "Photo upload failed.");
             }
         }
@@ -175,18 +174,18 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        public class WagonFloorInspectDto
+        public class VacBrakeInspectDto
         {
             public int WagonNumber { get; set; }
             public string WagonGroup { get; set; } = null!;
             public string? WagonType { get; set; }
             public string FormId { get; set; } = null!;
+            public string PartId { get; set; } = null!;
             public string PartDescr { get; set; } = null!;
             public string GoodCheck { get; set; } = null!;
             public string RefurbishCheck { get; set; } = null!;
             public string MissingCheck { get; set; } = null!;
             public string DamageCheck { get; set; } = null!;
-            public int SectionQty { get; set; }
             public string? RefurbishValue { get; set; }
             public string? MissingValue { get; set; }
             public string? MissingPhoto { get; set; }
@@ -195,19 +194,20 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<WagonFloorInspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<VacBrakeInspectDto> dtos)
         {
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
 
             try
             {
-                var entities = dtos.Select(d => new FloorInspect
+                var entities = dtos.Select(d => new VacBrakePartsInspect
                 {
                     WagonNumber = d.WagonNumber,
                     WagonGroup = d.WagonGroup ?? "",
                     WagonType = d.WagonType ?? "",
                     FormId = d.FormId ?? "",
+                    PartId = d.PartId ?? "",
                     PartDescr = d.PartDescr ?? "",
                     GoodCheck = d.GoodCheck ?? "No",
                     RefurbishCheck = d.RefurbishCheck ?? "No",
@@ -217,15 +217,48 @@ namespace AviAppFinal.Server.Controllers
                     MissingValue = d.MissingValue,
                     ReplaceValue = d.ReplaceValue,
                     MissingPhoto = d.MissingPhoto,
-                    ReplacePhoto = d.DamagePhoto,
-                    SectionQty = d.SectionQty
+                    ReplacePhoto = d.DamagePhoto
                 }).ToList();
 
                 // Bulk insert
-                await _context.FloorInspects.AddRangeAsync(entities);
+                await _context.VacBrakePartsInspects.AddRangeAsync(entities);
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                // (Luca) Add
+                var group = dtos.FirstOrDefault()?.WagonGroup;
+
+                if (group == null)
+                {
+                    return BadRequest("Wagon group missing.");
+                }
+
+                // (Luca) Add
+                var wagonData = await _context.WagonGroups
+                    .Where(w => w.Group == group)
+                    .Select(w => new
+                    {
+                        Doors = w.Doors ?? "N/A",
+                        Twistlocks = w.Twistlocks ?? "N/A",
+                        Stanchions = w.Stanchions ?? "N/A"
+                    })
+                    .FirstOrDefaultAsync() ?? new
+                    {
+                        Doors = "N/A",
+                        Twistlocks = "N/A",
+                        Stanchions = "N/A"
+                    };
+
+                // (Luca) Add
+                var wagonDoors = wagonData.Doors;
+                var wagonTwist = wagonData.Twistlocks;
+                var wagonStan = wagonData.Stanchions;
+
+                return Ok(new
+                {
+                    wagonDoors, // (Luca) Add
+                    wagonTwist, // (Luca) Add
+                    wagonStan, // (Luca) Add
+                });
             }
             catch (Exception ex)
             {

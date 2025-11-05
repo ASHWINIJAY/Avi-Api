@@ -30,24 +30,32 @@ namespace AviFinal.Api.Controllers
             .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
 
             if (wagon == null)
-                return NotFound(new { isValid = false, message = "Wagon Number not found." });
+                return Ok(new { isValid = false, message = "Wagon Number not found." });
 
             string wagonGroup = wagon.WagonType;
 
             if (string.IsNullOrEmpty(wagonGroup))
-                return BadRequest(new { isValid = false, message = "Wagon Group not found." });
+                return Ok(new { isValid = false, message = "Wagon Group not found." });
 
             var group = await _context.WagonGroups
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Group == wagonGroup);
 
             if (group == null)
-                return NotFound(new { isValid = false, message = "Wagon Number not found." });
+                return Ok(new { isValid = false, message = "Wagon Number not found." });
 
             string? wagonType = group.Type;
 
             if (string.IsNullOrEmpty(wagonType))
-                return BadRequest(new { isValid = false, message = "Wagon Type not found." });
+                return Ok(new { isValid = false, message = "Wagon Type not found." });
+
+            bool existsInDashboard = await _context.WagonInfoCaptures
+               .AsNoTracking()
+               .AnyAsync(d => d.WagonNumber == wagonNumber);
+
+            if (existsInDashboard)
+                return Ok(new { isValid = false, message = "Wagon number has already been inspected." });
+
 
             return Ok(new { isValid = true, wagonGroup = wagonGroup, wagonType = wagonType });
         }

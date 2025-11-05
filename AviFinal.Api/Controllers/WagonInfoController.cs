@@ -145,13 +145,44 @@ namespace AviAppFinal.Server.Controllers
             _context.WagonInfoCaptures.Add(wagonInfo);
             await _context.SaveChangesAsync();
 
+            // (Luca) Add
+            var group = model.WagonGroup;
+
+            if (group == null)
+            {
+                return BadRequest("Wagon group missing.");
+            }
+
+            // (Luca) Add
+            var wagonData = await _context.WagonGroups
+                .Where(w => w.Group == group)
+                .Select(w => new
+                {
+                    Doors = w.Doors ?? "N/A",
+                    Twistlocks = w.Twistlocks ?? "N/A",
+                    Stanchions = w.Stanchions ?? "N/A"
+                })
+                .FirstOrDefaultAsync() ?? new
+                {
+                    Doors = "N/A",
+                    Twistlocks = "N/A",
+                    Stanchions = "N/A"
+                };
+
+            var wagonDoors = wagonData.Doors;
+            var wagonTwist = wagonData.Twistlocks;
+            var wagonStan = wagonData.Stanchions;
+
             return Ok(new
             {
                 message = "Wagon info submitted successfully.",
                 LiftLapsed = wagonInfo.LiftLapsed ?? "N/A",
                 BarrelLapsed = wagonInfo.BarrelLapsed ?? "N/A",
                 BrakeLapsed = wagonInfo.BrakeLapsed ?? "N/A",
-                BrakeType = wagonInfo.BrakeType ?? string.Empty   
+                BrakeType = wagonInfo.BrakeType ?? string.Empty,
+                wagonDoors, // (Luca) Add
+                wagonTwist, // (Luca) Add
+                wagonStan, // (Luca) Add
             });
         }
 
@@ -273,5 +304,10 @@ namespace AviAppFinal.Server.Controllers
         public string? BarrelDate { get; set; }
         public IFormFile? BrakePhoto { get; set; }
         public string? BrakeDate { get; set; }
+
+        internal string FirstOrDefault()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

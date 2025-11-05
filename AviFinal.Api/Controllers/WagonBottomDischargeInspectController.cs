@@ -224,7 +224,41 @@ namespace AviAppFinal.Server.Controllers
                 await _context.BottomDischargeInspects.AddRangeAsync(entities);
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                //(Luca) Add
+                var group = dtos.FirstOrDefault()?.WagonGroup;
+
+                if (group == null)
+                {
+                    return BadRequest("Wagon group missing.");
+                }
+
+                // (Luca) Add
+                var wagonData = await _context.WagonGroups
+                    .Where(w => w.Group == group)
+                    .Select(w => new
+                    {
+                        Doors = w.Doors ?? "N/A",
+                        Twistlocks = w.Twistlocks ?? "N/A",
+                        Stanchions = w.Stanchions ?? "N/A"
+                    })
+                    .FirstOrDefaultAsync() ?? new
+                    {
+                        Doors = "N/A",
+                        Twistlocks = "N/A",
+                        Stanchions = "N/A"
+                    };
+
+                //(Luca) Add
+                var wagonDoors = wagonData.Doors;
+                var wagonTwist = wagonData.Twistlocks;
+                var wagonStan = wagonData.Stanchions;
+
+                return Ok(new
+                {
+                    wagonDoors,
+                    wagonTwist,
+                    wagonStan,
+                });
             }
             catch (Exception ex)
             {
