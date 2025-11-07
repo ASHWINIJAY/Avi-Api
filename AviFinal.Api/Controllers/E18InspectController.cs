@@ -10,14 +10,14 @@ namespace AviAppFinal.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GM36InspectController : ControllerBase
+    public class E18InspectController : ControllerBase
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<GM36InspectController> _logger;
+        private readonly ILogger<E18InspectController> _logger;
         private readonly string _connectionString;
 
-        public GM36InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<GM36InspectController> logger, IConfiguration config)
+        public E18InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<E18InspectController> logger, IConfiguration config)
         {
             _context = context;
             _env = env;
@@ -31,7 +31,7 @@ namespace AviAppFinal.Server.Controllers
         {
             try
             {
-                var partsList = await _context.Gm36finalParts
+                var partsList = await _context.E18finalParts
                     .Where(p => p.FormId == formID)
                     .OrderBy(p => p.PartId)
                     .Select(p => new { p.PartId, p.PartDescr })
@@ -51,7 +51,7 @@ namespace AviAppFinal.Server.Controllers
         public async Task<IActionResult> GetPartCost(string partId, string field)
         {
             if (string.IsNullOrWhiteSpace(partId)) return BadRequest("partId required");
-            var part = await _context.Gm36finalParts.FirstOrDefaultAsync(p => p.PartId == partId);
+            var part = await _context.E18finalParts.FirstOrDefaultAsync(p => p.PartId == partId);
             if (part == null) return NotFound();
 
             string cost = field switch
@@ -72,7 +72,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "GM36", formId.ToUpper());
+                string baseFolder = Path.Combine(_env.WebRootPath, "E18", formId.ToUpper());
                 string subFolder = photoType.ToLower() switch
                 {
                     "damage" => "DamagePhotos",
@@ -88,7 +88,7 @@ namespace AviAppFinal.Server.Controllers
                 using var fs = new FileStream(fullPath, FileMode.Create);
                 await file.CopyToAsync(fs);
 
-                string relative = Path.Combine("GM36", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                string relative = Path.Combine("E18", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
                 return Ok(new { path = relative });
             }
             catch (Exception ex)
@@ -119,7 +119,7 @@ namespace AviAppFinal.Server.Controllers
         public class DeletePhotoRequest { public string Path { get; set; } = ""; }
 
         // ✅ DTO
-        public class GM36InspectDto
+        public class E18InspectDto
         {
             public int LocoNumber { get; set; }
             public string LocoClass { get; set; } = "";
@@ -140,7 +140,7 @@ namespace AviAppFinal.Server.Controllers
 
         // ✅ Submit (Insert / Update logic)
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<GM36InspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<E18InspectDto> dtos)
         {
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
@@ -148,25 +148,25 @@ namespace AviAppFinal.Server.Controllers
             string formId = dtos.First().FormId.ToUpper();
             string tableName = formId switch
             {
-                "WA001" => "Gm36wainspects",
-                "FL001" => "Gm36flinspects",
-                "SN001" => "Gm36sninspects",
-                "BV001" => "Gm36bvinspects",
-                "CL001" => "Gm36clinspects",
-                "EC001" => "Gm36ecinspects",
-                "CB001" => "Gm36cbinspects",
-                "BS001" => "Gm36bsinspects",
-                "LM001" => "Gm36lminspects",
-                "LC001" => "Gm36lcinspects",
-                "TR001" => "Gm36trinspects",
-                "BP001" => "Gm36bpinspects",
-                "CA001" => "Gm36cainspects",
-                "ED001" => "Gm36edinspects",
-                "CF001" => "Gm36cfinspects",
-                "DE001" => "Gm36deinspects",
-                "RF001" => "Gm36rfinspects",
+                "BD001" => "E18bdinspects",
+                "FL001" => "E18flinspects",
+                "BE001" => "E18beinspects",
+                "EE001" => "E18eeinspects",
+                "LV001" => "E18lvinspects",
+                "CR001" => "E18crinspects",
+                "HV001" => "E18hvinspects",
+                "MA001" => "E18mainspects",
+                "EH001" => "E18ehinspects",
+                "MB001" => "E18mbinspects",
+                "HS001" => "E18hsinspects",
+                "ES001" => "E18esinspects",
+                "HC001" => "E18hcinspects",
+                "CC001" => "E18ccinspects",
+                "CT001" => "E18ctinspects",
+                "RF001" => "E18rfinspects",
                 _ => null
             };
+
 
 
             if (tableName == null)
@@ -176,7 +176,7 @@ namespace AviAppFinal.Server.Controllers
             {
                 using var con = new SqlConnection(_connectionString);
                 con.Open();
-
+                var userName = User.Identity?.Name;
                 foreach (var d in dtos)
                 {
                     string checkSql = $@"SELECT COUNT(*) FROM {tableName}
@@ -208,10 +208,10 @@ namespace AviAppFinal.Server.Controllers
                     {
                         string insertSql = $@"
                             INSERT INTO {tableName}
-                            (LocoNumber,LocoClass,LocoModel,FormId,PartId,PartDescr,GoodCheck,RefurbishCheck,MissingCheck,ReplaceCheck,
+                            (CreatedBy,LocoNumber,LocoClass,LocoModel,FormId,PartId,PartDescr,GoodCheck,RefurbishCheck,MissingCheck,ReplaceCheck,
                              RefurbishValue,MissingValue,ReplaceValue,MissingPhoto,ReplacePhoto)
                             VALUES
-                            (@LocoNumber,@LocoClass,@LocoModel,@FormId,@PartId,@PartDescr,@GoodCheck,@RefurbishCheck,@MissingCheck,@ReplaceCheck,
+                            ('{userName}',@LocoNumber,@LocoClass,@LocoModel,@FormId,@PartId,@PartDescr,@GoodCheck,@RefurbishCheck,@MissingCheck,@ReplaceCheck,
                              @RefurbishValue,@MissingValue,@ReplaceValue,@MissingPhoto,@ReplacePhoto)";
                         await con.ExecuteAsync(insertSql, d);
                     }

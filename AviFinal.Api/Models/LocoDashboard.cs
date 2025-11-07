@@ -1,0 +1,47 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace AviFinal.Api.Models;
+
+public partial class LocoDashboard
+{
+    public int Id { get; set; }
+
+    public string? InspectorId { get; set; }
+
+    public string? InspectorName { get; set; }
+
+    public int? LocoNumber { get; set; }
+
+    public string? LocoClass { get; set; }
+
+    public string? LocoModel { get; set; }
+
+    public string? DateAssessed { get; set; }
+
+    public string? TimeAssessed { get; set; }
+
+    public string? LocoPhoto { get; set; }
+
+    public string? BodyDamage { get; set; }
+
+    public string? BodyPhotos { get; set; }
+
+    public string? RefurbishValue { get; set; }
+
+    public string? MissingValue { get; set; }
+
+    public string? ReplaceValue { get; set; }
+
+    public string? MissingPhotos { get; set; }
+
+    public string? ReplacePhotos { get; set; }
+
+    public string? AssessmentQuote { get; set; }
+
+    public string? AssessmentCert { get; set; }
+
+    public string? UploadStatus { get; set; }
+
+    public string? UploadDate { get; set; }
+}

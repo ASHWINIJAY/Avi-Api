@@ -12,6 +12,8 @@ using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using iText.Kernel.Colors;
+using PdfDocument = iText.Kernel.Pdf.PdfDocument;
+using TextAlignment = iText.Layout.Properties.TextAlignment;
 
 namespace AviFinal.Api.Controllers
 {

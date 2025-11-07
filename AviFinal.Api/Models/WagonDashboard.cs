@@ -56,4 +56,10 @@ public partial class WagonDashboard
     public string UploadStatus { get; set; } = null!;
 
     public string UploadDate { get; set; } = null!;
+
+    public string? WagonPhoto { get; set; }
+
+    public string? MissingPhotos { get; set; }
+
+    public string? ReplacePhotos { get; set; }
 }

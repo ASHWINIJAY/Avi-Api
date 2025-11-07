@@ -1,4 +1,5 @@
-﻿using AviFinal.Api.Models;
+﻿
+using AviFinal.Api.Models;
 using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting;
@@ -239,7 +240,42 @@ namespace AviAppFinal.Server.Controllers
                 if (string.IsNullOrEmpty(brakeType))
                     return Ok(new { message = "Inspection saved, but Brake Type not found.", brakeType = (string?)null });
 
-                return Ok(new {brakeType});
+                //PLEASE ADD
+                var brakeLapsed = await _context.WagonInfoCaptures
+                .Where(w => w.WagonNumber == wagonNumber)
+                .Select(w => w.BrakeLapsed)
+                .FirstOrDefaultAsync();
+
+                //PLEASE ADD
+                var group = dtos.FirstOrDefault()?.WagonGroup;
+
+                if (group == null)
+                {
+                    return BadRequest("Wagon group missing.");
+                }
+
+                //PLEASE ADD
+                var wagonData = await _context.WagonGroups
+                    .Where(w => w.Group == group)
+                    .Select(w => new
+                    {
+                        Doors = w.Doors ?? "N/A",
+                        Twistlocks = w.Twistlocks ?? "N/A",
+                        Stanchions = w.Stanchions ?? "N/A"
+                    })
+                    .FirstOrDefaultAsync() ?? new
+                    {
+                        Doors = "N/A",
+                        Twistlocks = "N/A",
+                        Stanchions = "N/A"
+                    };
+
+                //PLEASE ADD
+                var wagonDoors = wagonData.Doors;
+                var wagonTwist = wagonData.Twistlocks;
+                var wagonStan = wagonData.Stanchions;
+
+                return Ok(new { brakeType, brakeLapsed, wagonDoors, wagonStan, wagonTwist }); //PLEASE ADJUST
             }
             catch (Exception ex)
             {
@@ -248,5 +284,5 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-    } 
+    }
 }

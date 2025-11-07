@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AviAppFinal.Server.Models;
+using AviFinal.Api.Models;
+using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using BCrypt.Net;
-using AviFinal.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AviDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=appdata.db"));
 
 builder.Services.AddControllers();
 builder.Services.Configure<IISServerOptions>(options =>
@@ -25,7 +28,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://www.avi-app.co.za", "https://www.avi-app.co.za", "http://localhost:5081","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
+        policy.WithOrigins("http://localhost:5173", "http://www.avi-app.co.za", "https://www.avi-app.co.za", "http://localhost:5173","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -59,7 +62,13 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Accept");
+    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    await next();
+});
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -90,10 +99,10 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
-
+app.UseCors("AllowFrontend");
 app.UseStaticFiles(); // To serve uploaded images
 app.UseRouting();
-app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

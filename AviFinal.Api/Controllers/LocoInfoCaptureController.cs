@@ -1,4 +1,5 @@
 using AviFinal.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,19 @@ namespace AviFinal.Api.Controllers
                     NetBookValue = w.NetBookValue,
                 })
                 .FirstOrDefaultAsync();
+
+            if (loco == null)
+                return NotFound("Locomotive cannot be found.");
+
+            return Ok(loco);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("getAllLocos")]
+        public async Task<IActionResult> GetAllLocoInfo(int locoNumber)
+        {
+            var loco = await _context.MasterLocos                
+                .ToListAsync();
 
             if (loco == null)
                 return NotFound("Locomotive cannot be found.");
