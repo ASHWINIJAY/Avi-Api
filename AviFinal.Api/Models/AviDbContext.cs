@@ -299,6 +299,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<InfoLocosFinal> InfoLocosFinals { get; set; }
 
+    public virtual DbSet<InspectionWarnInfo> InspectionWarnInfos { get; set; }
+
     public virtual DbSet<InternalFinalPart> InternalFinalParts { get; set; }
 
     public virtual DbSet<LeaseCoUser> LeaseCoUsers { get; set; }
@@ -347,7 +349,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-  
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -972,6 +974,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18BDInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1013,6 +1021,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18BEInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1054,6 +1068,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18CCInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1095,6 +1115,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18CRInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1136,6 +1162,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18CTInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1177,6 +1209,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18EEInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1218,6 +1256,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18EHInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1259,6 +1303,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18ESInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1326,6 +1376,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18FLInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1367,6 +1423,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18HCInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1408,6 +1470,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18HSInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1449,6 +1517,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18HVInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1573,6 +1647,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18LVInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1614,6 +1694,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18MAInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1655,6 +1741,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18MBInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -1696,6 +1788,12 @@ public partial class AviDbContext : DbContext
             entity.ToTable("E18RFInspects");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.FormId)
                 .HasMaxLength(10)
                 .IsUnicode(false)
@@ -6121,6 +6219,20 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_InfoLocosFinal_MasterLocos");
         });
 
+        modelBuilder.Entity<InspectionWarnInfo>(entity =>
+        {
+            entity.ToTable("InspectionWarnInfo");
+
+            entity.Property(e => e.CreatedTime)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.InspectionNumber).HasMaxLength(50);
+            entity.Property(e => e.InspectionType).HasMaxLength(50);
+            entity.Property(e => e.Lat).HasMaxLength(50);
+            entity.Property(e => e.Long).HasMaxLength(50);
+            entity.Property(e => e.Username).HasMaxLength(50);
+        });
+
         modelBuilder.Entity<InternalFinalPart>(entity =>
         {
             entity.Property(e => e.Id)
@@ -6243,6 +6355,10 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BodyDamage)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(50);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.GpsLatitude).HasMaxLength(100);
             entity.Property(e => e.GpsLongitude).HasMaxLength(100);
             entity.Property(e => e.InventoryNumber)
@@ -6910,6 +7026,10 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BrakeType)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.CreatedBy).HasMaxLength(50);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
             entity.Property(e => e.GpsLatitude).HasMaxLength(100);
             entity.Property(e => e.GpsLongitude).HasMaxLength(100);
             entity.Property(e => e.InventoryNumber)

@@ -36,4 +36,8 @@ public partial class E18beinspect
     public string? ReplaceValue { get; set; }
 
     public string? ReplacePhoto { get; set; }
+
+    public string? CreatedBy { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
 }

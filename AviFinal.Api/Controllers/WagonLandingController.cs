@@ -30,7 +30,20 @@ namespace AviFinal.Api.Controllers
             .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
 
             if (wagon == null)
+            {
+                var inpectioninfo = new InspectionWarnInfo
+                {
+                    InspectionNumber = wagonNumber.ToString(),
+                    InspectionType = "Wagon",
+                    Info = "Wagon Number not found.",
+                    CreatedTime = DateTime.Now,
+                    Username = User.Identity?.Name
+                };
+                _context.InspectionWarnInfos.Add(inpectioninfo);
+                await _context.SaveChangesAsync();
                 return Ok(new { isValid = false, message = "Wagon Number not found." });
+
+            }
 
             string wagonGroup = wagon.WagonType;
 
@@ -54,7 +67,20 @@ namespace AviFinal.Api.Controllers
                .AnyAsync(d => d.WagonNumber == wagonNumber);
 
             if (existsInDashboard)
+            {
+                var inpectioninfo = new InspectionWarnInfo
+                {
+                    InspectionNumber = wagonNumber.ToString(),
+                    InspectionType = "Wagon",
+                    Info = "Wagon number has already been inspected.",
+                    CreatedTime = DateTime.Now,
+                    Username = User.Identity?.Name
+                };
+                _context.InspectionWarnInfos.Add(inpectioninfo);
+                await _context.SaveChangesAsync();
                 return Ok(new { isValid = false, message = "Wagon number has already been inspected." });
+
+            }
 
 
             return Ok(new { isValid = true, wagonGroup = wagonGroup, wagonType = wagonType });

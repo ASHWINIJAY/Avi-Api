@@ -34,4 +34,8 @@ public partial class LocoInfoCapture
     public string LiftPhoto { get; set; } = null!;
 
     public string LiftDate { get; set; } = null!;
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? CreatedBy { get; set; }
 }

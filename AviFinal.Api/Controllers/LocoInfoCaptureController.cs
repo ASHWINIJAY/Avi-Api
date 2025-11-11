@@ -88,7 +88,9 @@ namespace AviFinal.Api.Controllers
                 GpsLongitude = model.GpsLongitude ?? string.Empty,
                 BodyDamage = string.IsNullOrWhiteSpace(model.BodyDamage) ? "No" : model.BodyDamage,
                 LocoClass = model.LocoClass ?? string.Empty,
-                LocoModel = model.LocoModel ?? string.Empty
+                LocoModel = model.LocoModel ?? string.Empty,
+                CreatedBy = User?.Identity?.Name,
+
             };
 
             // Prepare photo folders under wwwroot/wagons

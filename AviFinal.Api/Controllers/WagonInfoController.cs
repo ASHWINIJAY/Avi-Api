@@ -75,7 +75,8 @@ namespace AviAppFinal.Server.Controllers
                 BodyDamage = string.IsNullOrWhiteSpace(model.BodyDamage) ? "No" : model.BodyDamage,
                 WagonGroup = model.WagonGroup ?? string.Empty,
                 BrakeType = model.BrakeType ?? string.Empty,
-                WagonType = model.WagonType ?? string.Empty
+                WagonType = model.WagonType ?? string.Empty,
+                CreatedBy = User?.Identity?.Name,
             };
 
             // Prepare photo folders under wwwroot/wagons

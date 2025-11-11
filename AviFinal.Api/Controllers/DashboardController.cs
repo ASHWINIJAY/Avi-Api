@@ -280,9 +280,18 @@ public class DashboardController : ControllerBase
             MissingPhotos = missingPhotosSerialized,
             ReplacePhotos = replacePhotosSerialized
         };
-
-        _context.WagonDashboards.Add(dashboardEntry);
-        await _context.SaveChangesAsync();
+        var exisitingEntry = await _context.WagonDashboards
+            .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
+        if (exisitingEntry != null)
+        {
+            //return Conflict(new { success = false, message = $"Wagon dashboard entry already exists for wagon {wagonNumber}" });
+        }
+        else
+        {
+            _context.WagonDashboards.Add(dashboardEntry);
+            await _context.SaveChangesAsync();
+        }
+            
 
         return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
     }
@@ -1954,10 +1963,17 @@ public class DashboardController : ControllerBase
             MissingPhotos = missingPhotosSerialized,
             ReplacePhotos = replacePhotosSerialized
         };
+        var existingLoco = await _context.LocoDashboards
+                                        .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
+        if (existingLoco != null)
+        {
 
-        _context.LocoDashboards.Add(dashboardEntry);
-        await _context.SaveChangesAsync();
-
+        }
+        else
+        {
+            _context.LocoDashboards.Add(dashboardEntry);
+            await _context.SaveChangesAsync();
+        }
         return Ok(new { success = true, message = "Loco dashboard entry created", id = dashboardEntry.Id });
     }
     [HttpPost("insertOldLoco")]

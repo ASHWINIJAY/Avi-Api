@@ -157,7 +157,20 @@ namespace AviFinal.Api.Controllers
                 .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
 
             if (masterLoco == null)
+            {
+                var inpectioninfo = new InspectionWarnInfo
+                {
+                    InspectionNumber = locoNumber.ToString(),
+                    InspectionType = "Loco",
+                    Info = "Loco Number not found in MasterLocos.",
+                    CreatedTime = DateTime.Now,
+                    Username = User.Identity?.Name
+                };
+                _context.InspectionWarnInfos.Add(inpectioninfo);
+                await _context.SaveChangesAsync();
                 return NotFound(new { isValid = false, message = "Loco Number not found in MasterLocos." });
+
+            }
 
             // Check if it already exists in dashboard
             //bool existsInDashboard = await _context.DashBoardItems
@@ -168,11 +181,43 @@ namespace AviFinal.Api.Controllers
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 
             if (existsInDashboard)
-                return Ok(new { isValid = true, message = "Loco Number has already been inspected." });
+            {
+                try
+                {
 
+                 var inpectioninfo = new InspectionWarnInfo
+                    {
+                        InspectionNumber = locoNumber.ToString(),
+                        InspectionType = "Loco",
+                        Info = "Loco Number has already been inspected.",
+                        CreatedTime = DateTime.Now,
+                        Username = User.Identity?.Name
+                    };
+                    _context.InspectionWarnInfos.Add(inpectioninfo);
+                    await _context.SaveChangesAsync();
+                        }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, $"Error logging inspection info: {ex.Message}");
+                }
+                return Ok(new { isValid = true, message = "Loco Number has already been inspected." });
+            }
             string locoClass = masterLoco.LocoClass;
             if (string.IsNullOrEmpty(locoClass))
+            {
+                var inpectioninfo = new InspectionWarnInfo
+                {
+                    InspectionNumber = locoNumber.ToString(),
+                    InspectionType = "Loco",
+                    Info = "Loco Class not found.",
+                    CreatedTime = DateTime.Now,
+                    Username = User.Identity?.Name
+                };
+                _context.InspectionWarnInfos.Add(inpectioninfo);
+                await _context.SaveChangesAsync();
                 return BadRequest(new { isValid = false, message = "Loco Class not found." });
+            }
+              //  return BadRequest(new { isValid = false, message = "Loco Class not found." });
 
             string locoModel = masterLoco.LocoModel;
             if (string.IsNullOrEmpty(locoModel))

@@ -50,4 +50,8 @@ public partial class WagonInfoCapture
     public string? BrakeDate { get; set; }
 
     public string? BrakeLapsed { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? CreatedBy { get; set; }
 }
