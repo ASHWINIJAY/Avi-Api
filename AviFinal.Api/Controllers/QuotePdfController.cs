@@ -347,6 +347,51 @@ namespace AviAppFinal.Server.Controllers
 
             };
             }
+
+            if (model.LocoModel == "GE34")
+            {
+
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+{
+    { "Walk Around / Below Deck Inspection", await _context.Ge34bdinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Front of Loco Inspection", await _context.Ge34flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Short Nose Inspection", await _context.Ge34sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Cab Loco Inspection", await _context.Ge34clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Electrical Cab Inspection", await _context.Ge34ecinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Battery Switch Inspection", await _context.Ge34bsinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Outside Driver’s Door Inspection", await _context.Ge34odinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Blower Compartment Inspection", await _context.Ge34bcinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Alternator Compartment Inspection", await _context.Ge34acinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Engine Deck Inspection", await _context.Ge34edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Compressor Fan Inspection", await _context.Ge34cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "End Deck Inspection", await _context.Ge34deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Roof Top Inspection", await _context.Ge34rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+};
+
+            }
+
+            if (model.LocoModel == "GE35")
+            {
+
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+{
+    { "Walk Around / Below Deck Inspection", await _context.Ge35bdinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Front of Loco Inspection", await _context.Ge35flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Short Nose Inspection", await _context.Ge35sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Cab Loco Inspection", await _context.Ge35clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Electrical Cab Inspection", await _context.Ge35ecinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Battery Switch Inspection", await _context.Ge35bsinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Outside Driver’s Door Inspection", await _context.Ge35odinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Blower Compartment Inspection", await _context.Ge35bcinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Main Gen Compartment Inspection", await _context.Ge35mginspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Engine Deck Inspection", await _context.Ge35edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Compressor Fan Inspection", await _context.Ge35cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "End Deck Inspection", await _context.Ge35deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+    { "Roof Top Inspection", await _context.Ge35rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+};
+
+            }
+
             if (inspectionSources.All(s => !s.Value.Any()))
                 return NotFound("No parts found for this wagon number.");
 
@@ -538,7 +583,7 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("GenerateAndSaveQuotePdfForAllLocos")]
         public async Task<IActionResult> GenerateAndSaveQuotePdfForAllLocos()
         {
-            var vagonNumbers = await _context.LocoInfoCaptures.Where(predicate=> predicate.LocoModel == "E18")  
+            var vagonNumbers = await _context.LocoInfoCaptures.Where(predicate=> predicate.LocoModel == "E18" || predicate.LocoModel == "GE34")  
                 .AsNoTracking()
                 .Select(w => w.LocoNumber)
                 .ToListAsync();
