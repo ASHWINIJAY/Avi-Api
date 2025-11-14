@@ -36,4 +36,6 @@ public partial class StanchionsInspect
     public string? ReplacePhoto { get; set; }
 
     public int StanchionQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

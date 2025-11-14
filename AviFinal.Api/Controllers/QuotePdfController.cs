@@ -119,7 +119,7 @@ namespace AviAppFinal.Server.Controllers
                 document.Add(new Paragraph($"Quote - Asset Code: {wagonNumber}").SetFont(bold).SetFontSize(14).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
                 document.Add(new Paragraph($"Asset Model/Group: {model?.WagonGroup ?? "N/A"}").SetFont(regular).SetFontSize(12).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER).SetMarginBottom(10));
 
-                decimal grandTotalRefurbish = 0, grandTotalMissing = 0, grandTotalReplace = 0;
+                decimal grandTotalRefurbish = 0, grandTotalMissing = 0, grandTotalReplace = 0, grandTotalLabor = 0; //PLEASE ADJUST
 
                 //PLEASE ADD
                 // --- Lift & Barrel Costs Section ---
@@ -176,7 +176,7 @@ namespace AviAppFinal.Server.Controllers
 
                     var partsWithNumbers = parts.Select(p =>
                     {
-                        decimal refVal = 0, missVal = 0, replVal = 0;
+                        decimal refVal = 0, missVal = 0, replVal = 0, labVal = 0; 
 
                         if (p.RefurbishValue != null && !string.IsNullOrWhiteSpace(p.RefurbishValue.ToString()))
                             decimal.TryParse(p.RefurbishValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out refVal);
@@ -187,23 +187,30 @@ namespace AviAppFinal.Server.Controllers
                         if (p.ReplaceValue != null && !string.IsNullOrWhiteSpace(p.ReplaceValue.ToString()))
                             decimal.TryParse(p.ReplaceValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out replVal);
 
+                        //PLEASE ADD
+                        if (p.LaborValue != null && !string.IsNullOrWhiteSpace(p.LaborValue.ToString()))
+                            decimal.TryParse(p.LaborValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out labVal);
+
                         return new
                         {
                             p.FormId,
                             p.PartDescr,
                             RefurbishValue = refVal,
                             MissingValue = missVal,
-                            ReplaceValue = replVal
+                            ReplaceValue = replVal,
+                            LaborValue = labVal //PLEASE ADD
                         };
                     }).ToList();
 
                     decimal totalRefurbish = partsWithNumbers.Sum(p => p.RefurbishValue);
                     decimal totalMissing = partsWithNumbers.Sum(p => p.MissingValue);
                     decimal totalReplace = partsWithNumbers.Sum(p => p.ReplaceValue);
+                    decimal totalLabor = partsWithNumbers.Sum(p => p.LaborValue); //PLEASE ADD
 
                     grandTotalRefurbish += totalRefurbish;
                     grandTotalMissing += totalMissing;
                     grandTotalReplace += totalReplace;
+                    grandTotalLabor += totalLabor; //PLEASE ADD
 
                     document.Add(new Paragraph(group.Key)
                         .SetFont(bold)
@@ -212,8 +219,8 @@ namespace AviAppFinal.Server.Controllers
                         .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
                         .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
 
-                    var table = new Table(UnitValue.CreatePercentArray(6)).UseAllAvailableWidth();
-                    string[] headers = { "No.", "Form ID", "Part Description", "Refurbish Value", "Missing Value", "Replace Value" };
+                    var table = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth(); //PLEASE ADJUST
+                    string[] headers = { "No.", "Form ID", "Part Description", "Refurbish Value", "Missing Value", "Replace Value", "Labor Value" }; //PLEASE ADJUST
                     foreach (var header in headers)
                         table.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
 
@@ -226,6 +233,7 @@ namespace AviAppFinal.Server.Controllers
                         table.AddCell(new Cell().Add(new Paragraph(p.RefurbishValue != 0 ? $"R{p.RefurbishValue:F2}" : "-").SetFont(regular)));
                         table.AddCell(new Cell().Add(new Paragraph(p.MissingValue != 0 ? $"R{p.MissingValue:F2}" : "-").SetFont(regular)));
                         table.AddCell(new Cell().Add(new Paragraph(p.ReplaceValue != 0 ? $"R{p.ReplaceValue:F2}" : "-").SetFont(regular)));
+                        table.AddCell(new Cell().Add(new Paragraph(p.LaborValue != 0 ? $"R{p.LaborValue:F2}" : "-").SetFont(regular))); //PLEASE ADD
                         index++;
                     }
 
@@ -237,26 +245,28 @@ namespace AviAppFinal.Server.Controllers
                     table.AddCell(new Cell().Add(new Paragraph($"R{totalRefurbish:F2}").SetFont(bold)));
                     table.AddCell(new Cell().Add(new Paragraph($"R{totalMissing:F2}").SetFont(bold)));
                     table.AddCell(new Cell().Add(new Paragraph($"R{totalReplace:F2}").SetFont(bold)));
+                    table.AddCell(new Cell().Add(new Paragraph($"R{totalLabor:F2}").SetFont(bold))); //PLEASE ADD
 
                     document.Add(table);
                 }
 
                 // --- Final Grand Totals ---
-                decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal;
+                decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor; //PLEASE ADJUST
 
                 document.Add(new Paragraph("\nGrand Totals").SetFont(bold).SetFontSize(13).SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT));
-
-                var totalsTable = new Table(UnitValue.CreatePercentArray(5)).UseAllAvailableWidth();
+                var totalsTable = new Table(UnitValue.CreatePercentArray(6)).UseAllAvailableWidth(); //PLEASE ADJUST
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Refurbish Total").SetFont(bold)));
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Missing Total").SetFont(bold)));
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Replace Total").SetFont(bold)));
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Lift & Barrel Total").SetFont(bold)));
+                totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Labor Total").SetFont(bold))); //PLEASE ADD
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Overall Total").SetFont(bold)));
 
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalRefurbish:F2}").SetFont(regular)));
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalMissing:F2}").SetFont(regular)));
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalReplace:F2}").SetFont(regular)));
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{liftBarrelTotal:F2}").SetFont(regular)));
+                totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalLabor:F2}").SetFont(regular))); //PLEASE ADD
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotal:F2}").SetFont(bold)));
 
                 document.Add(totalsTable);
@@ -300,11 +310,11 @@ namespace AviAppFinal.Server.Controllers
             {
                 await GenerateAndSaveQuotePdf(number);
             }
-                
 
-            
 
-            return Ok(new { message = "PDF generated successfully"});
+
+
+            return Ok(new { message = "PDF generated successfully" });
         }
 
         [HttpPost("GenerateAndSaveQuotePdfForLocos")]
@@ -312,10 +322,10 @@ namespace AviAppFinal.Server.Controllers
         {
             _context.Database.SetCommandTimeout(180);
 
-            var model = await _context.LocoInfoCaptures 
+            var model = await _context.LocoInfoCaptures
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.LocoNumber == wagonNumber);
-            var LocoNumber= wagonNumber;
+            var LocoNumber = wagonNumber;
             var inspectionSources = new Dictionary<string, IEnumerable<dynamic>>();
             if (model == null)
             {
@@ -459,7 +469,7 @@ namespace AviAppFinal.Server.Controllers
 
                 //PLEASE ADD
                 // --- Lift & Barrel Costs Section ---
-                
+
 
                 // --- Inspection Tables ---
                 foreach (var group in inspectionSources)
@@ -583,7 +593,7 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("GenerateAndSaveQuotePdfForAllLocos")]
         public async Task<IActionResult> GenerateAndSaveQuotePdfForAllLocos()
         {
-            var vagonNumbers = await _context.LocoInfoCaptures.Where(predicate=> predicate.LocoModel == "E18" || predicate.LocoModel == "GE34")  
+            var vagonNumbers = await _context.LocoInfoCaptures.Where(predicate => predicate.LocoModel == "E18" || predicate.LocoModel == "GE34")
                 .AsNoTracking()
                 .Select(w => w.LocoNumber)
                 .ToListAsync();

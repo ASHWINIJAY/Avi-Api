@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using AviAppFinal.Server.Models;
+using AviFinal.Api.Models;
 using AviFinal.Api.Models;
 
 [ApiController]
@@ -15,12 +15,12 @@ public class DashboardController : ControllerBase
 {
     private readonly AviDbContext _context;
 
-    private readonly AppDbContext _localDb;
+    //private readonly AppDbContext _localDb;
 
-    public DashboardController(AviDbContext context, AppDbContext localDb)
+    public DashboardController(AviDbContext context)
     {
         _context = context;
-        _localDb = localDb;
+      //  _localDb = localDb;
     }
 
     [HttpPost("insertWagon")]
@@ -54,8 +54,16 @@ public class DashboardController : ControllerBase
                                           w.BarrelLapsed,
                                           w.BrakePhoto,
                                           w.BrakeDate,
-                                          w.BrakeLapsed
-                                      })
+										  w.BrakeLapsed,
+
+										  w.NetBookValue, //PLEASE ADD
+
+										  w.StartInspectTime, //PLEASE ADD
+
+										  w.GpsLatitude, //PLEASE ADD
+
+										  w.GpsLongitude //PLEASE ADD
+									  })
                                       .FirstOrDefaultAsync();
 
         if (wagonInfo == null)
@@ -83,8 +91,9 @@ public class DashboardController : ControllerBase
         var replaceValues = new List<decimal>();
         var missingPhotosAll = new List<string>();
         var replacePhotosAll = new List<string>();
+		var laborValues = new List<decimal>(); //PLEASE ADD
 
-        static bool TryParseDecimal(string? s, out decimal value)
+		static bool TryParseDecimal(string? s, out decimal value)
         {
             value = 0m;
             if (string.IsNullOrWhiteSpace(s)) return false;
@@ -104,7 +113,9 @@ public class DashboardController : ControllerBase
                                            MissingValue = p.MissingValue,
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
+                                           ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                                        }).ToListAsync(),
 
             async num => await _context.AirBrakePartsInspects
@@ -116,7 +127,9 @@ public class DashboardController : ControllerBase
                                            MissingValue = p.MissingValue,
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
+                                           ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                                        }).ToListAsync(),
 
             async num => await _context.VacBrakePartsInspects
@@ -128,7 +141,9 @@ public class DashboardController : ControllerBase
                                            MissingValue = p.MissingValue,
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
+                                           ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                                        }).ToListAsync()
         };
 
@@ -145,7 +160,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync(),
 
             num => _context.BottomDischargeInspects
@@ -158,7 +175,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync(),
 
             num => _context.DoorsInspects
@@ -171,7 +190,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync(),
 
             num => _context.TwistlocksInspects
@@ -184,7 +205,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync(),
 
             num => _context.StanchionsInspects
@@ -197,7 +220,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync(),
 
             num => _context.FloorInspects
@@ -210,7 +235,9 @@ public class DashboardController : ControllerBase
                                MissingValue = p.MissingValue,
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
+                               ReplacePhoto = p.ReplacePhoto,
+
+										   LaborValue = p.LaborValue //PLEASE ADD
                            }).ToListAsync()
         };
 
@@ -224,8 +251,8 @@ public class DashboardController : ControllerBase
                 if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
                 if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
                 if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
-
-                if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
+				if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
+				if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
                 if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
             }
         }
@@ -238,9 +265,9 @@ public class DashboardController : ControllerBase
         string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-
-        // ---------- Photos Serialization ----------
-        string missingPhotosSerialized = missingPhotosAll.Any()
+		string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+		// ---------- Photos Serialization ----------
+		string missingPhotosSerialized = missingPhotosAll.Any()
             ? JsonSerializer.Serialize(missingPhotosAll)
             : JsonSerializer.Serialize(new List<string> { "No Photos" });
 
@@ -251,9 +278,10 @@ public class DashboardController : ControllerBase
         // ---------- Insert Dashboard ----------
         var dashboardEntry = new WagonDashboard
         {
-            InspectorId = userId,
-            InspectorName = inspectorName,
-            WagonNumber = wagonNumber,
+			InspectorId = userId ?? "No User",
+
+			InspectorName = inspectorName ?? "No User",
+			WagonNumber = wagonNumber,
             WagonGroup = wagonInfo.WagonGroup ?? string.Empty,
             WagonType = wagonInfo.WagonType ?? string.Empty,
             DateAssessed = DateTime.Now.ToString("yyyy-MM-dd"),
@@ -278,14 +306,39 @@ public class DashboardController : ControllerBase
             UploadDate = "No Date",
             WagonPhoto = wagonInfo.WagonPhoto,
             MissingPhotos = missingPhotosSerialized,
-            ReplacePhotos = replacePhotosSerialized
-        };
-        var exisitingEntry = await _context.WagonDashboards
+            ReplacePhotos = replacePhotosSerialized,
+            GpsLatitude = wagonInfo.GpsLatitude, //PLEASE ADD
+
+			GpsLongitude = wagonInfo.GpsLongitude, //PLEASE ADD
+
+			StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available", //PLEASE ADD
+
+			ReplacementValue = "Not Available", //PLEASE ADD
+
+			TotalLaborValue = laborTotal, //PLEASE ADD
+
+			AssetValue = wagonInfo.NetBookValue, //PLEASE ADD
+		};
+        var existingEntry = await _context.WagonDashboards
             .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
-        if (exisitingEntry != null)
+        if (existingEntry != null)
         {
-            //return Conflict(new { success = false, message = $"Wagon dashboard entry already exists for wagon {wagonNumber}" });
-        }
+			
+			
+
+			// NEW FIELDS
+			existingEntry.GpsLatitude = wagonInfo.GpsLatitude;
+			existingEntry.GpsLongitude = wagonInfo.GpsLongitude;
+			existingEntry.StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available";
+			existingEntry.ReplacementValue = "Not Available";
+			existingEntry.TotalLaborValue = laborTotal;
+			existingEntry.AssetValue = wagonInfo.NetBookValue;
+
+			await _context.SaveChangesAsync();
+
+			return Ok(new { success = true, message = "Wagon dashboard updated successfully" });
+			//return Conflict(new { success = false, message = $"Wagon dashboard entry already exists for wagon {wagonNumber}" });
+		}
         else
         {
             _context.WagonDashboards.Add(dashboardEntry);
@@ -311,263 +364,8 @@ public class DashboardController : ControllerBase
                                       .ToListAsync();
         foreach (var wagonNumber in oldVagonList)
         {
-            bool exists = await _context.WagonDashboards.AnyAsync(w => w.WagonNumber == wagonNumber);
-           if(!exists)
-            {
-
-
-                // ---------- Get WagonInfoCaptures ----------
-                var wagonInfo = await _context.WagonInfoCaptures
-                                              .Where(w => w.WagonNumber == wagonNumber)
-                                              .OrderByDescending(w => w.Id)
-                                              .Select(w => new
-                                              {
-                                                  w.WagonGroup,
-                                                  w.WagonType,
-                                                  w.BodyDamage,
-                                                  w.BodyPhoto1,
-                                                  w.BodyPhoto2,
-                                                  w.BodyPhoto3,
-                                                  w.WagonPhoto,
-                                                  w.LiftPhoto,
-                                                  w.LiftDate,
-                                                  w.LiftLapsed,
-                                                  w.BarrelPhoto,
-                                                  w.BarrelDate,
-                                                  w.BarrelLapsed,
-                                                  w.BrakePhoto,
-                                                  w.BrakeDate,
-                                                  w.BrakeLapsed
-                                              })
-                                              .FirstOrDefaultAsync();
-
-                if (wagonInfo == null)
-                    return NotFound(new { success = false, message = $"No WagonInfoCaptures record found for wagon {wagonNumber}" });
-
-                // ---------- Body Photos ----------
-                string bodyDamage = wagonInfo.BodyDamage ?? "No";
-                List<string> bodyPhotosList = new();
-                if (string.Equals(bodyDamage, "Yes", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!string.IsNullOrWhiteSpace(wagonInfo.BodyPhoto1)) bodyPhotosList.Add(wagonInfo.BodyPhoto1);
-                    if (!string.IsNullOrWhiteSpace(wagonInfo.BodyPhoto2)) bodyPhotosList.Add(wagonInfo.BodyPhoto2);
-                    if (!string.IsNullOrWhiteSpace(wagonInfo.BodyPhoto3)) bodyPhotosList.Add(wagonInfo.BodyPhoto3);
-                    if (!bodyPhotosList.Any()) bodyPhotosList.Add("No Photos");
-                }
-                else
-                {
-                    bodyPhotosList.Add("No Photos");
-                }
-                string bodyPhotosSerialized = JsonSerializer.Serialize(bodyPhotosList);
-
-                // ---------- Helper Lists ----------
-                var refurbishValues = new List<decimal>();
-                var missingValues = new List<decimal>();
-                var replaceValues = new List<decimal>();
-                var missingPhotosAll = new List<string>();
-                var replacePhotosAll = new List<string>();
-
-                static bool TryParseDecimal(string? s, out decimal value)
-                {
-                    value = 0m;
-                    if (string.IsNullOrWhiteSpace(s)) return false;
-                    return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
-                        || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
-                }
-
-                // ---------- Multi-entry tables ----------
-                var multiEntryTables = new List<Func<int, Task<List<InspectRow>>>>
-        {
-            async num => await _context.WagonPartsInspects
-                                       .Where(p => p.WagonNumber == num)
-                                       .OrderByDescending(p => p.Id)
-                                       .Select(p => new InspectRow
-                                       {
-                                           RefurbishValue = p.RefurbishValue,
-                                           MissingValue = p.MissingValue,
-                                           ReplaceValue = p.ReplaceValue,
-                                           MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
-                                       }).ToListAsync(),
-
-            async num => await _context.AirBrakePartsInspects
-                                       .Where(p => p.WagonNumber == num)
-                                       .OrderByDescending(p => p.Id)
-                                       .Select(p => new InspectRow
-                                       {
-                                           RefurbishValue = p.RefurbishValue,
-                                           MissingValue = p.MissingValue,
-                                           ReplaceValue = p.ReplaceValue,
-                                           MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
-                                       }).ToListAsync(),
-
-            async num => await _context.VacBrakePartsInspects
-                                       .Where(p => p.WagonNumber == num)
-                                       .OrderByDescending(p => p.Id)
-                                       .Select(p => new InspectRow
-                                       {
-                                           RefurbishValue = p.RefurbishValue,
-                                           MissingValue = p.MissingValue,
-                                           ReplaceValue = p.ReplaceValue,
-                                           MissingPhoto = p.MissingPhoto,
-                                           ReplacePhoto = p.ReplacePhoto
-                                       }).ToListAsync()
-        };
-
-                // ---------- Single-entry tables ----------
-                var singleEntryTables = new List<Func<int, Task<List<InspectRow>>>>
-        {
-            num => _context.TankersInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync(),
-
-            num => _context.BottomDischargeInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync(),
-
-            num => _context.DoorsInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync(),
-
-            num => _context.TwistlocksInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync(),
-
-            num => _context.StanchionsInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync(),
-
-            num => _context.FloorInspects
-                           .Where(p => p.WagonNumber == num)
-                           .OrderByDescending(p => p.Id)
-                           .Take(1)
-                           .Select(p => new InspectRow
-                           {
-                               RefurbishValue = p.RefurbishValue,
-                               MissingValue = p.MissingValue,
-                               ReplaceValue = p.ReplaceValue,
-                               MissingPhoto = p.MissingPhoto,
-                               ReplacePhoto = p.ReplacePhoto
-                           }).ToListAsync()
-        };
-
-                // ---------- Aggregate values ----------
-                foreach (var tableQuery in multiEntryTables.Concat(singleEntryTables))
-                {
-                    var rows = await tableQuery(wagonNumber);
-
-                    foreach (var r in rows)
-                    {
-                        if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
-                        if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
-                        if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
-
-                        if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
-                        if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
-                    }
-                }
-
-                // ---------- Ensure unique photos ----------
-                missingPhotosAll = missingPhotosAll.Distinct().ToList();
-                replacePhotosAll = replacePhotosAll.Distinct().ToList();
-
-                // ---------- Totals ----------
-                string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-                string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-                string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-
-                // ---------- Photos Serialization ----------
-                string missingPhotosSerialized = missingPhotosAll.Any()
-                    ? JsonSerializer.Serialize(missingPhotosAll)
-                    : JsonSerializer.Serialize(new List<string> { "No Photos" });
-
-                string replacePhotosSerialized = replacePhotosAll.Any()
-                    ? JsonSerializer.Serialize(replacePhotosAll)
-                    : JsonSerializer.Serialize(new List<string> { "No Photos" });
-
-                // ---------- Insert Dashboard ----------
-                var dashboardEntry = new WagonDashboard
-                {
-                    InspectorId = "",
-                    InspectorName = inspectorName,
-                    WagonNumber = wagonNumber,
-                    WagonGroup = wagonInfo.WagonGroup ?? string.Empty,
-                    WagonType = wagonInfo.WagonType ?? string.Empty,
-                    DateAssessed = DateTime.Now.ToString("yyyy-MM-dd"),
-                    TimeAssessed = DateTime.Now.ToString("HH:mm:ss"),
-                    BodyDamage = bodyDamage,
-                    BodyPhotos = bodyPhotosSerialized,
-                    LiftPhoto = wagonInfo.LiftPhoto,
-                    LiftDate = wagonInfo.LiftDate,
-                    LiftLapsed = wagonInfo.LiftLapsed,
-                    BarrelPhoto = wagonInfo.BarrelPhoto,
-                    BarrelDate = wagonInfo.BarrelDate,
-                    BarrelLapsed = wagonInfo.BarrelLapsed,
-                    BrakePhoto = wagonInfo.BrakePhoto,
-                    BrakeDate = wagonInfo.BrakeDate,
-                    BrakeLapsed = wagonInfo.BrakeLapsed,
-                    RefurbishValue = refurbishTotal,
-                    MissingValue = missingTotal,
-                    ReplaceValue = replaceTotal,
-                    AssessmentQuote = "Not Ready",
-                    AssessmentCert = "Not Ready",
-                    UploadStatus = "Not Uploaded",
-                    UploadDate = "No Date",
-                    WagonPhoto = wagonInfo.WagonPhoto,
-                    MissingPhotos = missingPhotosSerialized,
-                    ReplacePhotos = replacePhotosSerialized
-                };
-
-                _context.WagonDashboards.Add(dashboardEntry);
-                await _context.SaveChangesAsync();
-            }
-        }
+          InsertWagon(wagonNumber, "").Wait();
+		}
         return Ok(new { success = true, message = "Wagon dashboard entry created" });
     }
 
@@ -578,7 +376,8 @@ public class DashboardController : ControllerBase
         public string? ReplaceValue { get; set; }
         public string? MissingPhoto { get; set; }
         public string? ReplacePhoto { get; set; }
-    }
+		public string? LaborValue { get; set; } //PLEASE ADD
+	}
 
     [HttpGet("getAllWagonDashboard")]
     public async Task<IActionResult> GetAllWagonDashboard()
@@ -614,8 +413,19 @@ public class DashboardController : ControllerBase
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
-                w.ReplacePhotos
-            })
+                w.ReplacePhotos,
+				GpsLatitude = w.GpsLatitude ?? "N/A", //PLEASE ADD
+
+				GpsLongitude = w.GpsLongitude ?? "N/A", //PLEASE ADD
+
+				StartTimeInspect = w.StartTimeInspect ?? "N/A", //PLEASE ADD
+
+				ReplacementValue = w.ReplacementValue ?? "N/A", //PLEASE ADD
+
+				TotalLaborValue = w.TotalLaborValue ?? "N/A", //PLEASE ADD
+
+				AssetValue = w.AssetValue ?? "N/A", //PLEASE ADD
+			})
             .ToListAsync();
 
         return Ok(dashboardEntries);

@@ -18,4 +18,6 @@ public partial class VacBrakeFinalPart
     public string MissingValue { get; set; } = null!;
 
     public string ReplaceValue { get; set; } = null!;
+
+    public string? LaborValue { get; set; }
 }

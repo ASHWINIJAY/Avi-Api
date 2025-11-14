@@ -36,4 +36,6 @@ public partial class TwistlocksInspect
     public string? ReplacePhoto { get; set; }
 
     public int TwistlockQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

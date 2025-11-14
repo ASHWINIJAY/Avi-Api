@@ -36,4 +36,6 @@ public partial class TankersInspect
     public string? ReplacePhoto { get; set; }
 
     public int ValveQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

@@ -75,6 +75,14 @@ public partial class MasterLoco
 
     public string? LocoModel { get; set; }
 
+    public string? Status { get; set; }
+
+    public string? NextScreen { get; set; }
+
+    public string? InspectedBy { get; set; }
+
+    public DateTime? InspectedDate { get; set; }
+
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();

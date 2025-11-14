@@ -36,4 +36,6 @@ public partial class FloorInspect
     public string? ReplacePhoto { get; set; }
 
     public int SectionQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

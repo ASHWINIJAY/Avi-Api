@@ -1,4 +1,4 @@
-﻿using AviAppFinal.Server.Models;
+﻿using AviFinal.Api.Models;
 using AviFinal.Api.Models;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,8 +14,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AviDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=appdata.db"));
+
 
 builder.Services.AddControllers();
 builder.Services.Configure<IISServerOptions>(options =>

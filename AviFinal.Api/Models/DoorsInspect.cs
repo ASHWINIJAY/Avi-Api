@@ -36,4 +36,6 @@ public partial class DoorsInspect
     public string? ReplacePhoto { get; set; }
 
     public int DoorQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

@@ -349,7 +349,6 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -361,6 +360,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.PartDescr)
                 .HasMaxLength(300)
@@ -385,6 +385,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -520,6 +521,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -944,6 +946,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -1984,6 +1987,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6242,6 +6246,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.PartDescr)
                 .HasMaxLength(300)
@@ -6391,6 +6396,8 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.Home).HasMaxLength(100);
             entity.Property(e => e.HoursS).HasMaxLength(50);
             entity.Property(e => e.HoursT).HasMaxLength(50);
+            entity.Property(e => e.InspectedBy).HasMaxLength(50);
+            entity.Property(e => e.InspectedDate).HasColumnType("datetime");
             entity.Property(e => e.InventoryNumber)
                 .HasMaxLength(7)
                 .IsUnicode(false);
@@ -6408,6 +6415,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.NetBookValue)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+            entity.Property(e => e.NextScreen).HasMaxLength(50);
             entity.Property(e => e.Org).HasMaxLength(50);
             entity.Property(e => e.Rdate).HasColumnName("RDate");
             entity.Property(e => e.Remark).HasMaxLength(100);
@@ -6418,6 +6426,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.Sdep)
                 .HasMaxLength(100)
                 .HasColumnName("SDep");
+            entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.Stype)
                 .HasMaxLength(50)
                 .HasColumnName("SType");
@@ -6672,6 +6681,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6707,6 +6717,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6826,6 +6837,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6858,6 +6870,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.PartDescr)
                 .HasMaxLength(300)
@@ -6882,6 +6895,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6916,6 +6930,7 @@ public partial class AviDbContext : DbContext
             entity.ToTable("WagonDashboard");
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.AssetValue).HasMaxLength(100);
             entity.Property(e => e.BarrelDate).HasMaxLength(50);
             entity.Property(e => e.BarrelLapsed)
                 .HasMaxLength(4)
@@ -6928,6 +6943,8 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.DateAssessed).HasMaxLength(50);
+            entity.Property(e => e.GpsLatitude).HasMaxLength(100);
+            entity.Property(e => e.GpsLongitude).HasMaxLength(100);
             entity.Property(e => e.InspectorId)
                 .HasMaxLength(5)
                 .IsUnicode(false)
@@ -6942,7 +6959,10 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.RefurbishValue).HasMaxLength(100);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.ReplacementValue).HasMaxLength(100);
+            entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
             entity.Property(e => e.TimeAssessed).HasMaxLength(50);
+            entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(50);
             entity.Property(e => e.UploadStatus)
                 .HasMaxLength(20)
@@ -6964,6 +6984,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.PartDescr)
                 .HasMaxLength(300)
@@ -7040,6 +7061,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(4)
                 .IsUnicode(false);
             entity.Property(e => e.NetBookValue).HasMaxLength(300);
+            entity.Property(e => e.StartInspectTime).HasMaxLength(50);
             entity.Property(e => e.WagonGroup)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -7060,6 +7082,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(100);
             entity.Property(e => e.MissingCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);

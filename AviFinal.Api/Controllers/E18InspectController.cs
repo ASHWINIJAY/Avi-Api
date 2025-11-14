@@ -137,6 +137,21 @@ namespace AviAppFinal.Server.Controllers
             public string? ReplaceValue { get; set; }
             public string? ReplacePhoto { get; set; }
         }
+        public static string? GetNextFormId(string currentFormId)
+        {
+            // Ordered sequence of forms
+            var formOrder = new List<string>
+    {
+        "BD001","FL001","BE001","EE001","LV001","CR001","HV001","MA001",
+        "EH001","MB001","HS001","ES001","HC001","CC001","CT001","RF001"
+    };
+
+            var currentIndex = formOrder.IndexOf(currentFormId.ToUpper());
+            if (currentIndex == -1 || currentIndex == formOrder.Count - 1)
+                return null; // No next form (last one or invalid)
+
+            return formOrder[currentIndex + 1];
+        }
 
         // ✅ Submit (Insert / Update logic)
         [HttpPost("SubmitInspection")]
@@ -146,6 +161,8 @@ namespace AviAppFinal.Server.Controllers
                 return BadRequest("No data received.");
 
             string formId = dtos.First().FormId.ToUpper();
+            //string nextFormId = GetNextFormId(formId) ?? "COMPLETED";
+            //string nextScreen = "/inspectE18/" + nextFormId;
             string tableName = formId switch
             {
                 "BD001" => "E18bdinspects",
@@ -186,6 +203,14 @@ namespace AviAppFinal.Server.Controllers
                         p.ReplaceValue
                     });
                 var userName = User.Identity?.Name;
+                //int locoNumber = dtos.First().LocoNumber;
+                //var status =  nextScreen == "COMPLETED" ? "Completed" : "In Progress";
+                //string updateLocoSql = $@"
+                //        UPDATE MasterLocos
+                //        SET Status= '" + status + "', NextScreen='" + nextScreen + "',InspectedBy='" + userName + @"',
+                //            InspectedDate=GETDATE()
+                //        WHERE LocoNumber="+ locoNumber +"";
+                //await con.ExecuteAsync(updateLocoSql);
                 foreach (var d in dtos)
                 {
                     if (partCostData.TryGetValue(d.PartId, out var cost))
@@ -201,7 +226,7 @@ namespace AviAppFinal.Server.Controllers
                                          WHERE LocoNumber = @LocoNumber AND FormId = @FormId AND PartId = @PartId";
 
                     int exists = await con.ExecuteScalarAsync<int>(checkSql, d);
-
+                    
                     if (exists > 0)
                     {
                         string updateSql = $@"

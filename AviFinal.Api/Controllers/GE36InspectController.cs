@@ -10,14 +10,14 @@ namespace AviAppFinal.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GE35InspectController : ControllerBase
+    public class GE36InspectController : ControllerBase
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<GE35InspectController> _logger;
+        private readonly ILogger<GE36InspectController> _logger;
         private readonly IConfiguration _config;
 
-        public GE35InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<GE35InspectController> logger, IConfiguration config)
+        public GE36InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<GE36InspectController> logger, IConfiguration config)
         {
             _context = context;
             _env = env;
@@ -34,7 +34,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var partsList = await _context.Ge35finalParts
+                var partsList = await _context.Ge36finalParts
                     .Where(p => p.FormId == formID)
                     .ToListAsync();
 
@@ -71,7 +71,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var part = await _context.Ge35finalParts.FirstOrDefaultAsync(p => p.PartId == partId);
+                var part = await _context.Ge36finalParts.FirstOrDefaultAsync(p => p.PartId == partId);
                 if (part == null) return NotFound();
 
                 string cost = field switch
@@ -100,7 +100,7 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "GE35", formId.ToUpper());
+                string baseFolder = Path.Combine(_env.WebRootPath, "GE36", formId.ToUpper());
                 string subFolder = photoType.ToLower() == "damage" ? "DamagePhotos" : "MissingPhotos";
                 string fullFolderPath = Path.Combine(baseFolder, subFolder);
                 if (!Directory.Exists(fullFolderPath))
@@ -115,7 +115,7 @@ namespace AviAppFinal.Server.Controllers
                     await file.CopyToAsync(stream);
                 }
 
-                string relativePath = Path.Combine("GE35", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                string relativePath = Path.Combine("GE36", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
                 return Ok(new { path = relativePath });
             }
             catch (Exception ex)
@@ -155,7 +155,7 @@ namespace AviAppFinal.Server.Controllers
         }
 
         // ✅ 5️⃣ DTO Class
-        public class GE35InspectDto
+        public class GE36InspectDto
         {
             public int LocoNumber { get; set; }
             public string? LocoClass { get; set; }
@@ -177,7 +177,7 @@ namespace AviAppFinal.Server.Controllers
 
         // ✅ 6️⃣ Submit Inspection (Dynamic Table Insert)
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<GE35InspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<GE36InspectDto> dtos)
         {
             if (dtos == null || dtos.Count == 0)
                 return BadRequest("No data received.");
@@ -257,19 +257,17 @@ namespace AviAppFinal.Server.Controllers
         // ✅ 7️⃣ Table Mapper
         private static string? GetTableName(string formId) => formId.ToUpper() switch
         {
-            "BD001" => "GE35BDInspects",
-            "FL001" => "GE35FLInspects",
-            "SN001" => "GE35SNInspects",
-            "CL001" => "GE35CLInspects",
-            "EC001" => "GE35ECInspects",
-            "BS001" => "GE35BSInspects",
-            "OD001" => "GE35ODInspects",
-            "BC001" => "GE35BCInspects",
-            "MG001" => "GE35MGInspects",
-            "ED001" => "GE35EDInspects",
-            "CF001" => "GE35CFInspects",
-            "DE001" => "GE35DEInspects",
-            "RF001" => "GE35RFInspects",
+            "BD001" => "GE36BDInspects",
+            "FL001" => "GE36FLInspects",
+            "SN001" => "GE36SNInspects",
+            "CL001" => "GE36CLInspects",
+            "EC001" => "GE36ECInspects",
+            "CA001" => "GE36CAInspects",            
+            "MG001" => "GE36MGInspects",
+            "ED001" => "GE36EDInspects",
+            "CF001" => "GE36CFInspects",
+            "DE001" => "GE36DEInspects",
+            "RF001" => "GE36RFInspects",
             _ => null
         };
     }

@@ -36,4 +36,6 @@ public partial class BottomDischargeInspect
     public string? ReplacePhoto { get; set; }
 
     public int MechanismQty { get; set; }
+
+    public string? LaborValue { get; set; }
 }

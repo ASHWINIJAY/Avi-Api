@@ -78,15 +78,37 @@ namespace AviAppFinal.Server.Controllers
 
                 if (part == null) return NotFound();
 
-                string cost = field switch
-                {
-                    "Refurbish" => part.RefurbishValue,
-                    "Missing" => part.MissingValue,
-                    "Replace" => part.ReplaceValue,
-                    _ => "0.00"
-                };
+                string cost = "0.00"; //PLEASE ADD
+                string laborValue = "0.00"; //PLEASE ADD
 
-                return Ok(cost);
+                //PLEASE ADD AND ADJUST
+                switch (field)
+                {
+                    case "Refurbish":
+                        cost = part.RefurbishValue ?? "0.00";
+                        laborValue = part.LaborValue ?? "0.00";
+                        break;
+
+                    case "Missing":
+                        cost = part.MissingValue ?? "0.00";
+                        laborValue = part.LaborValue ?? "0.00";
+                        break;
+
+                    case "Replace":
+                        cost = part.ReplaceValue ?? "0.00";
+                        laborValue = part.LaborValue ?? "0.00";
+                        break;
+
+                    default:
+                        break;
+                }
+
+                //PLEASE ADJUST
+                return Ok(new
+                {
+                    cost,
+                    laborValue
+                });
             }
             catch (Exception ex)
             {
@@ -192,6 +214,7 @@ namespace AviAppFinal.Server.Controllers
             public string? MissingPhoto { get; set; }
             public string? ReplaceValue { get; set; }
             public string? DamagePhoto { get; set; }
+            public string? LaborValue { get; set; } //PLEASE ADD
         }
 
         [HttpPost("SubmitInspection")]
@@ -218,7 +241,8 @@ namespace AviAppFinal.Server.Controllers
                     ReplaceValue = d.ReplaceValue,
                     MissingPhoto = d.MissingPhoto,
                     ReplacePhoto = d.DamagePhoto,
-                    SectionQty = d.SectionQty
+                    SectionQty = d.SectionQty,
+                    LaborValue = d.LaborValue //PLEASE ADD
                 }).ToList();
 
                 // Bulk insert

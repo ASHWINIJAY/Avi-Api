@@ -62,4 +62,16 @@ public partial class WagonDashboard
     public string? MissingPhotos { get; set; }
 
     public string? ReplacePhotos { get; set; }
+
+    public string? GpsLatitude { get; set; }
+
+    public string? GpsLongitude { get; set; }
+
+    public string? StartTimeInspect { get; set; }
+
+    public string? ReplacementValue { get; set; }
+
+    public string? TotalLaborValue { get; set; }
+
+    public string? AssetValue { get; set; }
 }
