@@ -62,7 +62,7 @@ namespace AviFinal.Api.Controllers
             if (string.IsNullOrEmpty(wagonType))
                 return Ok(new { isValid = false, message = "Wagon Type not found." });
 
-            bool existsInDashboard = await _context.WagonInfoCaptures
+            bool existsInDashboard = await _context.WagonDashboards
                .AsNoTracking()
                .AnyAsync(d => d.WagonNumber == wagonNumber);
 

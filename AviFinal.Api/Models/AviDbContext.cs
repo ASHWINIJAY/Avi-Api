@@ -349,6 +349,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -6338,8 +6339,11 @@ public partial class AviDbContext : DbContext
 
             entity.ToTable("LocoDashboard");
 
+            entity.Property(e => e.AssetValue).HasMaxLength(100);
             entity.Property(e => e.BodyDamage).HasMaxLength(10);
             entity.Property(e => e.DateAssessed).HasMaxLength(20);
+            entity.Property(e => e.GpsLatitude).HasMaxLength(100);
+            entity.Property(e => e.GpsLongitude).HasMaxLength(100);
             entity.Property(e => e.InspectorId).HasMaxLength(100);
             entity.Property(e => e.InspectorName).HasMaxLength(150);
             entity.Property(e => e.LocoClass).HasMaxLength(50);
@@ -6347,7 +6351,10 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.MissingValue).HasMaxLength(20);
             entity.Property(e => e.RefurbishValue).HasMaxLength(20);
             entity.Property(e => e.ReplaceValue).HasMaxLength(20);
+            entity.Property(e => e.ReplacementValue).HasMaxLength(100);
+            entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
             entity.Property(e => e.TimeAssessed).HasMaxLength(20);
+            entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(20);
             entity.Property(e => e.UploadStatus).HasMaxLength(20);
         });

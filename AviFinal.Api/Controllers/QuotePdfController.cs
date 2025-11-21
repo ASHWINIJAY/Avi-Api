@@ -56,8 +56,8 @@ namespace AviAppFinal.Server.Controllers
                 { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
             };
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+            //if (inspectionSources.All(s => !s.Value.Any()))
+               // return NotFound("No parts found for this wagon number.");
 
             // --- Ensure folder exists ---
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
@@ -302,11 +302,15 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("GenerateAndSaveQuotePdfForAllWagons")]
         public async Task<IActionResult> GenerateAndSaveQuotePdfForAllWagons()
         {
-            var vagonNumbers = await _context.WagonInfoCaptures
-                .AsNoTracking()
-                .Select(w => w.WagonNumber)
-                .ToListAsync();
-            foreach (var number in vagonNumbers)
+            var notReadyWagonNumbers = await _context.WagonDashboards
+    .AsNoTracking()
+    .Where(d => d.AssessmentQuote == "Not Ready")
+    .Select(d => d.WagonNumber)
+    .Distinct()
+    .ToListAsync();
+
+            // 2. Generate PDF for each one
+            foreach (var number in notReadyWagonNumbers)
             {
                 await GenerateAndSaveQuotePdf(number);
             }
@@ -400,6 +404,91 @@ namespace AviAppFinal.Server.Controllers
     { "Roof Top Inspection", await _context.Ge35rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
 };
 
+            }
+            if (model.LocoModel == "GE36")
+            {
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+    {
+        { "Walk Around / Below Deck Inspect", await _context.Ge36bdinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Front Loco Inspect", await _context.Ge36flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Short Nose Inspect", await _context.Ge36sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Cab Loco Inspect", await _context.Ge36clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Elect Cab Inspect", await _context.Ge36ecinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Central Air Inspect", await _context.Ge36cainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Main Gen Compartment Inspect", await _context.Ge36mginspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Engine Deck Inspect", await _context.Ge36edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Compressor Fan Inspect", await _context.Ge36cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "End Deck Inspect", await _context.Ge36deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Roof Top Inspect", await _context.Ge36rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+    };
+            }
+            if (model.LocoModel == "GM34")
+            {
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+    {
+        { "Below Deck From No.1A to 1B", await _context.Gm34bdinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Front of Loco Above", await _context.Gm34flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Short Nose", await _context.Gm34sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Cab of Loco Assistant Entrance", await _context.Gm34clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Elect Cabinet Top Left", await _context.Gm34elinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Battery Knife Switch Compartment", await _context.Gm34bsinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Left Middle Door", await _context.Gm34lminspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Circuit Breaker Control Panel", await _context.Gm34cbinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Top Right Panel", await _context.Gm34trinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Middle Panel", await _context.Gm34mpinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Bottom Left Panel", await _context.Gm34blinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Central Air Compartment", await _context.Gm34cainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Engine and Above Deck", await _context.Gm34edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Compressor Fan Rad Compartment", await _context.Gm34cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "No.2 End above deck", await _context.Gm34deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Roof Top Inspect", await _context.Gm34rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+    };
+            }
+            if (model.LocoModel == "GM35")
+            {
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+    {
+        { "Below Deck From No.1A to 1B", await _context.Gm35wainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Front of Loco Above", await _context.Gm35flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Short Nose", await _context.Gm35sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Cab of Loco Assistant Entrance", await _context.Gm35clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Elect Cabinet Top Left", await _context.Gm35elinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Battery Knife Switch Compartment", await _context.Gm35bsinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Left Middle Door", await _context.Gm35lminspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Circuit Breaker Control Panel", await _context.Gm35cbinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Top Right Panel", await _context.Gm35trinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Middle Panel", await _context.Gm35mpinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Bottom Left Panel", await _context.Gm35blinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Central Air Compartment", await _context.Gm35cainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Engine and Above Deck", await _context.Gm35edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Compressor Fan Rad Compartment", await _context.Gm35cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "No.2 End Above Deck", await _context.Gm35deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Roof Top Inspect", await _context.Gm35rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+    };
+            }
+
+            if (model.LocoModel == "GM36")
+            {
+                inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+    {
+        { "Below Deck From No.1A to 1B", await _context.Gm36wainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Front of Loco Above", await _context.Gm36flinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Short Nose", await _context.Gm36sninspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Brake Valve Compartment", await _context.Gm36bvinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Cab of Loco Assistant Entrance", await _context.Gm36clinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Elect Cabinet Top Left", await _context.Gm36ecinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Circuit Breaker Control Panel", await _context.Gm36cbinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Battery Knife Switch Compartment", await _context.Gm36bsinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Left Middle Door", await _context.Gm36lminspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Left Control Panel", await _context.Gm36lcinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Top Right Panel", await _context.Gm36trinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Bottom Panel", await _context.Gm36bpinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Central Air Compartment", await _context.Gm36cainspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Engine and Above Deck", await _context.Gm36edinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Compressor Fan Rad Compartment", await _context.Gm36cfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "No.2 End Above Deck", await _context.Gm36deinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() },
+        { "Roof Top Inspect", await _context.Gm36rfinspects.Where(p => p.LocoNumber == LocoNumber).ToListAsync() }
+    };
             }
 
             if (inspectionSources.All(s => !s.Value.Any()))
@@ -593,13 +682,13 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("GenerateAndSaveQuotePdfForAllLocos")]
         public async Task<IActionResult> GenerateAndSaveQuotePdfForAllLocos()
         {
-            var vagonNumbers = await _context.LocoInfoCaptures.Where(predicate => predicate.LocoModel == "E18" || predicate.LocoModel == "GE34")
+            var vagonNumbers = await _context.LocoDashboards.Where(predicate => predicate.AssessmentQuote == "Not Ready")
                 .AsNoTracking()
                 .Select(w => w.LocoNumber)
                 .ToListAsync();
             foreach (var number in vagonNumbers)
             {
-                await GenerateAndSaveQuotePdfForLocos(number);
+                await GenerateAndSaveQuotePdfForLocos((int)number);
             }
 
 

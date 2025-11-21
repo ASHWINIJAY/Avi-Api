@@ -1,26 +1,52 @@
-﻿using System;
+﻿using AviFinal.Api.Models;
+using AviFinal.Api.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AviFinal.Api.Models;
-using AviFinal.Api.Models;
 
 [ApiController]
 [Route("api/[controller]")]
 public class DashboardController : ControllerBase
 {
+    public class UploadRequestItem
+    {
+        public int WagonNumber { get; set; }
+        public string? BodyPhotos { get; set; }         // could be JSON array string or "No Photos"
+        public string? LiftPhoto { get; set; }          // single filename or path
+        public string? BarrelPhoto { get; set; }        // single filename or "N/A"
+        public string? BrakePhoto { get; set; }         // single filename or path
+        public string? AssessmentQuote { get; set; }    // path to pdf or "N/A"
+        public string? WagonPhoto { get; set; }         // single filename or path
+        public string? MissingPhotos { get; set; }      // JSON array string or single
+        public string? ReplacePhotos { get; set; }      // JSON array string or single
+    }
+
+    public class UploadLocoItem
+    {
+        public int LocoNumber { get; set; }
+        public string? BodyPhotos { get; set; }         // could be JSON array string or "No Photos"
+            // single filename or path
+        public string? AssessmentQuote { get; set; }    // path to pdf or "N/A"
+        public string? LocoPhoto { get; set; }         // single filename or path
+        public string? MissingPhotos { get; set; }      // JSON array string or single
+        public string? ReplacePhotos { get; set; }      // JSON array string or single
+    }
     private readonly AviDbContext _context;
+    private readonly IWebHostEnvironment _env;
 
     //private readonly AppDbContext _localDb;
 
-    public DashboardController(AviDbContext context)
+    public DashboardController(AviDbContext context, IWebHostEnvironment env)
     {
         _context = context;
-      //  _localDb = localDb;
+        _env = env;
+        //  _localDb = localDb;
     }
 
     [HttpPost("insertWagon")]
@@ -349,6 +375,178 @@ public class DashboardController : ControllerBase
         return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
     }
 
+    //PLEASE ADD
+    [HttpPost("uploadWagons")]
+    public async Task<IActionResult> UploadWagons([FromBody] List<UploadRequestItem> items)
+    {
+        if (items == null || !items.Any())
+            return BadRequest("No wagons selected for upload.");
+
+        string tempRoot = Path.Combine(_env.WebRootPath ?? "wwwroot", "WagonUploads");
+        if (!Directory.Exists(tempRoot)) Directory.CreateDirectory(tempRoot);
+
+        string zipName = $"WagonDashboardUpload_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+        string zipPath = Path.Combine(tempRoot, zipName);
+
+        using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            foreach (var item in items)
+            {
+                string wagonFolderName = $"{item.WagonNumber}_Dash_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+                // Mapping folder names for categories
+                var folderMap = new Dictionary<string, string>
+            {
+                { "BodyPhotos", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "LiftPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "BarrelPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "BrakePhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "WagonPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") }
+            };
+
+                void AddFilesToZip(string? source, string targetFolder)
+                {
+                    if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
+
+                    List<string> paths = new();
+                    if (source.StartsWith("[")) // JSON array
+                    {
+                        var deserialized = JsonSerializer.Deserialize<List<string>>(source);
+                        if (deserialized != null) paths.AddRange(deserialized);
+                    }
+                    else
+                    {
+                        paths.Add(source);
+                    }
+
+                    foreach (var p in paths)
+                    {
+                        if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+                        string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
+                        if (System.IO.File.Exists(sourcePath))
+                        {
+                            string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+                            zipArchive.CreateEntryFromFile(sourcePath, entryName);
+                        }
+                    }
+                }
+
+                // Use reflection to loop through all properties dynamically
+                var properties = typeof(UploadRequestItem).GetProperties();
+                foreach (var prop in properties)
+                {
+                    if (!folderMap.ContainsKey(prop.Name)) continue;
+
+                    var value = prop.GetValue(item) as string;
+                    AddFilesToZip(value, folderMap[prop.Name]);
+                }
+
+                // Update DB
+                var dashboardEntry = await _context.WagonDashboards.FirstOrDefaultAsync(w => w.WagonNumber == item.WagonNumber);
+                if (dashboardEntry != null)
+                {
+                    dashboardEntry.UploadStatus = "Uploaded";
+                    dashboardEntry.UploadDate = DateTime.Now.ToString("yyyy-MM-dd");
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+        return File(zipBytes, "application/zip", zipName);
+    }
+    [HttpPost("uploadLocos")]
+    public async Task<IActionResult> UploadLocos([FromBody] List<UploadLocoItem> items)
+    {
+        try
+        {
+            if (items == null || !items.Any())
+                return BadRequest("No locos selected for upload.");
+
+            string tempRoot = Path.Combine(_env.WebRootPath ?? "wwwroot", "LocoUploads");
+            if (!Directory.Exists(tempRoot)) Directory.CreateDirectory(tempRoot);
+
+            string zipName = $"LocoDashboardUpload_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            string zipPath = Path.Combine(tempRoot, zipName);
+
+            using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                foreach (var item in items)
+                {
+                    string wagonFolderName = $"{item.LocoNumber}_Dash_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+                    // Mapping folder names for categories
+                    var folderMap = new Dictionary<string, string>
+            {
+                { "BodyPhotos", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                 { "LocoPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") }
+            };
+
+                    void AddFilesToZip(string? source, string targetFolder)
+                    {
+                        if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
+
+                        List<string> paths = new();
+                        if (source.StartsWith("[")) // JSON array
+                        {
+                            var deserialized = JsonSerializer.Deserialize<List<string>>(source);
+                            if (deserialized != null) paths.AddRange(deserialized);
+                        }
+                        else
+                        {
+                            paths.Add(source);
+                        }
+
+                        foreach (var p in paths)
+                        {
+                            if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+                            string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
+                            if (System.IO.File.Exists(sourcePath))
+                            {
+                                string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+                                zipArchive.CreateEntryFromFile(sourcePath, entryName);
+                            }
+                        }
+                    }
+
+                    // Use reflection to loop through all properties dynamically
+                    var properties = typeof(UploadLocoItem).GetProperties();
+                    foreach (var prop in properties)
+                    {
+                        if (!folderMap.ContainsKey(prop.Name)) continue;
+
+                        var value = prop.GetValue(item) as string;
+                        AddFilesToZip(value, folderMap[prop.Name]);
+                    }
+
+                    // Update DB
+                    var dashboardEntry = await _context.LocoDashboards.FirstOrDefaultAsync(w => w.LocoNumber == item.LocoNumber);
+                    if (dashboardEntry != null)
+                    {
+                        dashboardEntry.UploadStatus = "Uploaded";
+                        dashboardEntry.UploadDate = DateTime.Now.ToString("yyyy-MM-dd");
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+            return File(zipBytes, "application/zip", zipName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
     [HttpPost("insertOldWagon")]
     public async Task<IActionResult> InsertOldWagon()
     {
@@ -383,6 +581,7 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetAllWagonDashboard()
     {
         var dashboardEntries = await _context.WagonDashboards
+            .Where(w => w.UploadStatus != "Uploaded")
             .Select(w => new
             {
                 w.Id,
@@ -451,7 +650,11 @@ public class DashboardController : ControllerBase
                                           w.BodyPhoto1,
                                           w.BodyPhoto2,
                                           w.BodyPhoto3,
-                                          w.LocoPhoto
+                                          w.LocoPhoto,
+                                          w.CreatedDate,
+                                          w.GpsLatitude,
+                                          w.GpsLongitude,
+                                          w.NetBookValue,
                                       })
                                       .FirstOrDefaultAsync();
 
@@ -1771,7 +1974,16 @@ public class DashboardController : ControllerBase
             UploadDate = "No Date",
             LocoPhoto = locoInfo.LocoPhoto,
             MissingPhotos = missingPhotosSerialized,
-            ReplacePhotos = replacePhotosSerialized
+            ReplacePhotos = replacePhotosSerialized,
+            GpsLatitude = locoInfo.GpsLatitude, //PLEASE ADD
+
+            GpsLongitude = locoInfo.GpsLongitude, //PLEASE ADD
+
+            StartTimeInspect = locoInfo.CreatedDate?.ToString("HH:mm:ss") ?? "Not Available", //PLEASE ADD
+
+            ReplacementValue = "Not Available", //PLEASE ADD
+
+            AssetValue = locoInfo.NetBookValue, //PLEASE ADD
         };
         var existingLoco = await _context.LocoDashboards
                                         .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
@@ -3156,6 +3368,7 @@ public class DashboardController : ControllerBase
           
 
             var dashboardEntries = await _context.LocoDashboards
+                .Where(w => w.UploadStatus != "Uploaded")
                 .Select(w => new
                 {
                     w.Id,
@@ -3177,7 +3390,11 @@ public class DashboardController : ControllerBase
                     w.UploadDate,
                     w.LocoPhoto,
                     w.MissingPhotos,
-                    w.ReplacePhotos
+                    w.ReplacePhotos,
+                    w.GpsLatitude,
+                    w.GpsLongitude,
+                    w.StartTimeInspect,
+                    w.AssetValue,
                 })
                 .ToListAsync();
 

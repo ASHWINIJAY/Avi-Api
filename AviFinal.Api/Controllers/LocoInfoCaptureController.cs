@@ -136,9 +136,20 @@ namespace AviFinal.Api.Controllers
                 locoInfo.LiftPhoto = "No Photo";
                 locoInfo.LiftDate = "No Date";
             }
+            var existingRecord = await _context.LocoInfoCaptures
+                .FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
+            if (existingRecord != null)
+            {
 
-            _context.LocoInfoCaptures.Add(locoInfo);
-            await _context.SaveChangesAsync();
+            }
+            else
+            {
+                        _context.LocoInfoCaptures.Add(locoInfo);
+                        //locoInfo.Id = existingRecord.Id;
+                        //locoInfo.CreatedDate = DateTime.Now;
+                        //_context.LocoInfoCaptures.Update(locoInfo);
+                    }
+                await _context.SaveChangesAsync();
 
 
 
@@ -157,7 +168,7 @@ namespace AviFinal.Api.Controllers
                     from wd in wdGroup.DefaultIfEmpty()
                     join wic in _context.LocoInfoCaptures on ml.LocoNumber equals wic.LocoNumber into wicGroup
                     from wic in wicGroup.DefaultIfEmpty() 
-                    where wd == null && wic != null && wic.CreatedBy == currentUser 
+                    where wd == null && wic != null  
                     select ml.LocoNumber
                 ).Distinct().ToListAsync();
 
@@ -170,7 +181,7 @@ namespace AviFinal.Api.Controllers
 
                 return Ok(new
                 {
-                    Message = "You have the following incomplete loco(s). Please select and recapture them again."
+                    Message = "We have the following incomplete loco(s). Please select and recapture them again."
 ,
 
                     IncompleteLocos = locoNumbersToDelete
@@ -193,8 +204,8 @@ namespace AviFinal.Api.Controllers
 
             if (record != null)
             {
-                _context.LocoInfoCaptures.Remove(record);
-                _context.SaveChanges();
+                //_context.LocoInfoCaptures.Remove(record);
+               // _context.SaveChanges();
                 return Ok(new { message = $"Loco {locoNum} deleted successfully." });
             }
 

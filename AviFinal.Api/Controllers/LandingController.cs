@@ -176,7 +176,7 @@ namespace AviFinal.Api.Controllers
             //bool existsInDashboard = await _context.DashBoardItems
             //    .AsNoTracking()
             //    .AnyAsync(d => d.LocoNumber == locoNumber);
-            bool existsInDashboard = await _context.LocoInfoCaptures
+            bool existsInDashboard = await _context.LocoDashboards
                 .AsNoTracking()
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 

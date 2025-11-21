@@ -44,4 +44,16 @@ public partial class LocoDashboard
     public string? UploadStatus { get; set; }
 
     public string? UploadDate { get; set; }
+
+    public string? GpsLatitude { get; set; }
+
+    public string? GpsLongitude { get; set; }
+
+    public string? StartTimeInspect { get; set; }
+
+    public string? ReplacementValue { get; set; }
+
+    public string? TotalLaborValue { get; set; }
+
+    public string? AssetValue { get; set; }
 }

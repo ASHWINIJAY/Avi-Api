@@ -145,8 +145,17 @@ namespace AviAppFinal.Server.Controllers
             string startTime = DateTime.Now.ToString("HH:mm:ss"); //PLEASE ADD
 
             wagonInfo.StartInspectTime = startTime;
-            _context.WagonInfoCaptures.Add(wagonInfo);
-            await _context.SaveChangesAsync();
+            var existingRecord = await _context.WagonInfoCaptures
+                .FirstOrDefaultAsync(w => w.WagonNumber == model.WagonNumber);
+            if (existingRecord != null)
+            {
+
+            }
+            else
+            {
+                        _context.WagonInfoCaptures.Add(wagonInfo);
+                    }
+                await _context.SaveChangesAsync();
 
             // (Luca) Add
             var group = model.WagonGroup;
@@ -201,7 +210,7 @@ namespace AviAppFinal.Server.Controllers
                     from wd in wdGroup.DefaultIfEmpty()
                     join wic in _context.WagonInfoCaptures on ml.WagonNumber equals wic.WagonNumber into wicGroup
                     from wic in wicGroup.DefaultIfEmpty()
-                    where wd == null && wic != null && wic.CreatedBy == currentUser
+                    where wd == null && wic != null
                     select ml.WagonNumber
                 ).Distinct().ToListAsync();
 
@@ -215,7 +224,7 @@ namespace AviAppFinal.Server.Controllers
 
                 return Ok(new
                 {
-                    Message = "You have the following incomplete loco(s). Please select and recapture them again."
+                    Message = "You have the following incomplete wagon(s). Please select and recapture them again."
 ,
 
                     IncompleteWagons = locoNumbersToDelete
@@ -237,8 +246,8 @@ namespace AviAppFinal.Server.Controllers
             var record = _context.WagonInfoCaptures.FirstOrDefault(w => w.WagonNumber == wagonNum);
             if (record != null)
             {
-                _context.WagonInfoCaptures.Remove(record);
-                _context.SaveChanges();
+               // _context.WagonInfoCaptures.Remove(record);
+               // _context.SaveChanges();
                 return Ok(new { message = $"Wagon {wagonNum} deleted successfully." });
             }
 

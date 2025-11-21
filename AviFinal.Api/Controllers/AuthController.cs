@@ -1,12 +1,13 @@
-﻿using AviFinal.Api.Models;
+﻿using AviAppFinal.Server.Controllers;
+using AviFinal.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 
 namespace AviFinal.Api.Controllers
 {
@@ -16,11 +17,13 @@ namespace AviFinal.Api.Controllers
     {
         private readonly AviDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(AviDbContext context, IConfiguration configuration)
+        public AuthController(AviDbContext context, IConfiguration configuration,ILogger<AuthController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public class CreateUserRequest
@@ -132,7 +135,11 @@ namespace AviFinal.Api.Controllers
         public IActionResult Login([FromBody] LoginRequest request)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            {
+                _logger.LogInformation("Login attempt with missing username or password: " + request.Username);
                 return BadRequest("Username and password are required.");
+
+            }
 
             // Hash the incoming password the same way
             string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
@@ -152,7 +159,7 @@ namespace AviFinal.Api.Controllers
 
             // Generate JWT
             var token1 = GenerateJwtToken(user);
-
+            _logger.LogInformation("User logged in: " + request.Username);
 
             return Ok(new { token = token1, userId = user.UserId, userRole = user.UserRole,name = user.Name??string.Empty });
         }

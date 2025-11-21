@@ -191,9 +191,26 @@ namespace AviAppFinal.Server.Controllers
 
                 using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
                 await con.OpenAsync();
-
+                var partIds = dtos.Select(d => d.PartId).ToList();
+                var partCostData = await _context.Ge35finalParts
+                    .Where(p => partIds.Contains(p.PartId))
+                    .ToDictionaryAsync(p => p.PartId, p => new
+                    {
+                        p.RefurbishValue,
+                        p.MissingValue,
+                        p.ReplaceValue
+                    });
                 foreach (var d in dtos)
                 {
+                    if (partCostData.TryGetValue(d.PartId, out var cost))
+                    {
+                        if (d.RefurbishCheck == "Yes")
+                            d.RefurbishValue = cost.RefurbishValue ?? "0.00";
+                        if (d.MissingCheck == "Yes")
+                            d.MissingValue = cost.MissingValue ?? "0.00";
+                        if (d.ReplaceCheck == "Yes")
+                            d.ReplaceValue = cost.ReplaceValue ?? "0.00";
+                    }
                     string checkSql = $@"
     SELECT COUNT(*) 
     FROM {tableName}
