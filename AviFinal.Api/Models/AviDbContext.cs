@@ -339,6 +339,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WagonDashboard> WagonDashboards { get; set; }
 
+    public virtual DbSet<WagonDashboardUploaded> WagonDashboardUploadeds { get; set; }
+
     public virtual DbSet<WagonFinalPart> WagonFinalParts { get; set; }
 
     public virtual DbSet<WagonGroup> WagonGroups { get; set; }
@@ -349,7 +351,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-
+ 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -6935,6 +6937,58 @@ public partial class AviDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__WagonDas__3214EC27D940424E");
 
             entity.ToTable("WagonDashboard");
+
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.AssetValue).HasMaxLength(100);
+            entity.Property(e => e.BarrelDate).HasMaxLength(50);
+            entity.Property(e => e.BarrelLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.BodyDamage)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.BrakeDate).HasMaxLength(50);
+            entity.Property(e => e.BrakeLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.DateAssessed).HasMaxLength(50);
+            entity.Property(e => e.GpsLatitude).HasMaxLength(100);
+            entity.Property(e => e.GpsLongitude).HasMaxLength(100);
+            entity.Property(e => e.InspectorId)
+                .HasMaxLength(5)
+                .IsUnicode(false)
+                .HasColumnName("InspectorID");
+            entity.Property(e => e.InspectorName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.LiftDate).HasMaxLength(50);
+            entity.Property(e => e.LiftLapsed)
+                .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.MissingValue).HasMaxLength(100);
+            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+            entity.Property(e => e.ReplacementValue).HasMaxLength(100);
+            entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
+            entity.Property(e => e.TimeAssessed).HasMaxLength(50);
+            entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
+            entity.Property(e => e.UploadDate).HasMaxLength(50);
+            entity.Property(e => e.UploadStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(80)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<WagonDashboardUploaded>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__WagonDas__3214EC27BDD17D09");
+
+            entity.ToTable("WagonDashboardUploaded");
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.AssetValue).HasMaxLength(100);
