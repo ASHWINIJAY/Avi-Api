@@ -1,9 +1,11 @@
-﻿using AviFinal.Api.Models;
+﻿using AviFinal.Api.DTO;
+using AviFinal.Api.Models;
 using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.IO.Compression;
 using System.Linq;
@@ -4912,5 +4914,105 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
             return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
         }
     }
+
+    [HttpGet("GetInspectionStatus")]
+    public async Task<IActionResult> GetInspectionStatus()
+    {
+        var result = new List<InspectionStatusDto>();
+
+        using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+        {
+            cmd.CommandText = "sp_GetInspectionStatus";
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await _context.Database.OpenConnectionAsync();
+
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    result.Add(new InspectionStatusDto
+                    {
+                        InspectionType = reader["InspectionType"].ToString(),
+                        Total = Convert.ToInt32(reader["Total"]),
+                        Inspected = Convert.ToInt32(reader["Inspected"]),
+                        Pending = Convert.ToInt32(reader["Pending"]),
+                        CompletionPercent = Convert.ToDecimal(reader["CompletionPercent"])
+                    });
+                }
+            }
+        }
+
+        return Ok(result);
+    }
+    [HttpGet("GetLocoStatusList")]
+    public async Task<IActionResult> GetLocoStatusList()
+    {
+        var sql = @"
+SELECT 
+    MW.LocoNumber, 
+    ISNULL(MW.LocoType, '') AS LocoType,
+    ISNULL(MW.LocoModel, '') AS LocoModel,
+    CASE 
+        WHEN WIC.LocoNumber IS NOT NULL THEN 'Incomplete'
+        ELSE 'Not Started'
+    END AS Status
+FROM MasterLocos MW
+LEFT JOIN LocoDashboard WD 
+    ON MW.LocoNumber = WD.LocoNumber
+LEFT JOIN LocoInfoCaptures WIC 
+    ON MW.LocoNumber = WIC.LocoNumber
+WHERE WD.LocoNumber IS NULL
+ORDER BY MW.LocoNumber ASC";
+
+
+        var result = await _context.Database
+            .SqlQueryRaw<LocoStatusDto>(sql)
+            .ToListAsync();
+
+        return Ok(result);
+    }
+    [HttpGet("GetWagonStatusList")]
+    public async Task<IActionResult> GetWagonStatusList()
+    {
+        var result = await (
+            from mw in _context.MasterWagons
+            join wd in _context.WagonDashboards
+                on mw.WagonNumber equals wd.WagonNumber into wdGroup
+            from wd in wdGroup.DefaultIfEmpty()
+
+            join wic in _context.WagonInfoCaptures
+                on mw.WagonNumber equals wic.WagonNumber into wicGroup
+            from wic in wicGroup.DefaultIfEmpty()
+
+            select new WagonStatusDto
+            {
+                WagonNumber = mw.WagonNumber.ToString(),   // <-- convert INT to string
+                WagonGroup = mw.WagonClass.ToString(),
+                WagonType = mw.WagonType,
+                Status = (wic != null) ? "Incomplete" : "Not Started"
+            }
+        ).ToListAsync();
+
+        return Ok(result);
+    }
+
+    public class WagonStatusDto
+    {
+        public string WagonNumber { get; set; }
+        public string WagonGroup { get; set; }
+        public string WagonType { get; set; }
+        public string Status { get; set; }
+    }
+
+
+    public class LocoStatusDto
+    {
+        public int LocoNumber { get; set; }
+        public string LocoType { get; set; }
+        public string LocoModel { get; set; }
+        public string Status { get; set; }
+    }
+
 
 }
