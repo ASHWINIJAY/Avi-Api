@@ -36,4 +36,6 @@ public partial class Gm34cfinspect
     public string? ReplaceValue { get; set; }
 
     public string? ReplacePhoto { get; set; }
+
+    public string? LaborValue { get; set; }
 }

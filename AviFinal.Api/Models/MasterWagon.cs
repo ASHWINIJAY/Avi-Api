@@ -210,4 +210,6 @@ public partial class MasterWagon
     public int RevisedYearOfRts { get; set; }
 
     public string Decision { get; set; } = null!;
+
+    public string? MarketValue { get; set; }
 }

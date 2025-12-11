@@ -39,6 +39,8 @@ public partial class Ge34inspect
 
     public string? MissingPhoto { get; set; }
 
+    public string? LaborValue { get; set; }
+
     public virtual MasterLoco LocoNumberNavigation { get; set; } = null!;
 
     public virtual LeaseCoUser User { get; set; } = null!;

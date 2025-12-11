@@ -28,6 +28,7 @@ public class DashboardController : ControllerBase
         public string? MissingPhotos { get; set; }      // JSON array string or single
         public string? ReplacePhotos { get; set; }      // JSON array string or single
         public string? AssessmentCert { get; set; }
+        public string? AssessmentSow { get; set; }
     }
 
     public class UploadLocoItem
@@ -40,6 +41,8 @@ public class DashboardController : ControllerBase
         public string? MissingPhotos { get; set; }      // JSON array string or single
         public string? ReplacePhotos { get; set; }      // JSON array string or single
         public string? AssessmentCert { get; set; }
+
+        public string? AssessmentSow { get; set; }
     }
     private readonly AviDbContext _context;
     private readonly IWebHostEnvironment _env;
@@ -61,7 +64,12 @@ public class DashboardController : ControllerBase
                                       .Where(u => u.UserId == userId)
                                       .Select(u => new { u.UserName })
                                       .FirstOrDefaultAsync();
-        string inspectorName = leaseUser?.UserName ?? "Unknown User";
+        string inspectorName = leaseUser?.UserName ?? "No User";
+
+        //PLEASE ADD
+        var master = await _context.MasterWagons
+                                      .AsNoTracking()
+                                      .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
 
         // ---------- Get WagonInfoCaptures ----------
         var wagonInfo = await _context.WagonInfoCaptures
@@ -84,16 +92,12 @@ public class DashboardController : ControllerBase
                                           w.BarrelLapsed,
                                           w.BrakePhoto,
                                           w.BrakeDate,
-										  w.BrakeLapsed,
-
-										  w.NetBookValue, //PLEASE ADD
-
-										  w.StartInspectTime, //PLEASE ADD
-
-										  w.GpsLatitude, //PLEASE ADD
-
-										  w.GpsLongitude //PLEASE ADD
-									  })
+                                          w.BrakeLapsed,
+                                          w.NetBookValue,
+                                          w.StartInspectTime,
+                                          w.GpsLatitude,
+                                          w.GpsLongitude
+                                      })
                                       .FirstOrDefaultAsync();
 
         if (wagonInfo == null)
@@ -119,11 +123,11 @@ public class DashboardController : ControllerBase
         var refurbishValues = new List<decimal>();
         var missingValues = new List<decimal>();
         var replaceValues = new List<decimal>();
+        var laborValues = new List<decimal>();
         var missingPhotosAll = new List<string>();
         var replacePhotosAll = new List<string>();
-		var laborValues = new List<decimal>(); //PLEASE ADD
 
-		static bool TryParseDecimal(string? s, out decimal value)
+        static bool TryParseDecimal(string? s, out decimal value)
         {
             value = 0m;
             if (string.IsNullOrWhiteSpace(s)) return false;
@@ -144,8 +148,7 @@ public class DashboardController : ControllerBase
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
                                            ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                                           LaborValue = p.LaborValue
                                        }).ToListAsync(),
 
             async num => await _context.AirBrakePartsInspects
@@ -158,8 +161,7 @@ public class DashboardController : ControllerBase
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
                                            ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                                           LaborValue = p.LaborValue
                                        }).ToListAsync(),
 
             async num => await _context.VacBrakePartsInspects
@@ -172,8 +174,7 @@ public class DashboardController : ControllerBase
                                            ReplaceValue = p.ReplaceValue,
                                            MissingPhoto = p.MissingPhoto,
                                            ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                                           LaborValue = p.LaborValue
                                        }).ToListAsync()
         };
 
@@ -191,8 +192,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync(),
 
             num => _context.BottomDischargeInspects
@@ -206,8 +206,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync(),
 
             num => _context.DoorsInspects
@@ -221,8 +220,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync(),
 
             num => _context.TwistlocksInspects
@@ -236,8 +234,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync(),
 
             num => _context.StanchionsInspects
@@ -251,8 +248,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync(),
 
             num => _context.FloorInspects
@@ -266,8 +262,7 @@ public class DashboardController : ControllerBase
                                ReplaceValue = p.ReplaceValue,
                                MissingPhoto = p.MissingPhoto,
                                ReplacePhoto = p.ReplacePhoto,
-
-										   LaborValue = p.LaborValue //PLEASE ADD
+                               LaborValue = p.LaborValue
                            }).ToListAsync()
         };
 
@@ -281,8 +276,9 @@ public class DashboardController : ControllerBase
                 if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
                 if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
                 if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
-				if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
-				if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
+                if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
+
+                if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
                 if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
             }
         }
@@ -295,9 +291,10 @@ public class DashboardController : ControllerBase
         string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-		string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
-		// ---------- Photos Serialization ----------
-		string missingPhotosSerialized = missingPhotosAll.Any()
+        string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+
+        // ---------- Photos Serialization ----------
+        string missingPhotosSerialized = missingPhotosAll.Any()
             ? JsonSerializer.Serialize(missingPhotosAll)
             : JsonSerializer.Serialize(new List<string> { "No Photos" });
 
@@ -305,20 +302,48 @@ public class DashboardController : ControllerBase
             ? JsonSerializer.Serialize(replacePhotosAll)
             : JsonSerializer.Serialize(new List<string> { "No Photos" });
 
+        //PLEASE ADD
+        decimal liftCost = 0;
+        decimal barrelCost = 0;
+
+        if (wagonInfo?.LiftLapsed == "Yes")
+            liftCost = 420982;
+        else if (wagonInfo?.LiftLapsed == "No")
+            liftCost = 0;
+
+        if (wagonInfo?.BarrelLapsed == "Yes")
+            barrelCost = 351893;
+        else if (wagonInfo?.BarrelLapsed == "No" || wagonInfo?.BarrelLapsed == "N/A")
+            barrelCost = 0;
+
+        decimal liftBarrelTotal = liftCost + barrelCost;
+
+        //PLEASE ADD
+        decimal marketValue = 0; //PLEASE ADD
+
+        //PLEASE ADD
+        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        //PLEASE ADD
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
+        decimal assetValue = marketValue - repairTotal;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
         // ---------- Insert Dashboard ----------
         var dashboardEntry = new WagonDashboard
         {
-			InspectorId = userId ?? "No User",
-
-			InspectorName = inspectorName ?? "No User",
-			WagonNumber = wagonNumber,
-            WagonGroup = wagonInfo.WagonGroup ?? string.Empty,
-            WagonType = wagonInfo.WagonType ?? string.Empty,
+            InspectorId = userId ?? "No User",
+            InspectorName = inspectorName ?? "No User",
+            WagonNumber = wagonNumber,
+            WagonGroup = wagonInfo?.WagonGroup ?? string.Empty,
+            WagonType = wagonInfo?.WagonType ?? string.Empty,
             DateAssessed = DateTime.Now.ToString("yyyy-MM-dd"),
             TimeAssessed = DateTime.Now.ToString("HH:mm:ss"),
             BodyDamage = bodyDamage,
             BodyPhotos = bodyPhotosSerialized,
-            LiftPhoto = wagonInfo.LiftPhoto,
+            LiftPhoto = wagonInfo?.LiftPhoto,
             LiftDate = wagonInfo.LiftDate,
             LiftLapsed = wagonInfo.LiftLapsed,
             BarrelPhoto = wagonInfo.BarrelPhoto,
@@ -332,49 +357,25 @@ public class DashboardController : ControllerBase
             ReplaceValue = replaceTotal,
             AssessmentQuote = "Not Ready",
             AssessmentCert = "Not Ready",
-            UploadStatus = "Not Uploaded",
+            WagonStatus = "Inspection Complete", //PLEASE ADJUST
             UploadDate = "No Date",
             WagonPhoto = wagonInfo.WagonPhoto,
             MissingPhotos = missingPhotosSerialized,
             ReplacePhotos = replacePhotosSerialized,
-            GpsLatitude = wagonInfo.GpsLatitude, //PLEASE ADD
+            GpsLatitude = wagonInfo.GpsLatitude,
+            GpsLongitude = wagonInfo.GpsLongitude,
+            StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available",
+            MarketValue = master?.MarketValue ?? "0.00", //PLEASE ADJUST
+            TotalLaborValue = laborTotal,
+            AssetValue = totalAssetValue ?? "0.00", //PLEASE ADJUST
+            AssessmentSow = "Not Ready", //PLEASE ADD
+            LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture), //PLEASE ADD
+            BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture), //PLEASE ADD
+            TotalValue = rts ?? "0.00" //PLEASE ADD
+        };
 
-			GpsLongitude = wagonInfo.GpsLongitude, //PLEASE ADD
-
-			StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available", //PLEASE ADD
-
-			ReplacementValue = "Not Available", //PLEASE ADD
-
-			TotalLaborValue = laborTotal, //PLEASE ADD
-
-			AssetValue = wagonInfo.NetBookValue, //PLEASE ADD
-		};
-        var existingEntry = await _context.WagonDashboards
-            .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
-        if (existingEntry != null)
-        {
-			
-			
-
-			// NEW FIELDS
-			existingEntry.GpsLatitude = wagonInfo.GpsLatitude;
-			existingEntry.GpsLongitude = wagonInfo.GpsLongitude;
-			existingEntry.StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available";
-			existingEntry.ReplacementValue = "Not Available";
-			existingEntry.TotalLaborValue = laborTotal;
-			existingEntry.AssetValue = wagonInfo.NetBookValue;
-
-			await _context.SaveChangesAsync();
-
-			return Ok(new { success = true, message = "Wagon dashboard updated successfully" });
-			//return Conflict(new { success = false, message = $"Wagon dashboard entry already exists for wagon {wagonNumber}" });
-		}
-        else
-        {
-            _context.WagonDashboards.Add(dashboardEntry);
-            await _context.SaveChangesAsync();
-        }
-            
+        _context.WagonDashboards.Add(dashboardEntry);
+        await _context.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
     }
@@ -384,25 +385,15 @@ public class DashboardController : ControllerBase
         if (items == null || !items.Any())
             return BadRequest("No wagons selected for upload.");
 
-        //PLEASE ADD
         // --- Ensure server folder exists ---
         string serverFolder = @"C:\WagonDashboardItemsUploaded";
         if (!Directory.Exists(serverFolder))
             Directory.CreateDirectory(serverFolder);
 
-        //PLEASE ADD
         // --- Create ZIP file name including wagon numbers ---
         string wagonNumbersPart = string.Join("_", items.Select(i => i.WagonNumber));
         string zipName = $"WagonDashboardUpload_{wagonNumbersPart}_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
         string zipPath = Path.Combine(serverFolder, zipName);
-
-        //PLEASE REMOVE
-        //string tempRoot = Path.Combine(_env.WebRootPath ?? "wwwroot", "WagonUploads");
-        //if (!Directory.Exists(tempRoot)) Directory.CreateDirectory(tempRoot);
-
-        //PLEASE REMOVE
-        //string zipName = $"WagonDashboardUpload_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
-        //string zipPath = Path.Combine(tempRoot, zipName);
 
         using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
         {
@@ -421,7 +412,8 @@ public class DashboardController : ControllerBase
                 { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
                 { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
                 { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") },
-                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") } //PLEASE ADD
+                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") },
+                { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") } //PLEASE ADD
             };
 
                 void AddFilesToZip(string? source, string targetFolder)
@@ -465,72 +457,122 @@ public class DashboardController : ControllerBase
                 var dashboardEntry = await _context.WagonDashboards.FirstOrDefaultAsync(w => w.WagonNumber == item.WagonNumber);
                 if (dashboardEntry != null)
                 {
-                    dashboardEntry.UploadStatus = "Uploaded";
+                    dashboardEntry.WagonStatus = "Uploaded";
                     dashboardEntry.UploadDate = DateTime.Now.ToString("yyyy-MM-dd");
 
-                    await _context.SaveChangesAsync(); //PLEASE ADD
-
-                    //PLEASE ADD
-                    // --- Insert into WagonDashboardUploaded ---
-                    var uploadedEntry = new WagonDashboardUploaded
-                    {
-                        InspectorId = dashboardEntry.InspectorId,
-                        InspectorName = dashboardEntry.InspectorName,
-                        WagonNumber = dashboardEntry.WagonNumber,
-                        WagonGroup = dashboardEntry.WagonGroup,
-                        WagonType = dashboardEntry.WagonType,
-                        DateAssessed = dashboardEntry.DateAssessed,
-                        TimeAssessed = dashboardEntry.TimeAssessed,
-                        BodyDamage = dashboardEntry.BodyDamage,
-                        BodyPhotos = dashboardEntry.BodyPhotos,
-                        LiftPhoto = dashboardEntry.LiftPhoto,
-                        LiftDate = dashboardEntry.LiftDate,
-                        LiftLapsed = dashboardEntry.LiftLapsed,
-                        BarrelPhoto = dashboardEntry.BarrelPhoto,
-                        BarrelDate = dashboardEntry.BarrelDate,
-                        BarrelLapsed = dashboardEntry.BarrelLapsed,
-                        BrakePhoto = dashboardEntry.BrakePhoto,
-                        BrakeDate = dashboardEntry.BrakeDate,
-                        BrakeLapsed = dashboardEntry.BrakeLapsed,
-                        RefurbishValue = dashboardEntry.RefurbishValue,
-                        MissingValue = dashboardEntry.MissingValue,
-                        ReplaceValue = dashboardEntry.ReplaceValue,
-                        AssessmentQuote = dashboardEntry.AssessmentQuote,
-                        AssessmentCert = dashboardEntry.AssessmentCert,
-                        UploadStatus = dashboardEntry.UploadStatus,
-                        UploadDate = dashboardEntry.UploadDate,
-                        WagonPhoto = dashboardEntry.WagonPhoto,
-                        MissingPhotos = dashboardEntry.MissingPhotos,
-                        ReplacePhotos = dashboardEntry.ReplacePhotos,
-                        GpsLatitude = dashboardEntry.GpsLatitude,
-                        GpsLongitude = dashboardEntry.GpsLongitude,
-                        StartTimeInspect = dashboardEntry.StartTimeInspect,
-                        ReplacementValue = dashboardEntry.ReplacementValue,
-                        TotalLaborValue = dashboardEntry.TotalLaborValue,
-                        AssetValue = dashboardEntry.AssetValue
-                    };
-
-                    _context.WagonDashboardUploadeds.Add(uploadedEntry);
                     await _context.SaveChangesAsync();
+
+                    // --- Insert into WagonDashboardUploaded ---
+                    // Check if wagon already exists
+                    var existingEntry = await _context.WagonDashboardUploadeds
+                        .FirstOrDefaultAsync(x => x.WagonNumber == dashboardEntry.WagonNumber);
+
+                    if (existingEntry != null)
+                    {
+                        // UPDATE existing record
+                        existingEntry.InspectorId = dashboardEntry.InspectorId;
+                        existingEntry.InspectorName = dashboardEntry.InspectorName;
+                        existingEntry.WagonGroup = dashboardEntry.WagonGroup;
+                        existingEntry.WagonType = dashboardEntry.WagonType;
+                        existingEntry.DateAssessed = dashboardEntry.DateAssessed;
+                        existingEntry.TimeAssessed = dashboardEntry.TimeAssessed;
+                        existingEntry.BodyDamage = dashboardEntry.BodyDamage;
+                        existingEntry.BodyPhotos = dashboardEntry.BodyPhotos;
+                        existingEntry.LiftPhoto = dashboardEntry.LiftPhoto;
+                        existingEntry.LiftDate = dashboardEntry.LiftDate;
+                        existingEntry.LiftLapsed = dashboardEntry.LiftLapsed;
+                        existingEntry.BarrelPhoto = dashboardEntry.BarrelPhoto;
+                        existingEntry.BarrelDate = dashboardEntry.BarrelDate;
+                        existingEntry.BarrelLapsed = dashboardEntry.BarrelLapsed;
+                        existingEntry.BrakePhoto = dashboardEntry.BrakePhoto;
+                        existingEntry.BrakeDate = dashboardEntry.BrakeDate;
+                        existingEntry.BrakeLapsed = dashboardEntry.BrakeLapsed;
+                        existingEntry.RefurbishValue = dashboardEntry.RefurbishValue;
+                        existingEntry.MissingValue = dashboardEntry.MissingValue;
+                        existingEntry.ReplaceValue = dashboardEntry.ReplaceValue;
+                        existingEntry.AssessmentQuote = dashboardEntry.AssessmentQuote;
+                        existingEntry.AssessmentCert = dashboardEntry.AssessmentCert;
+                        existingEntry.WagonStatus = dashboardEntry.WagonStatus;
+                        existingEntry.UploadDate = dashboardEntry.UploadDate;
+                        existingEntry.WagonPhoto = dashboardEntry.WagonPhoto;
+                        existingEntry.MissingPhotos = dashboardEntry.MissingPhotos;
+                        existingEntry.ReplacePhotos = dashboardEntry.ReplacePhotos;
+                        existingEntry.GpsLatitude = dashboardEntry.GpsLatitude;
+                        existingEntry.GpsLongitude = dashboardEntry.GpsLongitude;
+                        existingEntry.StartTimeInspect = dashboardEntry.StartTimeInspect;
+                        existingEntry.MarketValue = dashboardEntry.MarketValue;
+                        existingEntry.TotalLaborValue = dashboardEntry.TotalLaborValue;
+                        existingEntry.AssetValue = dashboardEntry.AssetValue;
+
+                        // NEW FIELDS
+                        existingEntry.AssessmentSow = dashboardEntry.AssessmentSow ?? "Not Ready";
+                        existingEntry.LiftValue = dashboardEntry.LiftValue;
+                        existingEntry.BarrelValue = dashboardEntry.BarrelValue;
+                        existingEntry.TotalValue = dashboardEntry.TotalValue;
+                    }
+                    else
+                    {
+                        // INSERT new record
+                        var uploadedEntry = new WagonDashboardUploaded
+                        {
+                            InspectorId = dashboardEntry.InspectorId,
+                            InspectorName = dashboardEntry.InspectorName,
+                            WagonNumber = dashboardEntry.WagonNumber,
+                            WagonGroup = dashboardEntry.WagonGroup,
+                            WagonType = dashboardEntry.WagonType,
+                            DateAssessed = dashboardEntry.DateAssessed,
+                            TimeAssessed = dashboardEntry.TimeAssessed,
+                            BodyDamage = dashboardEntry.BodyDamage,
+                            BodyPhotos = dashboardEntry.BodyPhotos,
+                            LiftPhoto = dashboardEntry.LiftPhoto,
+                            LiftDate = dashboardEntry.LiftDate,
+                            LiftLapsed = dashboardEntry.LiftLapsed,
+                            BarrelPhoto = dashboardEntry.BarrelPhoto,
+                            BarrelDate = dashboardEntry.BarrelDate,
+                            BarrelLapsed = dashboardEntry.BarrelLapsed,
+                            BrakePhoto = dashboardEntry.BrakePhoto,
+                            BrakeDate = dashboardEntry.BrakeDate,
+                            BrakeLapsed = dashboardEntry.BrakeLapsed,
+                            RefurbishValue = dashboardEntry.RefurbishValue,
+                            MissingValue = dashboardEntry.MissingValue,
+                            ReplaceValue = dashboardEntry.ReplaceValue,
+                            AssessmentQuote = dashboardEntry.AssessmentQuote,
+                            AssessmentCert = dashboardEntry.AssessmentCert,
+                            WagonStatus = dashboardEntry.WagonStatus,
+                            UploadDate = dashboardEntry.UploadDate,
+                            WagonPhoto = dashboardEntry.WagonPhoto,
+                            MissingPhotos = dashboardEntry.MissingPhotos,
+                            ReplacePhotos = dashboardEntry.ReplacePhotos,
+                            GpsLatitude = dashboardEntry.GpsLatitude,
+                            GpsLongitude = dashboardEntry.GpsLongitude,
+                            StartTimeInspect = dashboardEntry.StartTimeInspect,
+                            MarketValue = dashboardEntry.MarketValue,
+                            TotalLaborValue = dashboardEntry.TotalLaborValue,
+                            AssetValue = dashboardEntry.AssetValue,
+                            AssessmentSow = dashboardEntry.AssessmentSow ?? "Not Ready",
+                            LiftValue = dashboardEntry.LiftValue,
+                            BarrelValue = dashboardEntry.BarrelValue,
+                            TotalValue = dashboardEntry.TotalValue
+                        };
+
+                        _context.WagonDashboardUploadeds.Add(uploadedEntry);
+                    }
+
+                    await _context.SaveChangesAsync();
+
                 }
-            }
+                }
         }
 
         return Ok(new { success = true, zipPath, zipName });
-
-        //PLEASE REMOVE
-        //byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
-        //return File(zipBytes, "application/zip", zipName);
     }
 
-    [HttpGet("getUploadedWagons")] //PLEASE ADD
-
-    //PLEASE ADD
+    [HttpGet("getUploadedWagons")]
     public async Task<IActionResult> GetUploadedWagons()
     {
 
         var dashboardEntries = await _context.WagonDashboardUploadeds
-            .Where(w => w.UploadStatus == "Uploaded")
+            .Where(w => w.WagonStatus == "Uploaded")
             .Select(w => new
             {
                 w.Id,
@@ -557,7 +599,7 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.UploadStatus,
+                w.WagonStatus, //PLEASE ADJUST
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
@@ -565,9 +607,65 @@ public class DashboardController : ControllerBase
                 GpsLatitude = w.GpsLatitude ?? "N/A",
                 GpsLongitude = w.GpsLongitude ?? "N/A",
                 StartTimeInspect = w.StartTimeInspect ?? "N/A",
-                ReplacementValue = w.ReplacementValue ?? "0.00",
+                MarketValue = w.MarketValue ?? "0.00", //PLEASE ADJUST
                 TotalLaborValue = w.TotalLaborValue ?? "0.00",
                 AssetValue = w.AssetValue ?? "0.00",
+                w.AssessmentSow, //PLEASE ADD
+                LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
+                BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+            })
+            .ToListAsync();
+
+        return Ok(dashboardEntries);
+    }
+
+    //PLEASE ADD FOR ADMIN/SUPER USER (IN PROGRESS)
+    [HttpGet("getAllWagons")]
+    public async Task<IActionResult> GetAllWagons()
+    {
+        var dashboardEntries = await _context.WagonDashboardUploadeds
+            .Select(w => new
+            {
+                w.Id,
+                w.InspectorId,
+                w.InspectorName,
+                w.WagonNumber,
+                w.WagonGroup,
+                w.WagonType,
+                w.DateAssessed,
+                w.TimeAssessed,
+                w.BodyDamage,
+                w.BodyPhotos,
+                w.LiftPhoto,
+                w.LiftDate,
+                w.LiftLapsed,
+                w.BarrelPhoto,
+                w.BarrelDate,
+                w.BarrelLapsed,
+                w.BrakePhoto,
+                w.BrakeDate,
+                w.BrakeLapsed,
+                w.RefurbishValue,
+                w.MissingValue,
+                w.ReplaceValue,
+                w.AssessmentQuote,
+                w.AssessmentCert,
+                w.WagonStatus, //PLEASE ADJUST
+                w.UploadDate,
+                w.WagonPhoto,
+                w.MissingPhotos,
+                w.ReplacePhotos,
+                GpsLatitude = w.GpsLatitude ?? "N/A",
+                GpsLongitude = w.GpsLongitude ?? "N/A",
+                StartTimeInspect = w.StartTimeInspect ?? "N/A",
+                MarketValue = w.MarketValue ?? "0.00", //PLEASE ADJUST
+                TotalLaborValue = w.TotalLaborValue ?? "0.00",
+                AssetValue = w.AssetValue ?? "0.00",
+                w.AssessmentSow, //PLEASE ADD
+                LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
+                BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
             })
             .ToListAsync();
 
@@ -610,7 +708,8 @@ public class DashboardController : ControllerBase
                 { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
                 { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
                 { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") },
-                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") }
+                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") },
+                { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") }
             };
 
                     void AddFilesToZip(string? source, string targetFolder)
@@ -704,7 +803,7 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetAllWagonDashboard()
     {
         var dashboardEntries = await _context.WagonDashboards
-            .Where(w => w.UploadStatus != "Uploaded")
+            .Where(w => w.WagonStatus != "Uploaded" )
             .Select(w => new
             {
                 w.Id,
@@ -731,26 +830,109 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.UploadStatus,
+                w.WagonStatus,
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
                 w.ReplacePhotos,
-				GpsLatitude = w.GpsLatitude ?? "N/A", //PLEASE ADD
-
-				GpsLongitude = w.GpsLongitude ?? "N/A", //PLEASE ADD
-
-				StartTimeInspect = w.StartTimeInspect ?? "N/A", //PLEASE ADD
-
-				ReplacementValue = w.ReplacementValue ?? "N/A", //PLEASE ADD
-
-				TotalLaborValue = w.TotalLaborValue ?? "N/A", //PLEASE ADD
-
-				AssetValue = w.AssetValue ?? "N/A", //PLEASE ADD
-			})
+                GpsLatitude = w.GpsLatitude ?? "N/A",
+                GpsLongitude = w.GpsLongitude ?? "N/A",
+                StartTimeInspect = w.StartTimeInspect ?? "N/A",
+                MarketValue = w.MarketValue ?? "0.00", //PLEASE ADJUST
+                TotalLaborValue = w.TotalLaborValue ?? "0.00",
+                AssetValue = w.AssetValue ?? "0.00",
+                AssessmentSow = w.AssessmentSow ?? "Not Ready", //PLEASE ADD
+                LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
+                BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+            })
             .ToListAsync();
 
         return Ok(dashboardEntries);
+    }
+    //PLEASE ADD (FOR ASSESSOR MODERATOR)
+    [HttpGet("getTickWagonDashboard")]
+    public async Task<IActionResult> GetTickWagonDashboard()
+    {
+        //await AutoInsertMissingWagonsAsync();
+
+        var dashboardEntries = await _context.WagonDashboards
+            .Where(w => w.WagonStatus == "Assessor Ticked") //PLEASE ADJUST
+            .Select(w => new
+            {
+                w.Id,
+                w.InspectorId,
+                w.InspectorName,
+                w.WagonNumber,
+                w.WagonGroup,
+                w.WagonType,
+                w.DateAssessed,
+                w.TimeAssessed,
+                w.BodyDamage,
+                w.BodyPhotos,
+                w.LiftPhoto,
+                w.LiftDate,
+                w.LiftLapsed,
+                w.BarrelPhoto,
+                w.BarrelDate,
+                w.BarrelLapsed,
+                w.BrakePhoto,
+                w.BrakeDate,
+                w.BrakeLapsed,
+                w.RefurbishValue,
+                w.MissingValue,
+                w.ReplaceValue,
+                w.AssessmentQuote,
+                w.AssessmentCert,
+                w.WagonStatus, //PLEASE ADJUST
+                w.UploadDate,
+                w.WagonPhoto,
+                w.MissingPhotos,
+                w.ReplacePhotos,
+                GpsLatitude = w.GpsLatitude ?? "N/A",
+                GpsLongitude = w.GpsLongitude ?? "N/A",
+                StartTimeInspect = w.StartTimeInspect ?? "N/A",
+                MarketValue = w.MarketValue ?? "0.00", //PLEASE ADJUST
+                TotalLaborValue = w.TotalLaborValue ?? "0.00",
+                AssetValue = w.AssetValue ?? "0.00",
+                w.AssessmentSow, //PLEASE ADD
+                LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
+                BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+            })
+            .ToListAsync();
+
+        return Ok(dashboardEntries);
+    }
+
+    [HttpPost("tickWagon")]
+    public async Task<IActionResult> TickWagon([FromBody] TickWagonRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.WagonNumber))
+            return BadRequest("Wagon number is required.");
+
+        if (!int.TryParse(request.WagonNumber, out int wagonNumber))
+            return BadRequest("Invalid wagon number.");
+
+        // Fetch wagon data
+        var dash = await _context.WagonDashboards
+            .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
+
+        if (dash == null)
+            return NotFound($"Wagon with number {request.WagonNumber} not found.");
+
+        dash.WagonStatus = "Assessor Ticked";
+
+        try
+        {
+            _context.WagonDashboards.Update(dash);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Wagon {request.WagonNumber} status updated to 'Assessor Ticked'." });
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, $"Error updating wagon: {ex.Message}");
+        }
     }
 
     [HttpPost("insertLoco")]
@@ -761,7 +943,9 @@ public class DashboardController : ControllerBase
                                       .Select(u => new { u.UserName })
                                       .FirstOrDefaultAsync();
         string inspectorName = leaseUser?.UserName ?? "No User";
-
+        var master = await _context.MasterLocos
+                                      .AsNoTracking()
+                                      .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
         var locoInfo = await _context.LocoInfoCaptures
                                       .Where(w => w.LocoNumber == locoNumber)
                                       .OrderByDescending(w => w.Id)
@@ -802,6 +986,7 @@ public class DashboardController : ControllerBase
         var refurbishValues = new List<decimal>();
         var missingValues = new List<decimal>();
         var replaceValues = new List<decimal>();
+        var laborValues = new List<decimal>();
         var missingPhotosAll = new List<string>();
         var replacePhotosAll = new List<string>();
 
@@ -826,7 +1011,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue                 
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18beinspects
@@ -838,7 +1023,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18ccinspects
@@ -850,7 +1035,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18crinspects
@@ -862,7 +1047,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18ctinspects
@@ -874,7 +1059,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18eeinspects
@@ -886,7 +1071,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18ehinspects
@@ -898,7 +1083,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18esinspects
@@ -910,7 +1095,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18flinspects
@@ -922,7 +1107,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18hcinspects
@@ -934,7 +1119,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18hvinspects
@@ -946,7 +1131,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18lvinspects
@@ -958,7 +1143,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18mainspects
@@ -970,7 +1155,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18mbinspects
@@ -982,7 +1167,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.E18rfinspects
@@ -994,7 +1179,7 @@ public class DashboardController : ControllerBase
                     MissingValue = p.MissingValue,
                     ReplaceValue = p.ReplaceValue,
                     MissingPhoto = p.MissingPhoto,
-                    ReplacePhoto = p.ReplacePhoto
+                    ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                 }).ToListAsync());
         }
         else if (locoInfo.LocoModel == "GE34")
@@ -1008,7 +1193,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34bcinspects
@@ -1020,7 +1205,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34bdinspects
@@ -1032,7 +1217,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34bsinspects
@@ -1044,7 +1229,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34cfinspects
@@ -1056,7 +1241,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34clinspects
@@ -1068,7 +1253,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34deinspects
@@ -1080,7 +1265,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34ecinspects
@@ -1092,7 +1277,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34edinspects
@@ -1104,7 +1289,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34flinspects
@@ -1116,7 +1301,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34odinspects
@@ -1128,7 +1313,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34sninspects
@@ -1140,7 +1325,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge34rfinspects
@@ -1152,7 +1337,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
         }
         else if (locoInfo.LocoModel == "GE35")
@@ -1166,7 +1351,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35bdinspects
@@ -1178,7 +1363,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35bsinspects
@@ -1190,7 +1375,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35cfinspects
@@ -1202,7 +1387,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35clinspects
@@ -1214,7 +1399,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35edinspects
@@ -1226,7 +1411,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35deinspects
@@ -1238,7 +1423,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35ecinspects
@@ -1250,7 +1435,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35flinspects
@@ -1262,7 +1447,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35mginspects
@@ -1274,7 +1459,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35odinspects
@@ -1286,7 +1471,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35sninspects
@@ -1298,7 +1483,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge35rfinspects
@@ -1310,7 +1495,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
         }
         else if (locoInfo.LocoModel == "GE36")
@@ -1324,7 +1509,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36bdinspects
@@ -1336,7 +1521,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36cainspects
@@ -1348,7 +1533,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36cfinspects
@@ -1360,7 +1545,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36clinspects
@@ -1372,7 +1557,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36ecinspects
@@ -1384,7 +1569,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36edinspects
@@ -1396,7 +1581,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36flinspects
@@ -1408,7 +1593,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36mginspects
@@ -1420,7 +1605,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36sninspects
@@ -1432,7 +1617,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Ge36rfinspects
@@ -1444,7 +1629,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
         }
         else if (locoInfo.LocoModel == "GM34")
@@ -1458,7 +1643,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34bdinspects
@@ -1470,7 +1655,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34blinspects
@@ -1482,7 +1667,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34bsinspects
@@ -1494,7 +1679,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34cainspects
@@ -1506,7 +1691,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34cbinspects
@@ -1518,7 +1703,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34cfinspects
@@ -1530,7 +1715,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34clinspects
@@ -1542,7 +1727,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34edinspects
@@ -1554,7 +1739,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34elinspects
@@ -1566,7 +1751,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34flinspects
@@ -1578,7 +1763,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34lminspects
@@ -1590,7 +1775,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34mpinspects
@@ -1602,7 +1787,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34sninspects
@@ -1614,7 +1799,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34trinspects
@@ -1626,7 +1811,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm34rfinspects
@@ -1638,7 +1823,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
         }
         else if (locoInfo.LocoModel == "GM35")
@@ -1652,7 +1837,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35blinspects
@@ -1664,7 +1849,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35bsinspects
@@ -1676,7 +1861,7 @@ public class DashboardController : ControllerBase
        MissingValue = p.MissingValue,
        ReplaceValue = p.ReplaceValue,
        MissingPhoto = p.MissingPhoto,
-       ReplacePhoto = p.ReplacePhoto
+       ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
    }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35cainspects
@@ -1688,7 +1873,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35cbinspects
@@ -1700,7 +1885,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35cfinspects
@@ -1712,7 +1897,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35clinspects
@@ -1724,7 +1909,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35edinspects
@@ -1736,7 +1921,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35elinspects
@@ -1748,7 +1933,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35flinspects
@@ -1760,7 +1945,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35lminspects
@@ -1772,7 +1957,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35mpinspects
@@ -1784,7 +1969,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35sninspects
@@ -1796,7 +1981,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35trinspects
@@ -1808,7 +1993,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35wainspects
@@ -1820,7 +2005,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm35rfinspects
@@ -1832,7 +2017,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
 
@@ -1848,7 +2033,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36flinspects
@@ -1860,7 +2045,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36sninspects
@@ -1872,7 +2057,7 @@ public class DashboardController : ControllerBase
        MissingValue = p.MissingValue,
        ReplaceValue = p.ReplaceValue,
        MissingPhoto = p.MissingPhoto,
-       ReplacePhoto = p.ReplacePhoto
+       ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
    }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36bvinspects
@@ -1884,7 +2069,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36clinspects
@@ -1896,7 +2081,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36ecinspects
@@ -1908,7 +2093,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36cbinspects
@@ -1920,7 +2105,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36bsinspects
@@ -1932,7 +2117,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36lminspects
@@ -1944,7 +2129,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36lcinspects
@@ -1956,7 +2141,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36trinspects
@@ -1968,7 +2153,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36bpinspects
@@ -1980,7 +2165,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36cainspects
@@ -1992,7 +2177,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36ecinspects
@@ -2004,7 +2189,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
             multiEntryTables.Add(async num => await _context.Gm36cfinspects
@@ -2016,7 +2201,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
             multiEntryTables.Add(async num => await _context.Gm36deinspects
                .Where(p => p.LocoNumber == num)
@@ -2027,7 +2212,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
             multiEntryTables.Add(async num => await _context.Gm36rfinspects
                .Where(p => p.LocoNumber == num)
@@ -2038,7 +2223,7 @@ public class DashboardController : ControllerBase
                    MissingValue = p.MissingValue,
                    ReplaceValue = p.ReplaceValue,
                    MissingPhoto = p.MissingPhoto,
-                   ReplacePhoto = p.ReplacePhoto
+                   ReplacePhoto = p.ReplacePhoto , LaborValue = p.LaborValue
                }).ToListAsync());
 
 
@@ -2054,7 +2239,7 @@ public class DashboardController : ControllerBase
                 if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
                 if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
                 if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
-
+                if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
                 if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
                 if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
             }
@@ -2067,6 +2252,7 @@ public class DashboardController : ControllerBase
         string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
         string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
 
         // ---------- Photos Serialization ----------
         string missingPhotosSerialized = missingPhotosAll.Any()
@@ -2076,7 +2262,17 @@ public class DashboardController : ControllerBase
         string replacePhotosSerialized = replacePhotosAll.Any()
             ? JsonSerializer.Serialize(replacePhotosAll)
             : JsonSerializer.Serialize(new List<string> { "No Photos" });
+        decimal marketValue = 0; //PLEASE ADD
 
+        //PLEASE ADD
+        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        //PLEASE ADD
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum()+ replaceValues.Sum() + laborValues.Sum();
+        decimal assetValue = marketValue - repairTotal;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
         var dashboardEntry = new LocoDashboard
         {
             InspectorId = userId ?? "No User",
@@ -2093,7 +2289,7 @@ public class DashboardController : ControllerBase
             ReplaceValue = replaceTotal,
             AssessmentQuote = "Not Ready",
             AssessmentCert = "Not Ready",
-            UploadStatus = "Not Uploaded",
+            UploadStatus = "Inspection Complete",
             UploadDate = "No Date",
             LocoPhoto = locoInfo.LocoPhoto,
             MissingPhotos = missingPhotosSerialized,
@@ -2101,12 +2297,15 @@ public class DashboardController : ControllerBase
             GpsLatitude = locoInfo.GpsLatitude, //PLEASE ADD
 
             GpsLongitude = locoInfo.GpsLongitude, //PLEASE ADD
-
+            TotalLaborValue = laborTotal, //PLEASE ADD
             StartTimeInspect = locoInfo.CreatedDate?.ToString("HH:mm:ss") ?? "Not Available", //PLEASE ADD
 
             ReplacementValue = "Not Available", //PLEASE ADD
-
-            AssetValue = locoInfo.NetBookValue, //PLEASE ADD
+            
+            AssetValue = totalAssetValue, //PLEASE ADD
+           MarketValue = master?.MarketValue ?? "0.00", 
+            AssessmentSow = "Not Ready", //PLEASE ADD
+            TotalValue = rts ?? "0.00"
         };
         var existingLoco = await _context.LocoDashboards
                                         .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
@@ -4779,6 +4978,7 @@ public class DashboardController : ControllerBase
                     if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
                     if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
                     if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
+                    
 
                     if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
                     if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
@@ -4822,13 +5022,15 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
         public string? ReplaceValue { get; set; }
         public string? MissingPhoto { get; set; }
         public string? ReplacePhoto { get; set; }
+        public string? LaborValue { get; set; }
     }
 
     [HttpGet("getAllLocoDashboard")]
     public async Task<IActionResult> GetAllLocoDashboard()
     {
-        try {
-          
+        try
+        {
+
 
             var dashboardEntries = await _context.LocoDashboards
                 .Where(w => w.UploadStatus != "Uploaded")
@@ -4858,17 +5060,70 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.GpsLongitude,
                     w.StartTimeInspect,
                     w.AssetValue,
+                    w.TotalValue,
+                    w.AssessmentSow,
+                    w.MarketValue,
+                    w.TotalLaborValue
                 })
                 .ToListAsync();
 
             return Ok(dashboardEntries);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-              return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
+            return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
         }
-        }
+    }
 
+    [HttpGet("getAllLocos")]
+    public async Task<IActionResult> GetAllLocos()
+    {
+        try
+        {
+
+
+            var dashboardEntries = await _context.LocoDashboards
+                .Select(w => new
+                {
+                    w.Id,
+                    w.InspectorId,
+                    w.InspectorName,
+                    w.LocoNumber,
+                    w.LocoClass,
+                    w.LocoModel,
+                    w.DateAssessed,
+                    w.TimeAssessed,
+                    w.BodyDamage,
+                    w.BodyPhotos,
+                    w.RefurbishValue,
+                    w.MissingValue,
+                    w.ReplaceValue,
+                    w.AssessmentQuote,
+                    w.AssessmentCert,
+                    w.UploadStatus,
+                    w.UploadDate,
+                    w.LocoPhoto,
+                    w.MissingPhotos,
+                    w.ReplacePhotos,
+                    w.GpsLatitude,
+                    w.GpsLongitude,
+                    w.StartTimeInspect,
+                    w.AssetValue,
+                    w.TotalValue,
+                    w.AssessmentSow,
+                    w.TotalLaborValue,
+                    w.MarketValue
+
+                })
+                .ToListAsync();
+
+            return Ok(dashboardEntries);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
+        }
+    }
     [HttpGet("getUploadedLocoDashboard")]
     public async Task<IActionResult> GetUploadedLocoDashboard()
     {
@@ -4904,6 +5159,11 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.GpsLongitude,
                     w.StartTimeInspect,
                     w.AssetValue,
+                    w.TotalValue,
+                    w.TotalLaborValue,
+                    w.AssessmentSow,
+                    w.MarketValue
+                  
                 })
                 .ToListAsync();
 
@@ -4914,6 +5174,89 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
             return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
         }
     }
+    [HttpGet("getTickLocoDashboard")]
+    public async Task<IActionResult> GetTickLocoDashboard()
+    {
+        //await AutoInsertMissingWagonsAsync();
+
+        try
+        {
+
+
+            var dashboardEntries = await _context.LocoDashboards
+                .Where(w => w.UploadStatus == "Assessor Ticked")
+                .Select(w => new
+                {
+                    w.Id,
+                    w.InspectorId,
+                    w.InspectorName,
+                    w.LocoNumber,
+                    w.LocoClass,
+                    w.LocoModel,
+                    w.DateAssessed,
+                    w.TimeAssessed,
+                    w.BodyDamage,
+                    w.BodyPhotos,
+                    w.RefurbishValue,
+                    w.MissingValue,
+                    w.ReplaceValue,
+                    w.AssessmentQuote,
+                    w.AssessmentCert,
+                    w.UploadStatus,
+                    w.UploadDate,
+                    w.LocoPhoto,
+                    w.MissingPhotos,
+                    w.ReplacePhotos,
+                    w.GpsLatitude,
+                    w.GpsLongitude,
+                    w.StartTimeInspect,
+                    w.AssetValue,
+                    w.TotalValue,
+                    w.AssessmentSow,
+                    w.MarketValue,
+                    w.TotalLaborValue
+
+                })
+                .ToListAsync();
+
+            return Ok(dashboardEntries);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = "An error occurred while retrieving the LocoDashboard entries.", error = ex.Message });//Detailed error for debugging  
+        }
+    }
+
+    [HttpPost("tickLoco")]
+    public async Task<IActionResult> TickLoco([FromBody] TickLocoRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.LocoNumber))
+            return BadRequest("Loco number is required.");
+
+        if (!int.TryParse(request.LocoNumber, out int wagonNumber))
+            return BadRequest("Invalid wagon number.");
+
+        // Fetch wagon data
+        var dash = await _context.LocoDashboards
+            .FirstOrDefaultAsync(w => w.LocoNumber == wagonNumber);
+
+        if (dash == null)
+            return NotFound($"Loco with number {request.LocoNumber} not found.");
+
+        dash.UploadStatus = "Assessor Ticked";
+
+        try
+        {
+            _context.LocoDashboards.Update(dash);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Loco {request.LocoNumber} status updated to 'Assessor Ticked'." });
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, $"Error updating loco: {ex.Message}");
+        }
+    }
+
 
     [HttpGet("GetInspectionStatus")]
     public async Task<IActionResult> GetInspectionStatus()
@@ -5013,6 +5356,13 @@ ORDER BY MW.LocoNumber ASC";
         public string LocoModel { get; set; }
         public string Status { get; set; }
     }
-
+    public class TickWagonRequest
+    {
+        public string WagonNumber { get; set; } = string.Empty;
+    }
+    public class TickLocoRequest
+    {
+        public string LocoNumber { get; set; } = string.Empty;
+    }
 
 }

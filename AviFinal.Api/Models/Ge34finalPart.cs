@@ -20,4 +20,6 @@ public partial class Ge34finalPart
     public string MissingValue { get; set; } = null!;
 
     public string ReplaceValue { get; set; } = null!;
+
+    public string? LabourValue { get; set; }
 }

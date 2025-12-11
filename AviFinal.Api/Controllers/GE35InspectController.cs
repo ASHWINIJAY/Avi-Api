@@ -36,24 +36,11 @@ namespace AviAppFinal.Server.Controllers
             {
                 var partsList = await _context.Ge35finalParts
                     .Where(p => p.FormId == formID)
+                    .OrderBy(p => p.Id)
+                    .Select(p => new { p.PartId, p.PartDescr })
                     .ToListAsync();
 
-                if (partsList.Count == 0)
-                    return NotFound($"No parts found for formID: {formID}");
-
-                var ordered = partsList.OrderBy(p =>
-                {
-                    var digits = new string(p.PartId?.Where(char.IsDigit).ToArray());
-                    return int.TryParse(digits, out int n) ? n : int.MaxValue;
-                });
-
-                var result = ordered.Select(p => new
-                {
-                    PartId = p.PartId,
-                    PartDescr = p.PartDescr
-                });
-
-                return Ok(result);
+                return Ok(partsList);
             }
             catch (Exception ex)
             {
@@ -157,6 +144,7 @@ namespace AviAppFinal.Server.Controllers
         // ✅ 5️⃣ DTO Class
         public class GE35InspectDto
         {
+            public string? LaborValue { get; set; }
             public int LocoNumber { get; set; }
             public string? LocoClass { get; set; }
             public string? LocoModel { get; set; }
@@ -198,18 +186,28 @@ namespace AviAppFinal.Server.Controllers
                     {
                         p.RefurbishValue,
                         p.MissingValue,
-                        p.ReplaceValue
+                        p.ReplaceValue,
+                        p.LabourValue
                     });
                 foreach (var d in dtos)
                 {
                     if (partCostData.TryGetValue(d.PartId, out var cost))
                     {
                         if (d.RefurbishCheck == "Yes")
+                        {
                             d.RefurbishValue = cost.RefurbishValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                         if (d.MissingCheck == "Yes")
+                        {
                             d.MissingValue = cost.MissingValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                         if (d.ReplaceCheck == "Yes")
+                        {
                             d.ReplaceValue = cost.ReplaceValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                     }
                     string checkSql = $@"
     SELECT COUNT(*) 
@@ -234,7 +232,7 @@ namespace AviAppFinal.Server.Controllers
             MissingValue = @MissingValue,
             ReplaceValue = @ReplaceValue,
             MissingPhoto = @MissingPhoto,
-            ReplacePhoto = @ReplacePhoto
+            ReplacePhoto = @ReplacePhoto, LaborValue= @LaborValue
         WHERE 
             LocoNumber = @LocoNumber 
             AND FormId = @FormId 
@@ -250,12 +248,12 @@ namespace AviAppFinal.Server.Controllers
         (LocoNumber, LocoClass, LocoModel, FormId, PartId, PartDescr,
          GoodCheck, RefurbishCheck, MissingCheck, ReplaceCheck,
          RefurbishValue, MissingValue, ReplaceValue,
-         MissingPhoto, ReplacePhoto)
+         MissingPhoto,ReplacePhoto,LaborValue)
         VALUES
         (@LocoNumber, @LocoClass, @LocoModel, @FormId, @PartId, @PartDescr,
          @GoodCheck, @RefurbishCheck, @MissingCheck, @ReplaceCheck,
          @RefurbishValue, @MissingValue, @ReplaceValue,
-         @MissingPhoto, @ReplacePhoto)";
+         @MissingPhoto,@ReplacePhoto,@LaborValue)";
 
                         await con.ExecuteAsync(insertSql, d);
                     }

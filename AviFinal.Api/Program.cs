@@ -1,4 +1,5 @@
-﻿using AviFinal.Api.Models;
+﻿using AviFinal.Api.Hubs;
+using AviFinal.Api.Models;
 using AviFinal.Api.Models;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -24,7 +25,12 @@ builder.Services.Configure<IISServerOptions>(options =>
 {
     options.MaxRequestBodySize = int.MaxValue;
 });
+builder.Services.AddSignalR();
+
+
+
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
@@ -32,7 +38,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:5173", "http://www.avi-app.co.za", "https://www.avi-app.co.za", "http://localhost:5173","https://localhost/", "http://41.87.206.94/", "http://105.184.134.130/")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -81,6 +88,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 //app.UseHttpsRedirection();
 
 var summaries = new[]
@@ -108,6 +116,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<LocationHub>("/hubs/location");
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

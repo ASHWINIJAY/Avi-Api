@@ -47,6 +47,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<DashBoardItem> DashBoardItems { get; set; }
 
+    public virtual DbSet<DeviceLocation> DeviceLocations { get; set; }
+
     public virtual DbSet<DoorsInspect> DoorsInspects { get; set; }
 
     public virtual DbSet<E18bdinspect> E18bdinspects { get; set; }
@@ -311,9 +313,31 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<LocoInfoCapture> LocoInfoCaptures { get; set; }
 
+    public virtual DbSet<MarketValueLoco> MarketValueLocos { get; set; }
+
+    public virtual DbSet<MarketValueWagon> MarketValueWagons { get; set; }
+
+    public virtual DbSet<MarketWagon> MarketWagons { get; set; }
+
     public virtual DbSet<MasterLoco> MasterLocos { get; set; }
 
     public virtual DbSet<MasterWagon> MasterWagons { get; set; }
+
+    public virtual DbSet<MergedGm35New> MergedGm35News { get; set; }
+
+    public virtual DbSet<MergedGm36New> MergedGm36News { get; set; }
+
+    public virtual DbSet<MergedPartsGm34New> MergedPartsGm34News { get; set; }
+
+    public virtual DbSet<MergedSheetsE18> MergedSheetsE18s { get; set; }
+
+    public virtual DbSet<MergedSheetsGe34> MergedSheetsGe34s { get; set; }
+
+    public virtual DbSet<MergedSheetsGe35> MergedSheetsGe35s { get; set; }
+
+    public virtual DbSet<MergedSheetsGe36> MergedSheetsGe36s { get; set; }
+
+    public virtual DbSet<MergedSheetsGe36New> MergedSheetsGe36News { get; set; }
 
     public virtual DbSet<MidPanInspect> MidPanInspects { get; set; }
 
@@ -937,6 +961,18 @@ public partial class AviDbContext : DbContext
                 .HasConstraintName("FK_DashBoardItems");
         });
 
+        modelBuilder.Entity<DeviceLocation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__DeviceLo__3214EC07048686D5");
+
+            entity.Property(e => e.DeviceId).HasMaxLength(100);
+            entity.Property(e => e.DeviceTimestamp).HasColumnType("datetime");
+            entity.Property(e => e.ServerTimestamp)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UserName).HasMaxLength(50);
+        });
+
         modelBuilder.Entity<DoorsInspect>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__DoorsIns__3214EC2777278499");
@@ -993,6 +1029,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1040,6 +1077,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1087,6 +1125,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1134,6 +1173,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1181,6 +1221,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1228,6 +1269,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1275,6 +1317,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1322,6 +1365,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1360,6 +1404,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -1395,6 +1440,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1442,6 +1488,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1489,6 +1536,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1536,6 +1584,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1666,6 +1715,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1713,6 +1763,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1760,6 +1811,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -1807,6 +1859,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2076,6 +2129,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2117,6 +2171,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2158,6 +2213,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2199,6 +2255,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2240,6 +2297,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2281,6 +2339,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2322,6 +2381,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2363,6 +2423,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2404,6 +2465,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2442,6 +2504,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -2471,6 +2534,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2512,6 +2576,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -2571,6 +2636,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2612,6 +2678,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2653,6 +2720,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2694,6 +2762,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2735,6 +2804,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2776,6 +2846,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2817,6 +2888,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2858,6 +2930,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2899,6 +2972,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2940,6 +3014,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -2981,6 +3056,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3019,6 +3095,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -3048,6 +3125,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3089,6 +3167,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -3148,6 +3227,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3189,6 +3269,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3230,6 +3311,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3271,6 +3353,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3312,6 +3395,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3353,6 +3437,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3394,6 +3479,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3435,6 +3521,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3476,6 +3563,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3517,6 +3605,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3558,6 +3647,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3598,6 +3688,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -3627,6 +3718,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3727,6 +3819,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3768,6 +3861,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3809,6 +3903,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3850,6 +3945,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3891,6 +3987,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3932,6 +4029,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -3973,6 +4071,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4014,6 +4113,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4055,6 +4155,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4096,6 +4197,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4137,6 +4239,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4178,6 +4281,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4219,6 +4323,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4257,6 +4362,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -4286,6 +4392,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4327,6 +4434,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -4386,6 +4494,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4427,6 +4536,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4468,6 +4578,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4509,6 +4620,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4550,6 +4662,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4591,6 +4704,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4632,6 +4746,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4673,6 +4788,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4714,6 +4830,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4755,6 +4872,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4796,6 +4914,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4837,6 +4956,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4878,6 +4998,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4919,6 +5040,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -4957,6 +5079,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -4986,6 +5109,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5027,6 +5151,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -5086,6 +5211,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5127,6 +5253,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5168,6 +5295,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5209,6 +5337,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5250,6 +5379,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5291,6 +5421,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5332,6 +5463,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5373,6 +5505,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5414,6 +5547,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5455,6 +5589,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5496,6 +5631,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5537,6 +5673,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5578,6 +5715,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5619,6 +5757,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5660,6 +5799,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5701,6 +5841,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5742,6 +5883,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5780,6 +5922,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("FormID");
+            entity.Property(e => e.LabourValue).HasMaxLength(50);
             entity.Property(e => e.LocoModel)
                 .HasMaxLength(5)
                 .IsUnicode(false);
@@ -5809,6 +5952,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5850,6 +5994,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -5909,6 +6054,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5950,6 +6096,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -5991,6 +6138,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -6032,6 +6180,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -6073,6 +6222,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -6114,6 +6264,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.GoodCheck)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LaborValue).HasMaxLength(50);
             entity.Property(e => e.LocoClass)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -6350,6 +6501,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.InspectorName).HasMaxLength(150);
             entity.Property(e => e.LocoClass).HasMaxLength(50);
             entity.Property(e => e.LocoModel).HasMaxLength(50);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(20);
             entity.Property(e => e.RefurbishValue).HasMaxLength(20);
             entity.Property(e => e.ReplaceValue).HasMaxLength(20);
@@ -6357,6 +6509,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
             entity.Property(e => e.TimeAssessed).HasMaxLength(20);
             entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
+            entity.Property(e => e.TotalValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(20);
             entity.Property(e => e.UploadStatus).HasMaxLength(20);
         });
@@ -6386,6 +6539,33 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.NetBookValue).HasMaxLength(300);
+        });
+
+        modelBuilder.Entity<MarketValueLoco>(entity =>
+        {
+            entity.HasNoKey();
+
+            entity.Property(e => e.MarketValue)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<MarketValueWagon>(entity =>
+        {
+            entity.HasNoKey();
+
+            entity.Property(e => e.MarketValue)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<MarketWagon>(entity =>
+        {
+            entity.HasNoKey();
+
+            entity.Property(e => e.MarketValue)
+                .HasMaxLength(50)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<MasterLoco>(entity =>
@@ -6420,6 +6600,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.Lstat)
                 .HasMaxLength(50)
                 .HasColumnName("LStat");
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
             entity.Property(e => e.Move).HasMaxLength(50);
             entity.Property(e => e.NetBookValue)
                 .HasMaxLength(100)
@@ -6485,6 +6666,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.LiftingCycle).HasMaxLength(50);
             entity.Property(e => e.LoadPlaceDesc).HasMaxLength(50);
             entity.Property(e => e.LoadedOrEmptyOrScrap).HasMaxLength(50);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
             entity.Property(e => e.Mis)
                 .HasMaxLength(50)
                 .HasColumnName("MIS");
@@ -6532,6 +6714,102 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e._7).HasMaxLength(100);
             entity.Property(e => e._8).HasMaxLength(100);
             entity.Property(e => e._9).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<MergedGm35New>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("merged_GM35_New");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_Cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+            entity.Property(e => e.Sheet).HasColumnName("sheet");
+        });
+
+        modelBuilder.Entity<MergedGm36New>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("merged_GM36_New");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_Cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+            entity.Property(e => e.Sheet).HasColumnName("sheet");
+        });
+
+        modelBuilder.Entity<MergedPartsGm34New>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("merged_parts_GM34_New");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_Cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+            entity.Property(e => e.Sheet).HasColumnName("sheet");
+        });
+
+        modelBuilder.Entity<MergedSheetsE18>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("MERGED_SHEETS_E18");
+
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.LabourCost).HasMaxLength(50);
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+        });
+
+        modelBuilder.Entity<MergedSheetsGe34>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("MERGED_SHEETS_GE34");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_Cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+        });
+
+        modelBuilder.Entity<MergedSheetsGe35>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("MERGED_SHEETS_GE35");
+
+            entity.Property(e => e.LabourCost).HasMaxLength(50);
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+        });
+
+        modelBuilder.Entity<MergedSheetsGe36>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("MERGED_SHEETS_GE36");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
+        });
+
+        modelBuilder.Entity<MergedSheetsGe36New>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("MERGED_SHEETS_GE36_New");
+
+            entity.Property(e => e.LabourCost)
+                .HasMaxLength(50)
+                .HasColumnName("Labour_Cost");
+            entity.Property(e => e.PartDescription).HasColumnName("Part_Description");
         });
 
         modelBuilder.Entity<MidPanInspect>(entity =>
@@ -6944,6 +7222,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BarrelLapsed)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.BarrelValue).HasMaxLength(100);
             entity.Property(e => e.BodyDamage)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -6965,19 +7244,21 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.LiftLapsed)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LiftValue).HasMaxLength(100);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.RefurbishValue).HasMaxLength(100);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
-            entity.Property(e => e.ReplacementValue).HasMaxLength(100);
             entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
             entity.Property(e => e.TimeAssessed).HasMaxLength(50);
             entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
+            entity.Property(e => e.TotalValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(50);
-            entity.Property(e => e.UploadStatus)
-                .HasMaxLength(20)
-                .IsUnicode(false);
             entity.Property(e => e.WagonGroup)
                 .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonStatus)
+                .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.WagonType)
                 .HasMaxLength(80)
@@ -6996,6 +7277,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BarrelLapsed)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.BarrelValue).HasMaxLength(100);
             entity.Property(e => e.BodyDamage)
                 .HasMaxLength(4)
                 .IsUnicode(false);
@@ -7017,19 +7299,21 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.LiftLapsed)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.LiftValue).HasMaxLength(100);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
             entity.Property(e => e.MissingValue).HasMaxLength(100);
             entity.Property(e => e.RefurbishValue).HasMaxLength(100);
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
-            entity.Property(e => e.ReplacementValue).HasMaxLength(100);
             entity.Property(e => e.StartTimeInspect).HasMaxLength(50);
             entity.Property(e => e.TimeAssessed).HasMaxLength(50);
             entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
+            entity.Property(e => e.TotalValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(50);
-            entity.Property(e => e.UploadStatus)
-                .HasMaxLength(20)
-                .IsUnicode(false);
             entity.Property(e => e.WagonGroup)
                 .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.WagonStatus)
+                .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.WagonType)
                 .HasMaxLength(80)

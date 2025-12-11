@@ -56,4 +56,10 @@ public partial class LocoDashboard
     public string? TotalLaborValue { get; set; }
 
     public string? AssetValue { get; set; }
+
+    public string? AssessmentSow { get; set; }
+
+    public string? TotalValue { get; set; }
+
+    public string? MarketValue { get; set; }
 }

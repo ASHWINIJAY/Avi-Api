@@ -20,4 +20,6 @@ public partial class Ge36finalPart
     public string ReplaceValue { get; set; } = null!;
 
     public string? LocoModel { get; set; }
+
+    public string? LabourValue { get; set; }
 }

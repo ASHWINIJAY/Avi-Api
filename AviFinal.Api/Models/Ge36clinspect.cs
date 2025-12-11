@@ -36,4 +36,6 @@ public partial class Ge36clinspect
     public string? ReplaceValue { get; set; }
 
     public string? ReplacePhoto { get; set; }
+
+    public string? LaborValue { get; set; }
 }

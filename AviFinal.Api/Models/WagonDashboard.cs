@@ -53,7 +53,7 @@ public partial class WagonDashboard
 
     public string? AssessmentCert { get; set; }
 
-    public string UploadStatus { get; set; } = null!;
+    public string WagonStatus { get; set; } = null!;
 
     public string UploadDate { get; set; } = null!;
 
@@ -69,9 +69,17 @@ public partial class WagonDashboard
 
     public string? StartTimeInspect { get; set; }
 
-    public string? ReplacementValue { get; set; }
+    public string? MarketValue { get; set; }
 
     public string? TotalLaborValue { get; set; }
 
     public string? AssetValue { get; set; }
+
+    public string? AssessmentSow { get; set; }
+
+    public string? LiftValue { get; set; }
+
+    public string? BarrelValue { get; set; }
+
+    public string? TotalValue { get; set; }
 }

@@ -33,7 +33,7 @@ namespace AviAppFinal.Server.Controllers
             {
                 var partsList = await _context.Gm35finalParts
                     .Where(p => p.FormId == formID)
-                    .OrderBy(p => p.PartId)
+                    .OrderBy(p => p.Id)
                     .Select(p => new { p.PartId, p.PartDescr })
                     .ToListAsync();
 
@@ -121,6 +121,7 @@ namespace AviAppFinal.Server.Controllers
         // ✅ DTO
         public class GM35InspectDto
         {
+            public string? LaborValue { get; set; }
             public int LocoNumber { get; set; }
             public string LocoClass { get; set; } = "";
             public string? LocoModel { get; set; }
@@ -181,18 +182,28 @@ namespace AviAppFinal.Server.Controllers
                     {
                         p.RefurbishValue,
                         p.MissingValue,
-                        p.ReplaceValue
+                        p.ReplaceValue,
+                        p.LabourValue
                     });
                 foreach (var d in dtos)
                 {
                     if (partCostData.TryGetValue(d.PartId, out var cost))
                     {
                         if (d.RefurbishCheck == "Yes")
+                        {
                             d.RefurbishValue = cost.RefurbishValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                         if (d.MissingCheck == "Yes")
+                        {
                             d.MissingValue = cost.MissingValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                         if (d.ReplaceCheck == "Yes")
+                        {
                             d.ReplaceValue = cost.ReplaceValue ?? "0.00";
+                            d.LaborValue = cost.LabourValue ?? "0.00";
+                        }
                     }
                     string checkSql = $@"SELECT COUNT(*) FROM {tableName}
                                          WHERE LocoNumber = @LocoNumber AND FormId = @FormId AND PartId = @PartId";
@@ -215,7 +226,7 @@ namespace AviAppFinal.Server.Controllers
                                 MissingValue=@MissingValue,
                                 ReplaceValue=@ReplaceValue,
                                 MissingPhoto=@MissingPhoto,
-                                ReplacePhoto=@ReplacePhoto
+                                ReplacePhoto = @ReplacePhoto, LaborValue= @LaborValue
                             WHERE LocoNumber=@LocoNumber AND FormId=@FormId AND PartId=@PartId";
                         await con.ExecuteAsync(updateSql, d);
                     }
@@ -224,10 +235,10 @@ namespace AviAppFinal.Server.Controllers
                         string insertSql = $@"
                             INSERT INTO {tableName}
                             (LocoNumber,LocoClass,LocoModel,FormId,PartId,PartDescr,GoodCheck,RefurbishCheck,MissingCheck,ReplaceCheck,
-                             RefurbishValue,MissingValue,ReplaceValue,MissingPhoto,ReplacePhoto)
+                             RefurbishValue,MissingValue,ReplaceValue,MissingPhoto,ReplacePhoto,LaborValue)
                             VALUES
                             (@LocoNumber,@LocoClass,@LocoModel,@FormId,@PartId,@PartDescr,@GoodCheck,@RefurbishCheck,@MissingCheck,@ReplaceCheck,
-                             @RefurbishValue,@MissingValue,@ReplaceValue,@MissingPhoto,@ReplacePhoto)";
+                             @RefurbishValue,@MissingValue,@ReplaceValue,@MissingPhoto,@ReplacePhoto,@LaborValue)";
                         await con.ExecuteAsync(insertSql, d);
                     }
                 }

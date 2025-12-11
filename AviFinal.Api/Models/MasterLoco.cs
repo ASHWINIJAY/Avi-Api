@@ -83,6 +83,8 @@ public partial class MasterLoco
 
     public DateTime? InspectedDate { get; set; }
 
+    public string? MarketValue { get; set; }
+
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();

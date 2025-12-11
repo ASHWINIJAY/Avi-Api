@@ -40,4 +40,6 @@ public partial class E18ctinspect
     public string? CreatedBy { get; set; }
 
     public DateTime? CreatedDate { get; set; }
+
+    public string? LaborValue { get; set; }
 }
