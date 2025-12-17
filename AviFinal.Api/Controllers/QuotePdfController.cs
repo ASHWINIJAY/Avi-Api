@@ -494,16 +494,33 @@ namespace AviAppFinal.Server.Controllers
                         var parts = group.Value;
                         if (!parts.Any()) continue;
 
-                        //PLEASE ADJSUT
+                        //PLEASE ADD
+                        string NormalizeCheck(object? obj)
+                        {
+                            if (obj == null) return "-";
+                            string s = obj.ToString()?.Trim() ?? "";
+                            if (string.IsNullOrWhiteSpace(s)) return "-";
+                            if (s.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                return "Yes";
+                            if (s.Equals("no", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("n", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                return "-";
+                            // If DB contains something unexpected, show it trimmed (you can change to "-" if you prefer)
+                            return s;
+                        }
+
+                        // map parts to trimmed + normalized fields
                         var partsWithNumbers = parts.Select(p => new
                         {
-                            p.FormId,
-                            p.PartDescr,
-                            GoodCheck = p.GoodCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            RefurbishCheck = p.RefurbishCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            MissingCheck = p.MissingCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            ReplaceCheck = p.ReplaceCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-"
-
+                            FormId = p.FormId,
+                            PartDescr = p.PartDescr,
+                            GoodCheck = NormalizeCheck(p.GoodCheck),
+                            RefurbishCheck = NormalizeCheck(p.RefurbishCheck),
+                            MissingCheck = NormalizeCheck(p.MissingCheck),
+                            ReplaceCheck = NormalizeCheck(p.ReplaceCheck)
                         }).ToList();
 
                         document.Add(new Paragraph(group.Key)
@@ -514,23 +531,24 @@ namespace AviAppFinal.Server.Controllers
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
 
                         var table = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth();
-                        string[] headers = { "No.", "Form ID", "Part Description", "Good", "Refurbish", "Missing", "Replace" };
+                        string[] headers = { "No.", "Form ID", "Part Description", "Good", "Refurbish", "Missing", "Damage" }; //PLEASE ADJUST (NEW)
                         foreach (var header in headers)
                             table.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
 
                         int index = 1;
-                        //PLEASE ADJUST
                         foreach (var p in partsWithNumbers)
                         {
                             table.AddCell(new Cell().Add(new Paragraph(index.ToString()).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.FormId.ToString()).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.GoodCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.MissingCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceCheck).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.FormId?.ToString() ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.GoodCheck).SetFont(regular)));        // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishCheck).SetFont(regular)));   // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.MissingCheck).SetFont(regular)));     // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceCheck).SetFont(regular)));     // shows Yes or -
                             index++;
                         }
+
+                        document.Add(table);
                     }
 
                     // --- Footer Image ---
@@ -543,7 +561,7 @@ namespace AviAppFinal.Server.Controllers
                         var footerImg = new Image(ImageDataFactory.Create(footerPath));
                         float scaleX = pageWidth / footerImg.GetImageWidth();
                         footerImg.ScaleToFit(pageWidth, footerImg.GetImageHeight() * scaleX);
-                        footerImg.SetFixedPosition(0, 0);
+                        footerImg.SetFixedPosition(0, 0).SetMarginTop(15);
                         document.Add(footerImg);
                     }
 
@@ -582,7 +600,42 @@ namespace AviAppFinal.Server.Controllers
                 return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
             }
         }
-
+        [HttpPost("GenerateAndSaveSowPdfForOldLoco")]
+        public async Task<IActionResult> GenerateAndSaveSowPdfForOldLoco()
+        {
+            var existingLocoDashboards = await _context.LocoDashboards
+                .Where(ld =>  ld.AssessmentCert != "Not Ready")
+                .ToListAsync();
+            foreach(var item in existingLocoDashboards)
+            {
+                var locoNumber = item.LocoNumber;
+                var request = new LocoQuotePdfRequest
+                {
+                    LocoNumber = locoNumber.ToString(),
+                    UserId = item.InspectorId
+                };
+                await GenerateAndSaveSowPdfForLoco(request);
+            }
+            return Ok(new { message = "PDFs generated for existing locos." });
+        }
+        [HttpPost("GenerateAndSaveSowPdfForOldWagon")]
+        public async Task<IActionResult> GenerateAndSaveSowPdfForOldWagon()
+        {
+            var existingLocoDashboards = await _context.WagonDashboards
+                .Where(ld => ld.AssessmentCert != "Not Ready")
+                .ToListAsync();
+            foreach (var item in existingLocoDashboards)
+            {
+                var locoNumber = item.WagonNumber;
+                var request = new QuotePdfRequest
+                {
+                    WagonNumber = locoNumber.ToString(),
+                    UserId = item.InspectorId
+                };
+                await GenerateAndSaveSowPdf(request);
+            }
+            return Ok(new { message = "PDFs generated for existing wagons." });
+        }
         [HttpPost("GenerateAndSaveSowPdfForLoco")]
         public async Task<IActionResult> GenerateAndSaveSowPdfForLoco([FromBody] LocoQuotePdfRequest request)
         {
@@ -843,19 +896,36 @@ namespace AviAppFinal.Server.Controllers
                     {
                         var parts = group.Value;
                         if (!parts.Any()) continue;
+                        //PLEASE ADD
+                        string NormalizeCheck(object? obj)
+                        {
+                            if (obj == null) return "-";
+                            string s = obj.ToString()?.Trim() ?? "";
+                            if (string.IsNullOrWhiteSpace(s)) return "-";
+                            if (s.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                return "Yes";
+                            if (s.Equals("no", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("n", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                return "-";
+                            // If DB contains something unexpected, show it trimmed (you can change to "-" if you prefer)
+                            return s;
+                        }
 
-                        //PLEASE ADJSUT
+                        // map parts to trimmed + normalized fields
                         var partsWithNumbers = parts.Select(p => new
                         {
-                            p.FormId,
-                            p.PartDescr,
-                            GoodCheck = p.GoodCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            RefurbishCheck = p.RefurbishCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            MissingCheck = p.MissingCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-",
-                            ReplaceCheck = p.ReplaceCheck.Equals("Yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "-"
-
+                            FormId = p.FormId,
+                            PartDescr = p.PartDescr,
+                            GoodCheck = NormalizeCheck(p.GoodCheck),
+                            RefurbishCheck = NormalizeCheck(p.RefurbishCheck),
+                            MissingCheck = NormalizeCheck(p.MissingCheck),
+                            ReplaceCheck = NormalizeCheck(p.ReplaceCheck)
                         }).ToList();
-
+                        //PLEASE ADJSUT
+                       
                         document.Add(new Paragraph(group.Key)
                             .SetFont(bold)
                             .SetFontSize(13)
@@ -864,23 +934,24 @@ namespace AviAppFinal.Server.Controllers
                             .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
 
                         var table = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth();
-                        string[] headers = { "No.", "Form ID", "Part Description", "Good", "Refurbish", "Missing", "Replace" };
+                        string[] headers = { "No.", "Form ID", "Part Description", "Good", "Refurbish", "Missing", "Damage" }; //PLEASE ADJUST (NEW)
                         foreach (var header in headers)
                             table.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
 
                         int index = 1;
-                        //PLEASE ADJUST
                         foreach (var p in partsWithNumbers)
                         {
                             table.AddCell(new Cell().Add(new Paragraph(index.ToString()).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.FormId.ToString()).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.GoodCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.MissingCheck).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceCheck).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.FormId?.ToString() ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.GoodCheck).SetFont(regular)));        // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishCheck).SetFont(regular)));   // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.MissingCheck).SetFont(regular)));     // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceCheck).SetFont(regular)));     // shows Yes or -
                             index++;
                         }
+
+                        document.Add(table);
                     }
 
                     // --- Footer Image ---
@@ -893,7 +964,7 @@ namespace AviAppFinal.Server.Controllers
                         var footerImg = new Image(ImageDataFactory.Create(footerPath));
                         float scaleX = pageWidth / footerImg.GetImageWidth();
                         footerImg.ScaleToFit(pageWidth, footerImg.GetImageHeight() * scaleX);
-                        footerImg.SetFixedPosition(0, 0);
+                        footerImg.SetFixedPosition(0, 0).SetMarginTop(15);
                         document.Add(footerImg);
                     }
 

@@ -82,4 +82,8 @@ public partial class WagonDashboard
     public string? BarrelValue { get; set; }
 
     public string? TotalValue { get; set; }
+
+    public int? ConditionScore { get; set; }
+
+    public string? OperationalStatus { get; set; }
 }

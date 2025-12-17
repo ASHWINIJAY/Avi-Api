@@ -1,6 +1,7 @@
 ﻿using AviFinal.Api.DTO;
 using AviFinal.Api.Models;
 using AviFinal.Api.Models;
+using DocumentFormat.OpenXml.Presentation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -613,7 +614,9 @@ public class DashboardController : ControllerBase
                 w.AssessmentSow, //PLEASE ADD
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
-                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00", //PLEASE ADD,
+                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
+                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
             })
             .ToListAsync();
 
@@ -665,7 +668,9 @@ public class DashboardController : ControllerBase
                 w.AssessmentSow, //PLEASE ADD
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
-                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00", //PLEASE ADD
+                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
+                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
             })
             .ToListAsync();
 
@@ -844,7 +849,9 @@ public class DashboardController : ControllerBase
                 AssessmentSow = w.AssessmentSow ?? "Not Ready", //PLEASE ADD
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
-                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" ,//PLEASE ADD
+                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
+                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
             })
             .ToListAsync();
 
@@ -898,7 +905,10 @@ public class DashboardController : ControllerBase
                 w.AssessmentSow, //PLEASE ADD
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
-                TotalValue = w.TotalValue ?? "0.00" //PLEASE ADD
+                TotalValue = w.TotalValue ?? "0.00" ,//PLEASE ADD,
+                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
+                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
+
             })
             .ToListAsync();
 

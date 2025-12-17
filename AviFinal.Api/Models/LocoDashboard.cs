@@ -62,4 +62,8 @@ public partial class LocoDashboard
     public string? TotalValue { get; set; }
 
     public string? MarketValue { get; set; }
+
+    public int? ConditionScore { get; set; }
+
+    public string? OperationalStatus { get; set; }
 }
