@@ -86,4 +86,6 @@ public partial class WagonDashboardUploaded
     public int? ConditionScore { get; set; }
 
     public string? OperationalStatus { get; set; }
+
+    public string? City { get; set; }
 }

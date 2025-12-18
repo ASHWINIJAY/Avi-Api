@@ -1,9 +1,11 @@
 ﻿using AviFinal.Api.DTO;
 using AviFinal.Api.Models;
 using AviFinal.Api.Models;
+using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Presentation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -47,13 +49,16 @@ public class DashboardController : ControllerBase
     }
     private readonly AviDbContext _context;
     private readonly IWebHostEnvironment _env;
-
+    private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
     //private readonly AppDbContext _localDb;
 
-    public DashboardController(AviDbContext context, IWebHostEnvironment env)
+    public DashboardController(AviDbContext context, IWebHostEnvironment env, IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _env = env;
+        _config = config;
+        _httpClientFactory = httpClientFactory;
         //  _localDb = localDb;
     }
 
@@ -103,7 +108,14 @@ public class DashboardController : ControllerBase
 
         if (wagonInfo == null)
             return NotFound(new { success = false, message = $"No WagonInfoCaptures record found for wagon {wagonNumber}" });
-
+        string city = "Not Captured";
+        if (double.TryParse(wagonInfo?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+            && double.TryParse(wagonInfo?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+        {
+            var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+            if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+                city = resolved;
+        }
         // ---------- Body Photos ----------
         string bodyDamage = wagonInfo.BodyDamage ?? "No";
         List<string> bodyPhotosList = new();
@@ -372,7 +384,8 @@ public class DashboardController : ControllerBase
             AssessmentSow = "Not Ready", //PLEASE ADD
             LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture), //PLEASE ADD
             BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture), //PLEASE ADD
-            TotalValue = rts ?? "0.00" //PLEASE ADD
+            TotalValue = rts ?? "0.00", //PLEASE ADD,
+            City = city
         };
 
         _context.WagonDashboards.Add(dashboardEntry);
@@ -510,6 +523,9 @@ public class DashboardController : ControllerBase
                         existingEntry.LiftValue = dashboardEntry.LiftValue;
                         existingEntry.BarrelValue = dashboardEntry.BarrelValue;
                         existingEntry.TotalValue = dashboardEntry.TotalValue;
+                        existingEntry. City = dashboardEntry.City;
+                        existingEntry.ConditionScore = dashboardEntry.ConditionScore;
+                        existingEntry.OperationalStatus =dashboardEntry.OperationalStatus;
                     }
                     else
                     {
@@ -553,7 +569,10 @@ public class DashboardController : ControllerBase
                             AssessmentSow = dashboardEntry.AssessmentSow ?? "Not Ready",
                             LiftValue = dashboardEntry.LiftValue,
                             BarrelValue = dashboardEntry.BarrelValue,
-                            TotalValue = dashboardEntry.TotalValue
+                            TotalValue = dashboardEntry.TotalValue,
+                            City = dashboardEntry.City,
+                            ConditionScore = dashboardEntry.ConditionScore,
+                            OperationalStatus = dashboardEntry.OperationalStatus,
                         };
 
                         _context.WagonDashboardUploadeds.Add(uploadedEntry);
@@ -600,7 +619,7 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.WagonStatus, //PLEASE ADJUST
+                w.WagonStatus, w.City, //PLEASE ADJUST
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
@@ -654,7 +673,7 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.WagonStatus, //PLEASE ADJUST
+                w.WagonStatus, w.City, //PLEASE ADJUST
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
@@ -835,7 +854,7 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.WagonStatus,
+                w.WagonStatus, w.City,
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
@@ -850,8 +869,8 @@ public class DashboardController : ControllerBase
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
                 TotalValue = w.TotalValue ?? "0.00" ,//PLEASE ADD
-                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
-                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
+                ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
             })
             .ToListAsync();
 
@@ -891,7 +910,7 @@ public class DashboardController : ControllerBase
                 w.ReplaceValue,
                 w.AssessmentQuote,
                 w.AssessmentCert,
-                w.WagonStatus, //PLEASE ADJUST
+                w.WagonStatus, w.City, //PLEASE ADJUST
                 w.UploadDate,
                 w.WagonPhoto,
                 w.MissingPhotos,
@@ -906,14 +925,107 @@ public class DashboardController : ControllerBase
                 LiftValue = w.LiftValue ?? "0.00", //PLEASE ADD
                 BarrelValue = w.BarrelValue ?? "0.00", //PLEASE ADD
                 TotalValue = w.TotalValue ?? "0.00" ,//PLEASE ADD,
-                ConditionScore = w.ConditionScore != 0 ? w.ConditionScore : 0, //PLEASE ADD (NEW)
-                OperationalStatus = w.OperationalStatus ?? "N/A" //PLEASE ADD (NEW)
+                ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
 
             })
             .ToListAsync();
 
         return Ok(dashboardEntries);
     }
+    //PLEASE ADD (NEW)
+    [HttpGet("getScoreList")]
+    public async Task<IActionResult> GetScoreList()
+    {
+        var score = await _context.ConditionRatings
+            .Select(s => new
+            {
+                ConditionScore = s.Score.ToString(),
+            })
+            .ToListAsync();
+
+        return Ok(score);
+    }
+
+    //PLEASE ADD (NEW)
+    [HttpPost("updateCondition")]
+    public async Task<IActionResult> UpdateCondition([FromBody] ConditionRequest request)
+    {
+        var dash = await _context.WagonDashboards
+            .FirstOrDefaultAsync(d => d.WagonNumber == Convert.ToInt32(request.WagonNumber));
+
+        if (dash != null)
+        {
+            try
+            {
+                var score = await _context.ConditionRatings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Score == Convert.ToInt32(request.ConditionScore));
+
+                if (score == null)
+                    return BadRequest("Score does not exist");
+
+                string operatingStatus = score.OperationalStatus;
+
+                dash.ConditionScore = Convert.ToInt32(request.ConditionScore);
+                dash.OperationalStatus = operatingStatus;
+
+                _context.WagonDashboards.Update(dash);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wagon input updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Update failed.", detail = ex.Message });
+            }
+        }
+        else
+        {
+            return BadRequest("Wagon does not exist");
+        }
+    }
+    [HttpPost("updateLocoCondition")]
+    public async Task<IActionResult> UpdateLocoCondition([FromBody] LocoConditionRequest request)
+    {
+        var dash = await _context.LocoDashboards
+            .FirstOrDefaultAsync(d => d.LocoNumber == Convert.ToInt32(request.LocoNumber));
+
+        if (dash != null)
+        {
+            try
+            {
+                var score = await _context.ConditionRatings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Score == Convert.ToInt32(request.ConditionScore));
+
+                if (score == null)
+                    return BadRequest("Score does not exist");
+
+                string operatingStatus = score.OperationalStatus;
+
+                dash.ConditionScore = Convert.ToInt32(request.ConditionScore);
+                dash.OperationalStatus = operatingStatus;
+
+                _context.LocoDashboards.Update(dash);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Loco input updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Update failed.", detail = ex.Message });
+            }
+        }
+        else
+        {
+            return BadRequest("Wagon does not exist");
+        }
+    }
+    //PLEASE ADD (NEW)
+
 
     [HttpPost("tickWagon")]
     public async Task<IActionResult> TickWagon([FromBody] TickWagonRequest request)
@@ -977,7 +1089,14 @@ public class DashboardController : ControllerBase
 
         if (locoInfo == null)
             return NotFound(new { success = false, message = $"No LocoInfoCaptures record found for loco {locoNumber}" });
-
+        string city = "Not Captured";
+        if (double.TryParse(locoInfo?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+            && double.TryParse(locoInfo?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+        {
+            var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+            if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+                city = resolved;
+        }
         string bodyDamage = locoInfo.BodyDamage ?? "No";
         List<string> bodyPhotosList = new();
         if (string.Equals(bodyDamage, "Yes", StringComparison.OrdinalIgnoreCase))
@@ -2305,7 +2424,7 @@ public class DashboardController : ControllerBase
             MissingPhotos = missingPhotosSerialized,
             ReplacePhotos = replacePhotosSerialized,
             GpsLatitude = locoInfo.GpsLatitude, //PLEASE ADD
-
+            City = city, //PLEASE ADD
             GpsLongitude = locoInfo.GpsLongitude, //PLEASE ADD
             TotalLaborValue = laborTotal, //PLEASE ADD
             StartTimeInspect = locoInfo.CreatedDate?.ToString("HH:mm:ss") ?? "Not Available", //PLEASE ADD
@@ -5025,6 +5144,44 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
         }
         return Ok(new { success = true, message = "Loco dashboard entry created" });
     }
+    private async Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude)
+    {
+        try
+        {
+            string? apiKey = _config["LocationIQ:ApiKey"];
+            if (string.IsNullOrWhiteSpace(apiKey))
+                return "Not Captured";
+
+            var client = _httpClientFactory.CreateClient();
+            string url = $"https://us1.locationiq.com/v1/reverse.php?key={apiKey}&lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&format=json";
+
+            using (var resp = await client.GetAsync(url))
+            {
+                if (!resp.IsSuccessStatusCode) return "Not Captured";
+                var json = await resp.Content.ReadAsStringAsync();
+                var obj = JObject.Parse(json);
+                string? city = obj["address"]?["city"]?.ToString()
+                           ?? obj["address"]?["town"]?.ToString()
+                           ?? obj["address"]?["village"]?.ToString()
+                           ?? obj["address"]?["county"]?.ToString();
+                return string.IsNullOrWhiteSpace(city) ? "Not Captured" : city;
+            }
+        }
+        catch
+        {
+            return "Not Captured";
+        }
+    }
+    public class ConditionRequest
+    {
+        public string WagonNumber { get; set; } = string.Empty;
+        public int ConditionScore { get; set; }
+    }
+    public class LocoConditionRequest
+    {
+        public string LocoNumber { get; set; } = string.Empty;
+        public int ConditionScore { get; set; }
+    }
     public class InspectLocoRow
     {
         public string? RefurbishValue { get; set; }
@@ -5061,7 +5218,7 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.ReplaceValue,
                     w.AssessmentQuote,
                     w.AssessmentCert,
-                    w.UploadStatus,
+                    w.UploadStatus, w.City,
                     w.UploadDate,
                     w.LocoPhoto,
                     w.MissingPhotos,
@@ -5073,7 +5230,9 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.TotalValue,
                     w.AssessmentSow,
                     w.MarketValue,
-                    w.TotalLaborValue
+                    w.TotalLaborValue,
+                    ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                    OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
                 })
                 .ToListAsync();
 
@@ -5110,7 +5269,7 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.ReplaceValue,
                     w.AssessmentQuote,
                     w.AssessmentCert,
-                    w.UploadStatus,
+                    w.UploadStatus, w.City,
                     w.UploadDate,
                     w.LocoPhoto,
                     w.MissingPhotos,
@@ -5122,7 +5281,9 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.TotalValue,
                     w.AssessmentSow,
                     w.TotalLaborValue,
-                    w.MarketValue
+                    w.MarketValue,
+                    ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                    OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
 
                 })
                 .ToListAsync();
@@ -5160,7 +5321,7 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.ReplaceValue,
                     w.AssessmentQuote,
                     w.AssessmentCert,
-                    w.UploadStatus,
+                    w.UploadStatus, w.City,
                     w.UploadDate,
                     w.LocoPhoto,
                     w.MissingPhotos,
@@ -5172,8 +5333,10 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.TotalValue,
                     w.TotalLaborValue,
                     w.AssessmentSow,
-                    w.MarketValue
-                  
+                    w.MarketValue,
+                    ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                    OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
+
                 })
                 .ToListAsync();
 
@@ -5212,7 +5375,7 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.ReplaceValue,
                     w.AssessmentQuote,
                     w.AssessmentCert,
-                    w.UploadStatus,
+                    w.UploadStatus, w.City,
                     w.UploadDate,
                     w.LocoPhoto,
                     w.MissingPhotos,
@@ -5224,7 +5387,9 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     w.TotalValue,
                     w.AssessmentSow,
                     w.MarketValue,
-                    w.TotalLaborValue
+                    w.TotalLaborValue,
+                    ConditionScore = w.ConditionScore.ToString() ?? "", //PLEASE ADJUST (NEW)
+                    OperationalStatus = w.OperationalStatus ?? "" //PLEASE ADJUST (NEW)
 
                 })
                 .ToListAsync();
