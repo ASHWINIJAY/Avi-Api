@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml.Presentation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -430,12 +432,12 @@ public class DashboardController : ControllerBase
                 { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") } //PLEASE ADD
             };
 
-                void AddFilesToZip(string? source, string targetFolder)
+                async Task AddFilesToZipAsync(string? source, string targetFolder)
                 {
                     if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
 
                     List<string> paths = new();
-                    if (source.StartsWith("[")) // JSON array
+                    if (source.StartsWith("["))
                     {
                         var deserialized = JsonSerializer.Deserialize<List<string>>(source);
                         if (deserialized != null) paths.AddRange(deserialized);
@@ -448,14 +450,31 @@ public class DashboardController : ControllerBase
                     foreach (var p in paths)
                     {
                         if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+
                         string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
-                        if (System.IO.File.Exists(sourcePath))
+                        if (!System.IO.File.Exists(sourcePath)) continue;
+
+                        string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+
+                        var entry = zipArchive.CreateEntry(entryName, CompressionLevel.SmallestSize);
+                        await using var entryStream = entry.Open();
+
+                        if (IsImage(sourcePath))
                         {
-                            string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
-                            zipArchive.CreateEntryFromFile(sourcePath, entryName);
+                            // REAL compression happens here
+                            await using var processedImage = await PreprocessImageAsync(sourcePath);
+                            await processedImage.CopyToAsync(entryStream);
+                        }
+                        else
+                        {
+                            // Non-image files copied as-is
+                            await using var fileStream = System.IO.File.OpenRead(sourcePath);
+                            await fileStream.CopyToAsync(entryStream);
                         }
                     }
                 }
+
+
 
                 // Use reflection to loop through all properties dynamically
                 var properties = typeof(UploadRequestItem).GetProperties();
@@ -464,7 +483,7 @@ public class DashboardController : ControllerBase
                     if (!folderMap.ContainsKey(prop.Name)) continue;
 
                     var value = prop.GetValue(item) as string;
-                    AddFilesToZip(value, folderMap[prop.Name]);
+                    await AddFilesToZipAsync(value, folderMap[prop.Name]);
                 }
 
                 // Update DB
@@ -736,12 +755,12 @@ public class DashboardController : ControllerBase
                 { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") }
             };
 
-                    void AddFilesToZip(string? source, string targetFolder)
+                    async Task AddFilesToZipAsync(string? source, string targetFolder)
                     {
                         if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
 
                         List<string> paths = new();
-                        if (source.StartsWith("[")) // JSON array
+                        if (source.StartsWith("["))
                         {
                             var deserialized = JsonSerializer.Deserialize<List<string>>(source);
                             if (deserialized != null) paths.AddRange(deserialized);
@@ -754,14 +773,30 @@ public class DashboardController : ControllerBase
                         foreach (var p in paths)
                         {
                             if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+
                             string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
-                            if (System.IO.File.Exists(sourcePath))
+                            if (!System.IO.File.Exists(sourcePath)) continue;
+
+                            string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+
+                            var entry = zipArchive.CreateEntry(entryName, CompressionLevel.SmallestSize);
+                            await using var entryStream = entry.Open();
+
+                            if (IsImage(sourcePath))
                             {
-                                string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
-                                zipArchive.CreateEntryFromFile(sourcePath, entryName);
+                                // REAL compression happens here
+                                await using var processedImage = await PreprocessImageAsync(sourcePath);
+                                await processedImage.CopyToAsync(entryStream);
+                            }
+                            else
+                            {
+                                // Non-image files copied as-is
+                                await using var fileStream = System.IO.File.OpenRead(sourcePath);
+                                await fileStream.CopyToAsync(entryStream);
                             }
                         }
                     }
+
 
                     // Use reflection to loop through all properties dynamically
                     var properties = typeof(UploadLocoItem).GetProperties();
@@ -770,7 +805,7 @@ public class DashboardController : ControllerBase
                         if (!folderMap.ContainsKey(prop.Name)) continue;
 
                         var value = prop.GetValue(item) as string;
-                        AddFilesToZip(value, folderMap[prop.Name]);
+                        await AddFilesToZipAsync(value, folderMap[prop.Name]);
                     }
 
                     // Update DB
@@ -813,6 +848,89 @@ public class DashboardController : ControllerBase
         return Ok(new { success = true, message = "Wagon dashboard entry created" });
     }
 
+    [HttpPost("insertOldLocoCity")]
+    public async Task<IActionResult> InsertOldLocoCity()
+    {
+        // ---------- Get User Name ----------
+        
+        var oldLocoList = await _context.LocoDashboards
+                                      .ToListAsync();
+        foreach (var loco in oldLocoList)
+        {
+            await UpdateLocoCityAsync(loco, "N/A");
+        }
+        return Ok(new { success = true, message = "Wagon dashboard entry created" });
+    }
+
+    [HttpPost("insertOldWagonCity")]
+    public async Task<IActionResult> InsertOldWagonCity()
+    {
+        // ---------- Get User Name ----------
+
+        var oldLocoList = await _context.WagonDashboards
+                                      .ToListAsync();
+        foreach (var loco in oldLocoList)
+        {
+            await UpdateWagonCity(loco, "N/A");
+        }
+        return Ok(new { success = true, message = "Wagon dashboard entry created" });
+    }
+
+    public async Task UpdateLocoCityAsync(LocoDashboard locoInfo, string city)
+    {
+        var loco = await _context.LocoDashboards
+            .FirstOrDefaultAsync(l => l.Id == locoInfo.Id);
+
+        if (loco == null)
+            return;
+
+        // Try parse GPS coordinates
+        if (double.TryParse(locoInfo?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+            && double.TryParse(locoInfo?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+        {
+            // Resolve city name from coordinates
+            var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+
+            if (!string.IsNullOrWhiteSpace(resolved) &&
+                !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+            {
+                city = resolved; // override user input
+            }
+        }
+
+        // ALWAYS update city, even if GPS decode fails
+        loco.City = city;
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateWagonCity(WagonDashboard locoInfo, string city)
+    {
+        var loco = await _context.WagonDashboards
+            .FirstOrDefaultAsync(l => l.Id == locoInfo.Id);
+
+        if (loco == null)
+            return;
+
+        // Try parse GPS coordinates
+        if (double.TryParse(locoInfo?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+            && double.TryParse(locoInfo?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+        {
+            // Resolve city name from coordinates
+            var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+
+            if (!string.IsNullOrWhiteSpace(resolved) &&
+                !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+            {
+                city = resolved; // override user input
+            }
+        }
+
+        // ALWAYS update city, even if GPS decode fails
+        loco.City = city;
+
+        await _context.SaveChangesAsync();
+    }
     public class InspectRow
     {
         public string? RefurbishValue { get; set; }
@@ -941,6 +1059,7 @@ public class DashboardController : ControllerBase
             .Select(s => new
             {
                 ConditionScore = s.Score.ToString(),
+                s.Condition
             })
             .ToListAsync();
 
@@ -5146,31 +5265,133 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
     }
     private async Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude)
     {
-        try
-        {
-            string? apiKey = _config["LocationIQ:ApiKey"];
-            if (string.IsNullOrWhiteSpace(apiKey))
-                return "Not Captured";
-
-            var client = _httpClientFactory.CreateClient();
-            string url = $"https://us1.locationiq.com/v1/reverse.php?key={apiKey}&lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&format=json";
-
-            using (var resp = await client.GetAsync(url))
-            {
-                if (!resp.IsSuccessStatusCode) return "Not Captured";
-                var json = await resp.Content.ReadAsStringAsync();
-                var obj = JObject.Parse(json);
-                string? city = obj["address"]?["city"]?.ToString()
-                           ?? obj["address"]?["town"]?.ToString()
-                           ?? obj["address"]?["village"]?.ToString()
-                           ?? obj["address"]?["county"]?.ToString();
-                return string.IsNullOrWhiteSpace(city) ? "Not Captured" : city;
-            }
-        }
-        catch
-        {
+        string? apiKey = _config["LocationIQ:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
             return "Not Captured";
+
+        var client = _httpClientFactory.CreateClient();
+
+        string url =
+            $"https://us1.locationiq.com/v1/reverse.php?key={apiKey}&lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&format=json";
+
+        const int maxRetries = 3;
+        int delayMs = 500; // initial delay
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                using (var resp = await client.GetAsync(url))
+                {
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        string json = await resp.Content.ReadAsStringAsync();
+                        var obj = JObject.Parse(json);
+
+                        string? city =
+                            obj["address"]?["city"]?.ToString()
+                            ?? obj["address"]?["town"]?.ToString()
+                            ?? obj["address"]?["village"]?.ToString()
+                            ?? obj["address"]?["county"]?.ToString();
+
+                        return string.IsNullOrWhiteSpace(city) ? "Not Captured" : city;
+                    }
+
+                    // If API rate limit exceeded → wait longer
+                    if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        await Task.Delay(2000 * attempt);
+                        continue;
+                    }
+                }
+            }
+            catch
+            {
+                // Network failure → retry
+            }
+
+            // Delay before next retry (exponential)
+            await Task.Delay(delayMs);
+            delayMs *= 2; // 500 → 1000 → 2000
         }
+
+        return "Not Captured";
+    }
+    private static bool IsImage(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext == ".jpg" || ext == ".jpeg" || ext == ".png";
+    }
+
+    //PLEASE ADD (IMAGE COMPRESSION)
+    private static async Task<Stream> PreprocessImageAsync(string sourcePath)
+    {
+        byte[] originalBytes = await System.IO.File.ReadAllBytesAsync(sourcePath);
+
+        using var image = await SixLabors.ImageSharp.Image.LoadAsync(sourcePath);
+
+        // Resize only if larger than 1920px
+        bool resized = false;
+        if (image.Width > 1920)
+        {
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,
+                Size = new Size(1920, 0)
+            }));
+            resized = true;
+        }
+
+        // 🔥 STRIP EXIF / IPTC / XMP
+        StripImageMetadata(image);
+
+        var output = new MemoryStream();
+        string ext = Path.GetExtension(sourcePath).ToLowerInvariant();
+
+        if (ext == ".png")
+        {
+            // PNG: only re-encode if resized (otherwise keep original)
+            if (!resized)
+                return new MemoryStream(originalBytes);
+
+            var pngEncoder = new SixLabors.ImageSharp.Formats.Png.PngEncoder
+            {
+                CompressionLevel = SixLabors.ImageSharp.Formats.Png.PngCompressionLevel.Level6
+            };
+
+            await image.SaveAsync(output, pngEncoder);
+        }
+        else
+        {
+            // JPEG: metadata stripped + moderate quality
+            var jpegEncoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder
+            {
+                Quality = 82
+            };
+
+            await image.SaveAsync(output, jpegEncoder);
+        }
+
+        // 🚨 Final guard: never make file bigger
+        if (output.Length >= originalBytes.Length)
+            return new MemoryStream(originalBytes);
+
+        output.Position = 0;
+        return output;
+    }
+
+
+    //PLEASE ADD (EXIF STRIP HELPER)
+    private static void StripImageMetadata(SixLabors.ImageSharp.Image image)
+    {
+        // Remove EXIF
+        image.Metadata.ExifProfile = null;
+
+        // Remove IPTC (sometimes present)
+        image.Metadata.IptcProfile = null;
+
+        // Remove XMP (can be large)
+        image.Metadata.XmpProfile = null;
     }
     public class ConditionRequest
     {
