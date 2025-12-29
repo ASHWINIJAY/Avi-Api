@@ -827,6 +827,604 @@ public class DashboardController : ControllerBase
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+    [HttpPost("markReadyForAssessment")]
+    public async Task<IActionResult> MarkReadyForAssessment(
+       [FromBody] WagonStatusUpdateDto dto)
+    {
+       
+
+        var wagon = await _context.WagonDashboards
+            .FirstOrDefaultAsync(w => w.WagonNumber == dto.WagonNumber);
+
+        if (wagon == null)
+            return NotFound("Wagon not found.");
+
+        // 🔐 Enforce valid transition
+        if (wagon.WagonStatus != "Inspection Complete")
+            return BadRequest(
+                $"Invalid transition. Current status is {wagon.WagonStatus}");
+
+        wagon.WagonStatus = "ReadyForAssessment";
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Wagon moved to Ready For Assessment",
+            wagon.WagonNumber,
+            wagon.WagonStatus
+        });
+    }
+
+    // 🔹 ReadyForAssessment → AssessedReadyForUpload
+    [HttpPost("markAssessedReadyForUpload")]
+    public async Task<IActionResult> MarkAssessedReadyForUpload(
+        [FromBody] WagonStatusUpdateDto dto)
+    {
+        
+
+        var wagon = await _context.WagonDashboards
+            .FirstOrDefaultAsync(w => w.WagonNumber == dto.WagonNumber);
+
+        if (wagon == null)
+            return NotFound("Wagon not found.");
+
+        // 🔐 Enforce valid transition
+        if (wagon.WagonStatus != "ReadyForAssessment")
+            return BadRequest(
+                $"Invalid transition. Current status is {wagon.WagonStatus}");
+
+        wagon.WagonStatus = "AssessedReadyForUpload";
+      
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Wagon approved for upload",
+            wagon.WagonNumber,
+            wagon.WagonStatus
+        });
+    }
+
+    [HttpPost("markReadyForAssessmentLoco")]
+    public async Task<IActionResult> MarkReadyForAssessmentLoco(
+    [FromBody] WagonStatusUpdateDto dto)
+    {
+
+
+        var wagon = await _context.LocoDashboards
+            .FirstOrDefaultAsync(w => w.LocoNumber == dto.WagonNumber);
+
+        if (wagon == null)
+            return NotFound("Loco not found.");
+
+        // 🔐 Enforce valid transition
+        if (wagon.UploadStatus != "Inspection Complete")
+            return BadRequest(
+                $"Invalid transition. Current status is {wagon.UploadStatus}");
+
+        wagon.UploadStatus = "ReadyForAssessment";
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Wagon moved to Ready For Assessment",
+            wagon.LocoNumber,
+            wagon.UploadStatus
+        });
+    }
+
+    // 🔹 ReadyForAssessment → AssessedReadyForUpload
+    [HttpPost("markAssessedReadyForUploadLoco")]
+    public async Task<IActionResult> MarkAssessedReadyForUploadLoco(
+        [FromBody] WagonStatusUpdateDto dto)
+    {
+
+
+        var wagon = await _context.LocoDashboards
+            .FirstOrDefaultAsync(w => w.LocoNumber == dto.WagonNumber);
+
+        if (wagon == null)
+            return NotFound("Loco not found.");
+
+        // 🔐 Enforce valid transition
+        if (wagon.UploadStatus != "ReadyForAssessment")
+            return BadRequest(
+                $"Invalid transition. Current status is {wagon.UploadStatus}");
+
+        wagon.UploadStatus = "AssessedReadyForUpload";
+
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Loco approved for upload",
+            wagon.LocoNumber,
+            wagon.UploadStatus
+        });
+    }
+    [HttpPost("recalculateValues")]
+    public async Task<IActionResult> RecalculateValues(RecalculateRequest request)
+    {
+        int wagonNumber = Convert.ToInt32(request.WagonNumber);
+
+        var master = await _context.MasterWagons
+                                      .AsNoTracking()
+                                      .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
+
+        var wagonInfo = await _context.WagonInfoCaptures
+                                      .Where(w => w.WagonNumber == wagonNumber)
+                                      .OrderByDescending(w => w.Id)
+                                      .Select(w => new
+                                      {
+                                          w.LiftLapsed,
+                                          w.BarrelLapsed
+                                      })
+                                      .FirstOrDefaultAsync();
+
+        if (wagonInfo == null)
+            return NotFound(new { success = false, message = $"No WagonInfoCaptures record found for wagon {wagonNumber}" });
+
+        var refurbishValues = new List<decimal>();
+        var missingValues = new List<decimal>();
+        var replaceValues = new List<decimal>();
+        var laborValues = new List<decimal>();
+
+        static bool TryParseDecimal(string? s, out decimal value)
+        {
+            value = 0m;
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
+                || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
+        }
+
+        // ---------- Multi-entry tables ----------
+        var multiEntryTables = new List<Func<int, Task<List<InspectRow>>>>
+            {
+                async num => await _context.WagonPartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync(),
+
+                async num => await _context.AirBrakePartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+
+
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync(),
+
+                async num => await _context.VacBrakePartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+
+
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync()
+            };
+
+        // ---------- Single-entry tables ----------
+        var singleEntryTables = new List<Func<int, Task<List<InspectRow>>>>
+            {
+                num => _context.TankersInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.BottomDischargeInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.DoorsInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.TwistlocksInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.StanchionsInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.FloorInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync()
+            };
+
+        // ---------- Aggregate values ----------
+        foreach (var tableQuery in multiEntryTables.Concat(singleEntryTables))
+        {
+            var rows = await tableQuery(wagonNumber);
+
+            foreach (var r in rows)
+            {
+                if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
+                if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
+                if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
+                if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
+            }
+        }
+
+        // ---------- Totals ----------
+        string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+
+        decimal liftCost = 0;
+        decimal barrelCost = 0;
+
+        if (wagonInfo?.LiftLapsed == "Yes")
+            liftCost = 420982;
+        else if (wagonInfo?.LiftLapsed == "No")
+            liftCost = 0;
+
+        if (wagonInfo?.BarrelLapsed == "Yes")
+            barrelCost = 351893;
+        else if (wagonInfo?.BarrelLapsed == "No" || wagonInfo?.BarrelLapsed == "N/A")
+            barrelCost = 0;
+
+        decimal liftBarrelTotal = liftCost + barrelCost;
+
+        decimal marketValue = 0;
+
+        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
+        decimal assetValue = marketValue - repairTotal;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+        var dash = await _context.WagonDashboards
+            .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+
+        if (dash == null)
+            return BadRequest("Wagon does not exist");
+
+        dash.RefurbishValue = refurbishTotal;
+        dash.MissingValue = missingTotal;
+        dash.ReplaceValue = replaceTotal;
+        dash.TotalLaborValue = laborTotal;
+        dash.AssetValue = totalAssetValue ?? "";
+        dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
+        dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
+        dash.TotalValue = rts ?? "";
+
+        _context.WagonDashboards.Update(dash);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Wagon updated successfully." });
+    }
+    [HttpPost("recalculateValuesUpload")]
+    public async Task<IActionResult> RecalculateValuesUpload(RecalculateRequestUpload request)
+    {
+        int wagonNumber = Convert.ToInt32(request.WagonNumber);
+
+        var master = await _context.MasterWagons
+                                      .AsNoTracking()
+                                      .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
+
+        var wagonInfo = await _context.WagonInfoCaptures
+                                      .Where(w => w.WagonNumber == wagonNumber)
+                                      .OrderByDescending(w => w.Id)
+                                      .Select(w => new
+                                      {
+                                          w.LiftLapsed,
+                                          w.BarrelLapsed
+                                      })
+                                      .FirstOrDefaultAsync();
+
+        if (wagonInfo == null)
+            return NotFound(new { success = false, message = $"No WagonInfoCaptures record found for wagon {wagonNumber}" });
+
+        var refurbishValues = new List<decimal>();
+        var missingValues = new List<decimal>();
+        var replaceValues = new List<decimal>();
+        var laborValues = new List<decimal>();
+
+        static bool TryParseDecimal(string? s, out decimal value)
+        {
+            value = 0m;
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
+                || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
+        }
+
+        // ---------- Multi-entry tables ----------
+        var multiEntryTables = new List<Func<int, Task<List<InspectRow>>>>
+            {
+                async num => await _context.WagonPartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync(),
+
+                async num => await _context.AirBrakePartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+
+
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync(),
+
+                async num => await _context.VacBrakePartsInspects
+                                           .Where(p => p.WagonNumber == num)
+                                           .OrderByDescending(p => p.Id)
+                                           .Select(p => new InspectRow
+                                           {
+                                               RefurbishValue = p.RefurbishValue,
+                                               MissingValue = p.MissingValue,
+                                               ReplaceValue = p.ReplaceValue,
+
+
+                                               LaborValue = p.LaborValue
+                                           }).ToListAsync()
+            };
+
+        // ---------- Single-entry tables ----------
+        var singleEntryTables = new List<Func<int, Task<List<InspectRow>>>>
+            {
+                num => _context.TankersInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.BottomDischargeInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.DoorsInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.TwistlocksInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.StanchionsInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync(),
+
+                num => _context.FloorInspects
+                               .Where(p => p.WagonNumber == num)
+                               .OrderByDescending(p => p.Id)
+                               .Take(1)
+                               .Select(p => new InspectRow
+                               {
+                                   RefurbishValue = p.RefurbishValue,
+                                   MissingValue = p.MissingValue,
+                                   ReplaceValue = p.ReplaceValue,
+
+
+                                   LaborValue = p.LaborValue
+                               }).ToListAsync()
+            };
+
+        // ---------- Aggregate values ----------
+        foreach (var tableQuery in multiEntryTables.Concat(singleEntryTables))
+        {
+            var rows = await tableQuery(wagonNumber);
+
+            foreach (var r in rows)
+            {
+                if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
+                if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
+                if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
+                if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
+            }
+        }
+
+        // ---------- Totals ----------
+        string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+
+        decimal liftCost = 0;
+        decimal barrelCost = 0;
+
+        if (wagonInfo?.LiftLapsed == "Yes")
+            liftCost = 420982;
+        else if (wagonInfo?.LiftLapsed == "No")
+            liftCost = 0;
+
+        if (wagonInfo?.BarrelLapsed == "Yes")
+            barrelCost = 351893;
+        else if (wagonInfo?.BarrelLapsed == "No" || wagonInfo?.BarrelLapsed == "N/A")
+            barrelCost = 0;
+
+        decimal liftBarrelTotal = liftCost + barrelCost;
+
+        decimal marketValue = 0;
+
+        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
+        decimal assetValue = marketValue - repairTotal;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+        var dash = await _context.WagonDashboardUploadeds
+            .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+
+        if (dash == null)
+            return BadRequest("Wagon does not exist");
+
+        dash.RefurbishValue = refurbishTotal;
+        dash.MissingValue = missingTotal;
+        dash.ReplaceValue = replaceTotal;
+        dash.TotalLaborValue = laborTotal;
+        dash.AssetValue = totalAssetValue ?? "";
+        dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
+        dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
+        dash.TotalValue = rts ?? "";
+
+        _context.WagonDashboardUploadeds.Update(dash);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Wagon updated successfully." });
+    }
+
+    [HttpGet("checkWagonInputs/{wagonNumber}")]
+    public async Task<IActionResult> CheckWagonInputs(int wagonNumber)
+    {
+        bool exists = await _context.WagonInputs
+            .AnyAsync(e => e.WagonNumber == wagonNumber);
+
+        if (exists)
+        {
+            return Ok(new { message = "Yes" });
+        }
+
+        return Ok(new { message = "No" });
+    }
+    public class WagonStatusUpdateDto
+    {
+        public int WagonNumber { get; set; }
+    }
+
 
     [HttpPost("insertOldWagon")]
     public async Task<IActionResult> InsertOldWagon()
@@ -867,7 +1465,21 @@ public class DashboardController : ControllerBase
     {
         // ---------- Get User Name ----------
 
-        var oldLocoList = await _context.WagonDashboards
+        var oldLocoList = await _context.WagonDashboards.Where(c => c.City == "Not Captured")
+                                      .ToListAsync();
+        foreach (var loco in oldLocoList)
+        {
+            await UpdateWagonCity(loco, "N/A");
+        }
+        return Ok(new { success = true, message = "Wagon dashboard entry created" });
+    }
+
+    [HttpPost("insertOldWagonCityV1")]
+    public async Task<IActionResult> InsertOldWagonCityV1()
+    {
+        // ---------- Get User Name ----------
+
+        var oldLocoList = await _context.WagonDashboards.Where(c => c.City == "Not Captured")
                                       .ToListAsync();
         foreach (var loco in oldLocoList)
         {
@@ -5305,8 +5917,9 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                     }
                 }
             }
-            catch
+            catch(Exception Ex)
             {
+                
                 // Network failure → retry
             }
 
@@ -5317,6 +5930,54 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
 
         return "Not Captured";
     }
+
+    private async Task<string> GetCityFromCoordinatesAsyncOM(double latitude, double longitude)
+    {
+        var client = _httpClientFactory.CreateClient();
+
+        string url =
+            $"https://api.bigdatacloud.net/data/reverse-geocode-client" +
+            $"?latitude={latitude.ToString(CultureInfo.InvariantCulture)}" +
+            $"&longitude={longitude.ToString(CultureInfo.InvariantCulture)}" +
+            $"&localityLanguage=en";
+
+        const int maxRetries = 3;
+        int delayMs = 500;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                using var resp = await client.GetAsync(url);
+
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = await resp.Content.ReadAsStringAsync();
+                    var obj = JObject.Parse(json);
+
+                    string? city =
+                        obj["city"]?.ToString()
+                        ?? obj["locality"]?.ToString()
+                        ?? obj["principalSubdivision"]?.ToString()
+                        ?? obj["localityInfo"]?["administrative"]?
+                            .FirstOrDefault(a => a["adminLevel"]?.ToString() == "6")?["name"]?.ToString();
+
+                    return string.IsNullOrWhiteSpace(city) ? "Not Captured" : city;
+                }
+            }
+            catch
+            {
+                // network error → retry
+            }
+
+            await Task.Delay(delayMs);
+            delayMs *= 2;
+        }
+
+        return "Not Captured";
+    }
+
+
     private static bool IsImage(string path)
     {
         var ext = Path.GetExtension(path).ToLowerInvariant();
@@ -5411,6 +6072,15 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
         public string? MissingPhoto { get; set; }
         public string? ReplacePhoto { get; set; }
         public string? LaborValue { get; set; }
+    }
+    public class RecalculateRequest
+    {
+        public string WagonNumber { get; set; } = string.Empty;
+    }
+
+    public class RecalculateRequestUpload
+    {
+        public string WagonNumber { get; set; } = string.Empty;
     }
 
     [HttpGet("getAllLocoDashboard")]

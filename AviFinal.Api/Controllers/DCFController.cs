@@ -1,4 +1,4 @@
-﻿
+﻿using AviAppFinal.Server.Models;
 using AviFinal.Api.Models;
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -18,7 +18,6 @@ using System.Threading.Tasks;
 
 namespace AviAppFinal.Server.Controllers
 {
-
     [Route("api/[controller]")]
     [ApiController]
     public class DCFController : ControllerBase
@@ -569,29 +568,8 @@ namespace AviAppFinal.Server.Controllers
                             input.ScrappingCost = scvc.ToString("N2", new CultureInfo("en-ZA"));
                         }
 
-                        //PLEASE REMOVE (NEW)
-                        //if (loco.RefurbishmentCost == input.RefurbishmentCost)
-                        //{
-                        //    input.RefurbishmentCost = loco.RefurbishmentCost;
-                        //}
-                        //else
-                        //{
-                        //    decimal rfbc = ParseDecimalSafe(loco.RefurbishmentCost);
-                        //    input.RefurbishmentCost = rfbc.ToString("N2", new CultureInfo("en-ZA"));
-                        //}
-
                         input.LeaseTerm = loco.LeaseTerm;
 
-                        //PLEASE REMOVE (NEW)
-                        //if (loco.LeaseIncome == input.LeaseIncome)
-                        //{
-                        //    input.LeaseIncome = loco.LeaseIncome;
-                        //}
-                        //else
-                        //{
-                        //    decimal li = ParseDecimalSafe(loco.LeaseIncome);
-                        //    input.LeaseIncome = li.ToString("N2", new CultureInfo("en-ZA"));
-                        //}
 
                         if (loco.EscalationRate == input.EscalationRate)
                         {
@@ -672,8 +650,6 @@ namespace AviAppFinal.Server.Controllers
             try
             {
                 decimal scvc = ParseDecimalSafe(loco.ScrappingCost);
-                //decimal rfbc = ParseDecimalSafe(loco.RefurbishmentCost); //PLEASE REMOVE (NEW)
-                //decimal li = ParseDecimalSafe(loco.LeaseIncome); //PLEASE REMOVE (NEW)
                 decimal rsv = ParseDecimalSafe(loco.ResidualValue);
                 decimal opc = ParseDecimalSafe(loco.OperatingCosts);
                 decimal er = ParseDecimalSafe(loco.EscalationRate);
@@ -741,7 +717,6 @@ namespace AviAppFinal.Server.Controllers
             return Ok(locoInput);
         }
 
-        //PLEASE ADD (NEW)
         [HttpPost("insertUpdateAsset")]
         public async Task<IActionResult> InsertUpdateAsset([FromForm] AssetSet assetSet)
         {

@@ -349,7 +349,320 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-       
+        [HttpPost("RegenerateAndSaveQuotePdf")]
+        public async Task<IActionResult> RegenerateAndSaveQuotePdf([FromBody] QuotePdfRequestUpload request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.WagonNumber))
+                return BadRequest("Invalid request: WagonNumber is required.");
+
+            _context.Database.SetCommandTimeout(180);
+
+            if (!int.TryParse(request.WagonNumber, out int wagonNumber))
+                return BadRequest("Invalid WagonNumber format.");
+
+            string userId = request.UserId ?? "";
+
+            // Fetch related records (non-tracking reads where appropriate)
+            var assessor = string.IsNullOrWhiteSpace(userId) ? null :
+                await _context.LeaseCoUsers.AsNoTracking().FirstOrDefaultAsync(a => a.UserId == userId);
+
+            var master = await _context.MasterWagons.AsNoTracking().FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
+            var model = await _context.WagonInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.WagonNumber == wagonNumber);
+            var dash = await _context.WagonDashboardUploadeds.AsNoTracking().FirstOrDefaultAsync(p => p.WagonNumber == wagonNumber);
+
+            // Validate basic presence
+            if (model == null)
+                return BadRequest($"No WagonInfoCaptures record found for wagon {wagonNumber}.");
+
+            // Define each inspection table source and label
+            var inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+            {
+                { "Air Brake Inspection", await _context.AirBrakePartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Bottom Discharge Inspection", await _context.BottomDischargeInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Doors Inspection", await _context.DoorsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Floor Inspection", await _context.FloorInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Stanchions Inspection", await _context.StanchionsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Tankers Inspection", await _context.TankersInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Twistlocks Inspection", await _context.TwistlocksInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Vacuum Brake Inspection", await _context.VacBrakePartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
+            };
+
+            if (inspectionSources.All(s => !s.Value.Any()))
+                return NotFound("No parts found for this wagon number.");
+
+            string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            // Create sanitized filename (timestamp + guid to avoid collisions)
+            string safeGroup = SanitizeFileName(model?.WagonGroup ?? "Group");
+            string fileName = $"{wagonNumber}_{safeGroup}_Quote_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf";
+            string filePath = Path.Combine(folderPath, fileName);
+
+            try
+            {
+                // --- Generate PDF ---
+                using (var writer = new PdfWriter(filePath))
+                using (var pdf = new iText.Kernel.Pdf.PdfDocument(writer))
+                using (var document = new Document(pdf))
+                {
+                    var bold = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                    var regular = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+
+                    // --- Header section ---
+                    float[] columnWidths = { 150f, 350f };
+                    var topTable = new Table(UnitValue.CreatePointArray(columnWidths)).SetWidth(UnitValue.CreatePercentValue(100));
+
+                    var logoCell = new Cell().SetBorder(Border.NO_BORDER).SetVerticalAlignment(VerticalAlignment.TOP);
+                    string logo1Path = Path.Combine(_env.WebRootPath, "Images", "Logo1.png");
+                    string logo2Path = Path.Combine(_env.WebRootPath, "Images", "Logo2.png");
+
+                    if (System.IO.File.Exists(logo1Path))
+                    {
+                        var logo1Img = new Image(ImageDataFactory.Create(logo1Path)).ScaleToFit(100, 50);
+                        logoCell.Add(logo1Img);
+                    }
+                    if (System.IO.File.Exists(logo2Path))
+                    {
+                        logoCell.Add(new Paragraph("\n"));
+                        var logo2Img = new Image(ImageDataFactory.Create(logo2Path)).ScaleToFit(100, 50);
+                        logoCell.Add(logo2Img);
+                    }
+                    topTable.AddCell(logoCell);
+
+                    var infoCell = new Cell().SetBorder(Border.NO_BORDER).SetVerticalAlignment(VerticalAlignment.TOP)
+                        .SetHorizontalAlignment(HorizontalAlignment.RIGHT)
+                        .SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT);
+
+                    infoCell.Add(new Paragraph()
+                        .Add(new Text("Worldwide Rail and Mining Solutions SA (Pty) Ltd\n").SetFont(bold))
+                        .Add(new Text("52 8th Avenue, Edenvale Gauteng 1610\n"))
+                        .Add(new Text("Email: adminsa@wwms.co.za\n"))
+                        .Add(new Text("T: +27 11 453 2170\n"))
+                        .Add(new Text("Website: www.worldwideminingsolutions.co.za\n"))
+                        .Add(new Text("Reg. No.: 2019/544337/07\n"))
+                        .Add(new Text("Msomi Valuation Services (Pty) Ltd\n").SetFont(bold))
+                        .Add(new Text("4 Sheffield Road, Ferryvale, Nigel, 1491\n"))
+                        .Add(new Text("T: 011 814 2047\n"))
+                        .Add(new Text("VAT: 4400277721\n")));
+
+                    topTable.AddCell(infoCell);
+                    document.Add(topTable);
+
+                    document.Add(new LineSeparator(new SolidLine(1f)).SetMarginTop(10).SetMarginBottom(15));
+                    document.Add(new Paragraph($"Quote - Asset Code: {wagonNumber}").SetFont(bold).SetFontSize(14).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+                    document.Add(new Paragraph($"Asset Model/Group: {model?.WagonGroup ?? "N/A"}").SetFont(regular).SetFontSize(12).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER).SetMarginBottom(10));
+                    document.Add(new Paragraph($"Assessor: {assessor?.UserName ?? "N/A"}").SetFont(regular).SetFontSize(12).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER).SetMarginBottom(10));
+
+                    decimal grandTotalRefurbish = 0, grandTotalMissing = 0, grandTotalReplace = 0, grandTotalLabor = 0;
+
+                    // --- compute lift/barrel costs robustly ---
+                    decimal liftCost = 0m;
+                    decimal barrelCost = 0m;
+
+                    // Use case-insensitive checks and handle a few possible string values
+                    if (!string.IsNullOrWhiteSpace(model?.LiftLapsed))
+                    {
+                        var lift = model.LiftLapsed.Trim().ToLowerInvariant();
+                        if (lift == "Yes" || lift == "y" || lift == "true") liftCost = 420982m;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(model?.BarrelLapsed))
+                    {
+                        var barrel = model.BarrelLapsed.Trim().ToLowerInvariant();
+                        if (barrel == "Yes" || barrel == "y" || barrel == "true") barrelCost = 351893m;
+                    }
+
+                    decimal liftBarrelTotal = liftCost + barrelCost;
+
+                    document.Add(new Paragraph("Lift & Barrel Costs")
+                        .SetFont(bold)
+                        .SetFontSize(13)
+                        .SetMarginTop(15)
+                        .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                        .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+
+                    var liftBarrelTable = new Table(UnitValue.CreatePercentArray(3)).UseAllAvailableWidth();
+
+                    string[] liftBarrelHeaders = { "Description", "Lapsed", "Value (ZAR)" };
+                    foreach (var header in liftBarrelHeaders)
+                        liftBarrelTable.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
+
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph("Lift Inspection").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(model?.LiftLapsed ?? "N/A").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(liftCost != 0m ? $"R{liftCost:F2}" : "-").SetFont(regular)));
+
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph("Barrel Inspection").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(model?.BarrelLapsed ?? "N/A").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(barrelCost != 0m ? $"R{barrelCost:F2}" : "-").SetFont(regular)));
+
+                    liftBarrelTable.AddCell(new Cell(1, 2)
+                        .Add(new Paragraph("Subtotal").SetFont(bold))
+                        .SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT)
+                        .SetBackgroundColor(ColorConstants.LIGHT_GRAY));
+
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph($"R{liftBarrelTotal:F2}").SetFont(bold)));
+
+                    document.Add(liftBarrelTable);
+
+                    // --- Inspection Tables ---
+                    foreach (var group in inspectionSources)
+                    {
+                        var parts = group.Value;
+                        if (!parts.Any()) continue;
+
+                        var partsWithNumbers = parts.Select(p =>
+                        {
+                            decimal refVal = 0, missVal = 0, replVal = 0, labVal = 0;
+
+                            if (p.RefurbishValue != null && !string.IsNullOrWhiteSpace(p.RefurbishValue.ToString()))
+                                decimal.TryParse(p.RefurbishValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out refVal);
+
+                            if (p.MissingValue != null && !string.IsNullOrWhiteSpace(p.MissingValue.ToString()))
+                                decimal.TryParse(p.MissingValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out missVal);
+
+                            if (p.ReplaceValue != null && !string.IsNullOrWhiteSpace(p.ReplaceValue.ToString()))
+                                decimal.TryParse(p.ReplaceValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out replVal);
+
+                            if (p.LaborValue != null && !string.IsNullOrWhiteSpace(p.LaborValue.ToString()))
+                                decimal.TryParse(p.LaborValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out labVal);
+
+                            return new
+                            {
+                                p.FormID,
+                                p.PartDescr,
+                                RefurbishValue = refVal,
+                                MissingValue = missVal,
+                                ReplaceValue = replVal,
+                                LaborValue = labVal
+                            };
+                        }).ToList();
+
+                        decimal totalRefurbish = partsWithNumbers.Sum(p => p.RefurbishValue);
+                        decimal totalMissing = partsWithNumbers.Sum(p => p.MissingValue);
+                        decimal totalReplace = partsWithNumbers.Sum(p => p.ReplaceValue);
+                        decimal totalLabor = partsWithNumbers.Sum(p => p.LaborValue);
+
+                        grandTotalRefurbish += totalRefurbish;
+                        grandTotalMissing += totalMissing;
+                        grandTotalReplace += totalReplace;
+                        grandTotalLabor += totalLabor;
+
+                        document.Add(new Paragraph(group.Key)
+                            .SetFont(bold)
+                            .SetFontSize(13)
+                            .SetMarginTop(15)
+                            .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                            .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+
+                        var table = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth();
+                        string[] headers = { "No.", "Form ID", "Part Description", "Refurbish Value", "Missing Value", "Replace Value", "Labor Value" };
+                        foreach (var header in headers)
+                            table.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
+
+                        int index = 1;
+                        foreach (var p in partsWithNumbers)
+                        {
+                            table.AddCell(new Cell().Add(new Paragraph(index.ToString()).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.FormID.ToString()).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishValue != 0 ? $"R{p.RefurbishValue:F2}" : "-").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.MissingValue != 0 ? $"R{p.MissingValue:F2}" : "-").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceValue != 0 ? $"R{p.ReplaceValue:F2}" : "-").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.LaborValue != 0 ? $"R{p.LaborValue:F2}" : "-").SetFont(regular)));
+                            index++;
+                        }
+
+                        table.AddCell(new Cell(1, 3)
+                            .Add(new Paragraph("Subtotal").SetFont(bold))
+                            .SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT)
+                            .SetBackgroundColor(ColorConstants.LIGHT_GRAY));
+
+                        table.AddCell(new Cell().Add(new Paragraph($"R{totalRefurbish:F2}").SetFont(bold)));
+                        table.AddCell(new Cell().Add(new Paragraph($"R{totalMissing:F2}").SetFont(bold)));
+                        table.AddCell(new Cell().Add(new Paragraph($"R{totalReplace:F2}").SetFont(bold)));
+                        table.AddCell(new Cell().Add(new Paragraph($"R{totalLabor:F2}").SetFont(bold)));
+
+                        document.Add(table);
+                    }
+
+                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor + liftBarrelTotal;
+                    decimal assetValue = marketValue - rts;
+
+                    decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
+
+                    // --- Final Grand Totals ---
+                    document.Add(new Paragraph("\nGrand Totals").SetFont(bold).SetFontSize(13).SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT));
+
+                    var totalsTable = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth();
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Refurbish Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Missing Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Replace Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Lift & Barrel Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Labor Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Asset Value").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Overall Total").SetFont(bold)));
+
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalRefurbish:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalMissing:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalReplace:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{liftBarrelTotal:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalLabor:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{assetValue:F2}").SetFont(regular)));
+                    totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotal:F2}").SetFont(bold)));
+
+                    document.Add(totalsTable);
+
+                    // --- Footer Image ---
+                    string footerPath = Path.Combine(_env.WebRootPath, "Images", "Footer1.png");
+                    if (System.IO.File.Exists(footerPath))
+                    {
+                        var pageSize = pdf.GetDefaultPageSize();
+                        float pageWidth = pageSize.GetWidth();
+
+                        var footerImg = new Image(ImageDataFactory.Create(footerPath));
+                        float scaleX = pageWidth / footerImg.GetImageWidth();
+                        footerImg.ScaleToFit(pageWidth, footerImg.GetImageHeight() * scaleX);
+                        footerImg.SetFixedPosition(0, 0);
+                        document.Add(footerImg);
+                    }
+
+                    document.Close();
+                    pdf.Close();
+                }
+
+                var dashboard = await _context.WagonDashboardUploadeds.FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+                string relativePath = Path.Combine("InspectionPdf", "Wagons", "QuotePdf", fileName).Replace("\\", "/");
+
+                if (dashboard != null)
+                {
+                    dashboard.AssessmentQuote = relativePath;
+                    _context.WagonDashboardUploadeds.Update(dashboard);
+                }
+                else
+                {
+                    return BadRequest("Dashboard row missing for wagon.");
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "PDF generated successfully", path = filePath });
+            }
+            catch (Exception ex)
+            {
+                // Remove the partial file if it was created
+                try
+                {
+                    if (System.IO.File.Exists(filePath))
+                        System.IO.File.Delete(filePath);
+                }
+                catch { /* ignore cleanup errors */ }
+
+                return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
+            }
+        }
         private void AddLogoCell(Table table, string imagePath)
         {
             var cell = new Cell().SetBorder(Border.NO_BORDER);
@@ -361,7 +674,6 @@ namespace AviAppFinal.Server.Controllers
             table.AddCell(cell);
         }
 
-        //PLEASE ADJUST ENTIRE METHOD
         [HttpPost("GenerateAndSaveSowPdf")]
         public async Task<IActionResult> GenerateAndSaveSowPdf([FromBody] QuotePdfRequest request)
         {
@@ -577,6 +889,245 @@ namespace AviAppFinal.Server.Controllers
                 {
                     dashboard.AssessmentSow = relativePath;
                     _context.WagonDashboards.Update(dashboard);
+                }
+                else
+                {
+                    return BadRequest("Dashboard row missing for wagon.");
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "PDF generated successfully", path = filePath });
+            }
+            catch (Exception ex)
+            {
+                // Remove the partial file if it was created
+                try
+                {
+                    if (System.IO.File.Exists(filePath))
+                        System.IO.File.Delete(filePath);
+                }
+                catch { /* ignore cleanup errors */ }
+
+                return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
+            }
+        }
+
+        [HttpPost("RegenerateAndSaveSowPdf")]
+        public async Task<IActionResult> RegenerateAndSaveSowPdf([FromBody] QuotePdfRequestUpload request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.WagonNumber))
+                return BadRequest("Invalid request: WagonNumber is required.");
+
+            _context.Database.SetCommandTimeout(180);
+
+            if (!int.TryParse(request.WagonNumber, out int wagonNumber))
+                return BadRequest("Invalid WagonNumber format.");
+
+            string userId = request.UserId ?? "";
+
+            // Fetch related records (non-tracking reads where appropriate)
+            var assessor = string.IsNullOrWhiteSpace(userId) ? null :
+                await _context.LeaseCoUsers.AsNoTracking().FirstOrDefaultAsync(a => a.UserId == userId);
+
+            var model = await _context.WagonInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.WagonNumber == wagonNumber);
+            var dash = await _context.WagonDashboardUploadeds.AsNoTracking().FirstOrDefaultAsync(p => p.WagonNumber == wagonNumber);
+
+            // Validate basic presence
+            if (model == null)
+                return BadRequest($"No WagonInfoCaptures record found for wagon {wagonNumber}.");
+
+            // Define each inspection table source and label
+            var inspectionSources = new Dictionary<string, IEnumerable<dynamic>>
+            {
+                { "Air Brake Inspection", await _context.AirBrakePartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Bottom Discharge Inspection", await _context.BottomDischargeInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Doors Inspection", await _context.DoorsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Floor Inspection", await _context.FloorInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Stanchions Inspection", await _context.StanchionsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Tankers Inspection", await _context.TankersInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Twistlocks Inspection", await _context.TwistlocksInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Vacuum Brake Inspection", await _context.VacBrakePartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() },
+                { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
+            };
+
+            if (inspectionSources.All(s => !s.Value.Any()))
+                return NotFound("No parts found for this wagon number.");
+
+            string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "SowPdf");
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            // Create sanitized filename (timestamp + guid to avoid collisions)
+            string safeGroup = SanitizeFileName(model?.WagonGroup ?? "Group");
+            string fileName = $"{wagonNumber}_{safeGroup}_Sow_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf";
+            string filePath = Path.Combine(folderPath, fileName);
+
+            try
+            {
+                // --- Generate PDF ---
+                using (var writer = new PdfWriter(filePath))
+                using (var pdf = new iText.Kernel.Pdf.PdfDocument(writer))
+                using (var document = new Document(pdf))
+                {
+                    var bold = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                    var regular = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+
+                    // --- Header section ---
+                    float[] columnWidths = { 150f, 350f };
+                    var topTable = new Table(UnitValue.CreatePointArray(columnWidths)).SetWidth(UnitValue.CreatePercentValue(100));
+
+                    var logoCell = new Cell().SetBorder(Border.NO_BORDER).SetVerticalAlignment(VerticalAlignment.TOP);
+                    string logo1Path = Path.Combine(_env.WebRootPath, "Images", "Logo1.png");
+                    string logo2Path = Path.Combine(_env.WebRootPath, "Images", "Logo2.png");
+
+                    if (System.IO.File.Exists(logo1Path))
+                    {
+                        var logo1Img = new Image(ImageDataFactory.Create(logo1Path)).ScaleToFit(100, 50);
+                        logoCell.Add(logo1Img);
+                    }
+                    if (System.IO.File.Exists(logo2Path))
+                    {
+                        logoCell.Add(new Paragraph("\n"));
+                        var logo2Img = new Image(ImageDataFactory.Create(logo2Path)).ScaleToFit(100, 50);
+                        logoCell.Add(logo2Img);
+                    }
+                    topTable.AddCell(logoCell);
+
+                    var infoCell = new Cell().SetBorder(Border.NO_BORDER).SetVerticalAlignment(VerticalAlignment.TOP)
+                        .SetHorizontalAlignment(HorizontalAlignment.RIGHT)
+                        .SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT);
+
+                    infoCell.Add(new Paragraph()
+                        .Add(new Text("Worldwide Rail and Mining Solutions SA (Pty) Ltd\n").SetFont(bold))
+                        .Add(new Text("52 8th Avenue, Edenvale Gauteng 1610\n"))
+                        .Add(new Text("Email: adminsa@wwms.co.za\n"))
+                        .Add(new Text("T: +27 11 453 2170\n"))
+                        .Add(new Text("Website: www.worldwideminingsolutions.co.za\n"))
+                        .Add(new Text("Reg. No.: 2019/544337/07\n"))
+                        .Add(new Text("Msomi Valuation Services (Pty) Ltd\n").SetFont(bold))
+                        .Add(new Text("4 Sheffield Road, Ferryvale, Nigel, 1491\n"))
+                        .Add(new Text("T: 011 814 2047\n"))
+                        .Add(new Text("VAT: 4400277721\n")));
+
+                    topTable.AddCell(infoCell);
+                    document.Add(topTable);
+
+                    document.Add(new LineSeparator(new SolidLine(1f)).SetMarginTop(10).SetMarginBottom(15));
+                    document.Add(new Paragraph($"Quote - Asset Code: {wagonNumber}").SetFont(bold).SetFontSize(14).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+                    document.Add(new Paragraph($"Asset Model/Group: {model?.WagonGroup ?? "N/A"}").SetFont(regular).SetFontSize(12).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER).SetMarginBottom(10));
+                    document.Add(new Paragraph($"Assessor: {assessor?.UserName ?? "N/A"}").SetFont(regular).SetFontSize(12).SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER).SetMarginBottom(10));
+
+                    document.Add(new Paragraph("Lift & Barrel")
+                        .SetFont(bold)
+                        .SetFontSize(13)
+                        .SetMarginTop(15)
+                        .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                        .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+
+                    var liftBarrelTable = new Table(UnitValue.CreatePercentArray(2)).UseAllAvailableWidth();
+
+                    string[] liftBarrelHeaders = { "Description", "Lapsed" };
+                    foreach (var header in liftBarrelHeaders)
+                        liftBarrelTable.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
+
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph("Lift Lapsed").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(model?.LiftLapsed ?? "N/A").SetFont(regular)));
+
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph("Barrel Lasped").SetFont(regular)));
+                    liftBarrelTable.AddCell(new Cell().Add(new Paragraph(model?.BarrelLapsed ?? "N/A").SetFont(regular))); ;
+
+                    document.Add(liftBarrelTable);
+
+                    // --- Inspection Tables ---
+                    foreach (var group in inspectionSources)
+                    {
+                        var parts = group.Value;
+                        if (!parts.Any()) continue;
+
+                        //PLEASE ADD
+                        string NormalizeCheck(object? obj)
+                        {
+                            if (obj == null) return "-";
+                            string s = obj.ToString()?.Trim() ?? "";
+                            if (string.IsNullOrWhiteSpace(s)) return "-";
+                            if (s.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                return "Yes";
+                            if (s.Equals("no", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("n", StringComparison.OrdinalIgnoreCase) ||
+                                s.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                return "-";
+                            // If DB contains something unexpected, show it trimmed (you can change to "-" if you prefer)
+                            return s;
+                        }
+
+                        // map parts to trimmed + normalized fields
+                        var partsWithNumbers = parts.Select(p => new
+                        {
+                            FormId = p.FormId,
+                            PartDescr = p.PartDescr,
+                            GoodCheck = NormalizeCheck(p.GoodCheck),
+                            RefurbishCheck = NormalizeCheck(p.RefurbishCheck),
+                            MissingCheck = NormalizeCheck(p.MissingCheck),
+                            ReplaceCheck = NormalizeCheck(p.ReplaceCheck)
+                        }).ToList();
+
+                        document.Add(new Paragraph(group.Key)
+                            .SetFont(bold)
+                            .SetFontSize(13)
+                            .SetMarginTop(15)
+                            .SetBackgroundColor(ColorConstants.LIGHT_GRAY)
+                            .SetTextAlignment(iText.Layout.Properties.TextAlignment.CENTER));
+
+                        var table = new Table(UnitValue.CreatePercentArray(7)).UseAllAvailableWidth();
+                        string[] headers = { "No.", "Form ID", "Part Description", "Good", "Refurbish", "Missing", "Damage" }; //PLEASE ADJUST (NEW)
+                        foreach (var header in headers)
+                            table.AddHeaderCell(new Cell().Add(new Paragraph(header).SetFont(bold).SetBackgroundColor(ColorConstants.LIGHT_GRAY)));
+
+                        int index = 1;
+                        foreach (var p in partsWithNumbers)
+                        {
+                            table.AddCell(new Cell().Add(new Paragraph(index.ToString()).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.FormId?.ToString() ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.PartDescr ?? "").SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.GoodCheck).SetFont(regular)));        // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.RefurbishCheck).SetFont(regular)));   // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.MissingCheck).SetFont(regular)));     // shows Yes or -
+                            table.AddCell(new Cell().Add(new Paragraph(p.ReplaceCheck).SetFont(regular)));     // shows Yes or -
+                            index++;
+                        }
+
+                        document.Add(table);
+                    }
+
+                    // --- Footer Image ---
+                    string footerPath = Path.Combine(_env.WebRootPath, "Images", "Footer1.png");
+                    if (System.IO.File.Exists(footerPath))
+                    {
+                        var pageSize = pdf.GetDefaultPageSize();
+                        float pageWidth = pageSize.GetWidth();
+
+                        var footerImg = new Image(ImageDataFactory.Create(footerPath));
+                        float scaleX = pageWidth / footerImg.GetImageWidth();
+                        footerImg.ScaleToFit(pageWidth, footerImg.GetImageHeight() * scaleX);
+                        footerImg.SetFixedPosition(0, 0).SetMarginTop(15);
+                        document.Add(footerImg);
+                    }
+
+                    document.Close();
+                    pdf.Close();
+                }
+
+                //PLEASE ADJUST
+                var dashboard = await _context.WagonDashboardUploadeds.FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+                string relativePath = Path.Combine("InspectionPdf", "Wagons", "SowPdf", fileName).Replace("\\", "/");
+
+                if (dashboard != null)
+                {
+                    dashboard.AssessmentSow = relativePath;
+                    _context.WagonDashboardUploadeds.Update(dashboard);
                 }
                 else
                 {
@@ -1501,6 +2052,11 @@ namespace AviAppFinal.Server.Controllers
         }
     }
     public class QuotePdfRequest
+    {
+        public string WagonNumber { get; set; } = string.Empty;
+        public string UserId { get; set; } = "";
+    }
+    public class QuotePdfRequestUpload
     {
         public string WagonNumber { get; set; } = string.Empty;
         public string UserId { get; set; } = "";
