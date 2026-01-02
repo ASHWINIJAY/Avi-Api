@@ -858,12 +858,14 @@ namespace AviAppFinal.Server.Controllers
             var master = await _context.MasterLocos.AsNoTracking().FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
             var model = await _context.LocoInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
             var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => locoNumber == locoNumber);
+            int? score = dash?.ConditionScore;
 
+            var condition = await _context.ConditionRatings.AsNoTracking().FirstOrDefaultAsync(c => c.Score == score);
             // Validate basic presence
             if (model == null)
                 return BadRequest($"No LocoInfoCaptures record found for loco {locoNumber}.");
             var LocoNumber = locoNumber;
-
+            var input = await _context.LocoInputs.AsNoTracking().FirstOrDefaultAsync(i => i.LocoNumber == locoNumber);
             // Ensure directory exists
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Locos", "CertPdf");
             if (!Directory.Exists(folderPath))
@@ -986,7 +988,7 @@ namespace AviAppFinal.Server.Controllers
                     //PLEASE ADD
                     // market value (from master)
                     decimal marketValue = ParseDecimalSafe(master?.MarketValue);
-                    decimal asset = marketValue - repairValue;
+                    decimal asset = Convert.ToDecimal(dash.AssetValue??"0");
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
 
                     //PLEASE ADD
@@ -1012,6 +1014,91 @@ namespace AviAppFinal.Server.Controllers
                         if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
                             city = resolved;
                     }
+                    double scrapCost = Convert.ToDouble(input.ScrappingCost);
+                    double scrapValue = Convert.ToDouble(input.ScrapValue);
+                    double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
+                    double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
+                    int leaseTerm = Convert.ToInt32(input.LeaseTerm);
+                    double leaseIncome = Convert.ToDouble(input.LeaseIncome);
+                    double escalationRate = Convert.ToDouble(input.EscalationRate) / 100;
+                    int wearTear = Convert.ToInt32(input.WearTearPeriod);
+                    double operatingCosts = Convert.ToDouble(input.OperatingCosts);
+                    double operatingEscalation = Convert.ToDouble(input.OperatingCostsEscalation) / 100;
+                    double residualValue = Convert.ToDouble(input.ResidualValue);
+                    double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
+                    double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
+                    double netBook = Convert.ToDouble(input.NetBookValue);
+
+                    int maxPeriods = 20;
+                    int minTerm = Math.Min(leaseTerm, wearTear);
+
+                    double[] J = new double[maxPeriods + 1];
+                    double[] N = new double[maxPeriods + 1];
+
+                    double totalScrapValue = scrapValue + scrapCost;
+
+                    double J2 = (totalScrapValue + refurbishCost) * -1;
+                    double N2 = -totalScrapValue * (1 - corporateTax);
+
+                    J[0] = J2;
+                    N[0] = N2;
+
+                    for (int t = 1; t <= maxPeriods; t++)
+                    {
+                        // B
+                        double lease = (t <= leaseTerm)
+                            ? leaseIncome * Math.Pow(1 + escalationRate, t - 1)
+                            : 0;
+
+                        // D
+                        double refurbish = (t <= minTerm)
+                            ? refurbishCost / minTerm
+                            : 0;
+
+                        // E
+                        double operating = (t <= leaseTerm)
+                            ? operatingCosts * Math.Pow(1 + operatingEscalation, t - 1)
+                            : 0;
+
+                        // G
+                        double residual = (t == leaseTerm)
+                            ? residualValue
+                            : 0;
+
+                        // H
+                        double cashFlow = lease - refurbish - operating + residual;
+
+                        // I / M
+                        double discountPre = 1 / Math.Pow(1 + waccPre, t);
+                        double discountPost = 1 / Math.Pow(1 + waccPost, t);
+
+                        // J
+                        J[t] = cashFlow * discountPre;
+
+                        // N
+                        double tax = cashFlow * corporateTax;
+                        double postTaxCash = cashFlow - tax;
+                        N[t] = postTaxCash * discountPost;
+                    }
+
+                    double J23 = J.Sum();
+                    double N23 = N.Sum();
+
+                    double O23 = (J23 >= 0)
+                        ? netBook + refurbishCost
+                        : 0;
+
+                    double P23 = (N23 >= 0)
+                        ? netBook + refurbishCost
+                        : 0;
+
+                    decimal scrapPre = ParseDecimalSafe(J23);
+                    decimal refurPre = ParseDecimalSafe(N23);
+                    decimal transPre = ParseDecimalSafe(O23);
+
+                    string preScrap = "R" + scrapPre.ToString("N2", new CultureInfo("en-ZA"));
+                    string preRefur = "R" + refurPre.ToString("N2", new CultureInfo("en-ZA"));
+                    string preTrans = "R" + transPre.ToString("N2", new CultureInfo("en-ZA"));
 
                     AddRow("Loco Model", model?.LocoModel ?? "N/A");
                     AddRow("Loco Class", model?.LocoClass ?? "N/A");
@@ -1024,9 +1111,14 @@ namespace AviAppFinal.Server.Controllers
                     AddRow("Country", "South Africa");
                     AddRow("Net Book Value", netBookValue); //PLEASE ADJUST
                     AddRow("Return To Service Cost", totalRepair); //PLEASE ADJUST
-                    AddRow("Asset Value", assetValue); //PLEASE ADJUST
+                    AddRow("Asset Value", assetValue);
+                    AddRow("Score", score.ToString() ?? "0");
+                    AddRow("Condition", condition?.Condition ?? "N/A");
+                    AddRow("Operational Status", condition?.OperationalStatus ?? "N/A");
                     AddRow("Inspection Date", DateTime.Now.ToString("yyyy-MM-dd"));
-
+                    AddRow("SCRAP: Present Value (Pre-Tax)", preScrap ?? "0.00");
+                    AddRow("REFURBISH: Present Value (Pre-Tax)", preRefur ?? "0.00");
+                    AddRow("Transfer Value (Pre-Tax)", preTrans ?? "0.00");
                     document.Add(table);
 
                     // -------------------- VALUATION PARAGRAPHS --------------------

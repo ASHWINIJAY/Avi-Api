@@ -1,6 +1,5 @@
 ﻿using AviFinal.Api.DTO;
 using AviFinal.Api.Models;
-using AviFinal.Api.Models;
 using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Presentation;
 using Microsoft.AspNetCore.Mvc;
@@ -35,7 +34,18 @@ public class DashboardController : ControllerBase
         public string? AssessmentCert { get; set; }
         public string? AssessmentSow { get; set; }
     }
+    public class WagonDashboardQueryDto
+    {
+        public int First { get; set; }
+        public int Rows { get; set; }
+        public string? GlobalFilter { get; set; }
+    }
 
+    public class PagedResult<T>
+    {
+        public int TotalRecords { get; set; }
+        public List<T>? Data { get; set; }
+    }
     public class UploadLocoItem
     {
         public int LocoNumber { get; set; }
@@ -605,7 +615,80 @@ public class DashboardController : ControllerBase
 
         return Ok(new { success = true, zipPath, zipName });
     }
+    [HttpPost("getUploadedWagonsPaged")]
+    public async Task<IActionResult> GetUploadedWagonsPaged([FromBody] WagonDashboardQueryDto query)
+    {
+        _context.Database.SetCommandTimeout(180);
 
+        IQueryable<WagonDashboardUploaded> q = _context.WagonDashboardUploadeds
+            .Where(x => x.WagonStatus == "Uploaded");
+
+        // Global search
+        if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
+        {
+            string filter = query.GlobalFilter.ToLower();
+
+            q = q.Where(x =>
+                x.WagonNumber.ToString().Contains(filter) ||
+                x.WagonGroup.ToLower().Contains(filter) ||
+                x.InspectorName.ToLower().Contains(filter)
+            );
+        }
+
+        int totalRecords = await q.CountAsync();
+
+        List<WagonDashboardUploaded> data = await q
+            .OrderByDescending(x => x.UploadDate)
+            .Skip(query.First)
+            .Take(query.Rows)
+            .ToListAsync();
+
+        return Ok(new PagedResult<WagonDashboardUploaded>
+        {
+            TotalRecords = totalRecords,
+            Data = data
+        });
+    }
+    [HttpPost("getUploadedLocosPaged")]
+    public async Task<IActionResult> GetUploadedLocosPaged([FromBody] WagonDashboardQueryDto query)
+    {
+        _context.Database.SetCommandTimeout(180);
+
+        IQueryable<LocoDashboard> q = _context.LocoDashboards
+            .Where(x => x.UploadStatus == "Uploaded");
+
+        // Global search
+        if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
+        {
+            string filter = query.GlobalFilter.ToLower();
+
+            q = q.Where(x =>
+     (x.LocoNumber != null &&
+      x.LocoNumber.ToString().Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+
+     (!string.IsNullOrEmpty(x.LocoClass) &&
+      x.LocoClass.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+
+     (!string.IsNullOrEmpty(x.InspectorName) &&
+      x.InspectorName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+ );
+
+        }
+
+        int totalRecords = await q.CountAsync();
+
+        List<LocoDashboard> data = await q
+            .OrderByDescending(x => x.UploadDate)
+            .Skip(query.First)
+            .Take(query.Rows)
+            .ToListAsync();
+
+        return Ok(new PagedResult<LocoDashboard>
+        {
+            TotalRecords = totalRecords,
+            Data = data
+        });
+    }
     [HttpGet("getUploadedWagons")]
     public async Task<IActionResult> GetUploadedWagons()
     {
@@ -1176,6 +1259,1496 @@ public class DashboardController : ControllerBase
 
         return Ok(new { message = "Wagon updated successfully." });
     }
+
+    [HttpPost("recalculateLocoValues")]
+    public async Task<IActionResult> recalculateLocoValues(RecalculateRequest request)
+    {
+        int locoNumber = Convert.ToInt32(request.WagonNumber);
+        var master = await _context.MasterLocos
+                                      .AsNoTracking()
+                                      .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
+       
+        var locoInfo = await _context.LocoInfoCaptures
+                                      .Where(w => w.LocoNumber == locoNumber)
+                                      .OrderByDescending(w => w.Id)
+                                      .Select(w => new
+                                      {
+                                          w.LocoClass,
+                                          w.LocoModel,
+                                          w.BodyDamage,
+                                          w.BodyPhoto1,
+                                          w.BodyPhoto2,
+                                          w.BodyPhoto3,
+                                          w.LocoPhoto,
+                                          w.CreatedDate,
+                                          w.GpsLatitude,
+                                          w.GpsLongitude,
+                                          w.NetBookValue,
+                                      })
+                                      .FirstOrDefaultAsync();
+
+        if (locoInfo == null)
+            return NotFound(new { success = false, message = $"No LocoInfoCaptures record found for loco {locoNumber}" });
+       
+        string bodyDamage = locoInfo.BodyDamage ?? "No";
+        List<string> bodyPhotosList = new();
+        if (string.Equals(bodyDamage, "Yes", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(locoInfo.BodyPhoto1)) bodyPhotosList.Add(locoInfo.BodyPhoto1);
+            if (!string.IsNullOrWhiteSpace(locoInfo.BodyPhoto2)) bodyPhotosList.Add(locoInfo.BodyPhoto2);
+            if (!string.IsNullOrWhiteSpace(locoInfo.BodyPhoto3)) bodyPhotosList.Add(locoInfo.BodyPhoto3);
+            if (!bodyPhotosList.Any()) bodyPhotosList.Add("No Photos");
+        }
+        else
+        {
+            bodyPhotosList.Add("No Photos");
+        }
+        string bodyPhotosSerialized = JsonSerializer.Serialize(bodyPhotosList);
+
+        var refurbishValues = new List<decimal>();
+        var missingValues = new List<decimal>();
+        var replaceValues = new List<decimal>();
+        var laborValues = new List<decimal>();
+        var missingPhotosAll = new List<string>();
+        var replacePhotosAll = new List<string>();
+
+        static bool TryParseDecimal(string? s, out decimal value)
+        {
+            value = 0m;
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
+                || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
+        }
+
+        var multiEntryTables = new List<Func<int, Task<List<InspectLocoRow>>>>();
+
+        if (locoInfo.LocoModel == "E18")
+        {
+            multiEntryTables.Add(async num => await _context.E18bdinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18beinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18ccinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18crinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18ctinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18eeinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18ehinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18esinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18flinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18hcinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18hvinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18lvinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18mainspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18mbinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.E18rfinspects
+                .Where(p => p.LocoNumber == num)
+                .OrderByDescending(p => p.Id)
+                .Select(p => new InspectLocoRow
+                {
+                    RefurbishValue = p.RefurbishValue,
+                    MissingValue = p.MissingValue,
+                    ReplaceValue = p.ReplaceValue,
+                    MissingPhoto = p.MissingPhoto,
+                    ReplacePhoto = p.ReplacePhoto,
+                    LaborValue = p.LaborValue
+                }).ToListAsync());
+        }
+        else if (locoInfo.LocoModel == "GE34")
+        {
+            multiEntryTables.Add(async num => await _context.Ge34acinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34bcinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34bdinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34bsinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34ecinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34edinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34odinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34sninspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge34rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+        }
+        else if (locoInfo.LocoModel == "GE35")
+        {
+            multiEntryTables.Add(async num => await _context.Ge35bcinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35bdinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35bsinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35edinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35ecinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35mginspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35odinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35sninspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge35rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+        }
+        else if (locoInfo.LocoModel == "GE36")
+        {
+            multiEntryTables.Add(async num => await _context.Ge36deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36bdinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36cainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36ecinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36edinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36mginspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36sninspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Ge36rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+        }
+        else if (locoInfo.LocoModel == "GM34")
+        {
+            multiEntryTables.Add(async num => await _context.Gm34deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34bdinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34blinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34bsinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34cainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34cbinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34edinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34elinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34lminspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34mpinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34sninspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34trinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm34rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+        }
+        else if (locoInfo.LocoModel == "GM35")
+        {
+            multiEntryTables.Add(async num => await _context.Gm35deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35blinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35bsinspects
+   .Where(p => p.LocoNumber == num)
+   .OrderByDescending(p => p.Id)
+   .Select(p => new InspectLocoRow
+   {
+       RefurbishValue = p.RefurbishValue,
+       MissingValue = p.MissingValue,
+       ReplaceValue = p.ReplaceValue,
+       MissingPhoto = p.MissingPhoto,
+       ReplacePhoto = p.ReplacePhoto,
+       LaborValue = p.LaborValue
+   }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35cainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35cbinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35edinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35elinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35lminspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35mpinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35sninspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35trinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35wainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm35rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+
+        }
+        else if (locoInfo.LocoModel == "GM36")
+        {
+            multiEntryTables.Add(async num => await _context.Gm36wainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36flinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36sninspects
+   .Where(p => p.LocoNumber == num)
+   .OrderByDescending(p => p.Id)
+   .Select(p => new InspectLocoRow
+   {
+       RefurbishValue = p.RefurbishValue,
+       MissingValue = p.MissingValue,
+       ReplaceValue = p.ReplaceValue,
+       MissingPhoto = p.MissingPhoto,
+       ReplacePhoto = p.ReplacePhoto,
+       LaborValue = p.LaborValue
+   }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36bvinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36clinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36ecinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36cbinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36bsinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36lminspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36lcinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36trinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36bpinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36cainspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36ecinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+            multiEntryTables.Add(async num => await _context.Gm36cfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+            multiEntryTables.Add(async num => await _context.Gm36deinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+            multiEntryTables.Add(async num => await _context.Gm36rfinspects
+               .Where(p => p.LocoNumber == num)
+               .OrderByDescending(p => p.Id)
+               .Select(p => new InspectLocoRow
+               {
+                   RefurbishValue = p.RefurbishValue,
+                   MissingValue = p.MissingValue,
+                   ReplaceValue = p.ReplaceValue,
+                   MissingPhoto = p.MissingPhoto,
+                   ReplacePhoto = p.ReplacePhoto,
+                   LaborValue = p.LaborValue
+               }).ToListAsync());
+
+
+        }
+        //Please add tables for LocoModel GM36
+
+        foreach (var tableQuery in multiEntryTables)
+        {
+            var rows = await tableQuery(locoNumber);
+
+            foreach (var r in rows)
+            {
+                if (TryParseDecimal(r.RefurbishValue, out var rv) && rv != 0m) refurbishValues.Add(rv);
+                if (TryParseDecimal(r.MissingValue, out var mv) && mv != 0m) missingValues.Add(mv);
+                if (TryParseDecimal(r.ReplaceValue, out var xv) && xv != 0m) replaceValues.Add(xv);
+                if (TryParseDecimal(r.LaborValue, out var lv) && lv != 0m) laborValues.Add(lv);
+                if (!string.IsNullOrWhiteSpace(r.MissingPhoto) && r.MissingPhoto != "No Photo") missingPhotosAll.Add(r.MissingPhoto.Trim());
+                if (!string.IsNullOrWhiteSpace(r.ReplacePhoto) && r.ReplacePhoto != "No Photo") replacePhotosAll.Add(r.ReplacePhoto.Trim());
+            }
+        }
+
+        missingPhotosAll = missingPhotosAll.Distinct().ToList();
+        replacePhotosAll = replacePhotosAll.Distinct().ToList();
+
+        // ---------- Totals ----------
+        string refurbishTotal = refurbishValues.Any() ? refurbishValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string missingTotal = missingValues.Any() ? missingValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string replaceTotal = replaceValues.Any() ? replaceValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+        string laborTotal = laborValues.Any() ? laborValues.Sum().ToString("0.00", CultureInfo.InvariantCulture) : "0.00";
+
+        // ---------- Photos Serialization ----------
+        string missingPhotosSerialized = missingPhotosAll.Any()
+            ? JsonSerializer.Serialize(missingPhotosAll)
+            : JsonSerializer.Serialize(new List<string> { "No Photos" });
+
+        string replacePhotosSerialized = replacePhotosAll.Any()
+            ? JsonSerializer.Serialize(replacePhotosAll)
+            : JsonSerializer.Serialize(new List<string> { "No Photos" });
+        decimal marketValue = 0; //PLEASE ADD
+
+        //PLEASE ADD
+        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        //PLEASE ADD
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum();
+        decimal assetValue = marketValue - repairTotal;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+        var dashboardEntry = new LocoDashboard
+        {
+            LocoNumber = locoNumber,
+            LocoClass = locoInfo.LocoClass ?? string.Empty,
+            LocoModel = locoInfo.LocoModel ?? string.Empty,
+            DateAssessed = DateTime.Now.ToString("yyyy-MM-dd"),
+            TimeAssessed = DateTime.Now.ToString("HH:mm:ss"),
+            BodyDamage = bodyDamage,
+            BodyPhotos = bodyPhotosSerialized,
+            RefurbishValue = refurbishTotal,
+            MissingValue = missingTotal,
+            ReplaceValue = replaceTotal,
+            AssessmentQuote = "Not Ready",
+            AssessmentCert = "Not Ready",
+            UploadStatus = "Inspection Complete",
+            UploadDate = "No Date",
+            LocoPhoto = locoInfo.LocoPhoto,
+            MissingPhotos = missingPhotosSerialized,
+            ReplacePhotos = replacePhotosSerialized,
+            GpsLatitude = locoInfo.GpsLatitude, //PLEASE ADD
+            
+            GpsLongitude = locoInfo.GpsLongitude, //PLEASE ADD
+            TotalLaborValue = laborTotal, //PLEASE ADD
+            StartTimeInspect = locoInfo.CreatedDate?.ToString("HH:mm:ss") ?? "Not Available", //PLEASE ADD
+
+            
+
+            AssetValue = totalAssetValue, //PLEASE ADD
+            MarketValue = master?.MarketValue ?? "0.00",
+            AssessmentSow = "Not Ready", //PLEASE ADD
+            TotalValue = rts ?? "0.00"
+        };
+        var existingLoco = await _context.LocoDashboards
+                                        .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
+        if (existingLoco != null)
+        {
+            existingLoco.MissingValue = dashboardEntry.MissingValue;
+            existingLoco.ReplaceValue = dashboardEntry.ReplaceValue;
+            existingLoco.RefurbishValue = dashboardEntry.RefurbishValue;
+            existingLoco.TotalLaborValue = dashboardEntry.TotalLaborValue;
+            existingLoco.AssetValue = dashboardEntry.AssetValue;
+            existingLoco.TotalValue = dashboardEntry.TotalValue;
+            existingLoco.MarketValue = dashboardEntry.MarketValue;
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            _context.LocoDashboards.Add(dashboardEntry);
+            await _context.SaveChangesAsync();
+        }
+        return Ok(new { success = true, message = "Loco dashboard entry created", id = dashboardEntry.Id });
+    }
     [HttpPost("recalculateValuesUpload")]
     public async Task<IActionResult> RecalculateValuesUpload(RecalculateRequestUpload request)
     {
@@ -1412,6 +2985,19 @@ public class DashboardController : ControllerBase
     {
         bool exists = await _context.WagonInputs
             .AnyAsync(e => e.WagonNumber == wagonNumber);
+
+        if (exists)
+        {
+            return Ok(new { message = "Yes" });
+        }
+
+        return Ok(new { message = "No" });
+    }
+    [HttpGet("checkLocoInputs/{locoNumber}")]
+    public async Task<IActionResult> CheckLocoInputs(int locoNumber)
+    {
+        bool exists = await _context.LocoInputs
+            .AnyAsync(e => e.LocoNumber == locoNumber);
 
         if (exists)
         {
@@ -1677,7 +3263,44 @@ public class DashboardController : ControllerBase
 
         return Ok(score);
     }
+    [HttpPost("updateConditionUpload")]
+    public async Task<IActionResult> UpdateConditionUpload([FromBody] ConditionRequestUpload request)
+    {
+        var dash = await _context.WagonDashboardUploadeds
+            .FirstOrDefaultAsync(d => d.WagonNumber == Convert.ToInt32(request.WagonNumber));
 
+        if (dash != null)
+        {
+            try
+            {
+                var score = await _context.ConditionRatings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Score == Convert.ToInt32(request.ConditionScore));
+
+                if (score == null)
+                    return BadRequest("Score does not exist");
+
+                string operatingStatus = score.OperationalStatus;
+
+                dash.ConditionScore = Convert.ToInt32(request.ConditionScore);
+                dash.OperationalStatus = operatingStatus;
+
+                _context.WagonDashboardUploadeds.Update(dash);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Wagon input updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Update failed.", detail = ex.Message });
+            }
+        }
+        else
+        {
+            return BadRequest("Wagon does not exist");
+        }
+    }
     //PLEASE ADD (NEW)
     [HttpPost("updateCondition")]
     public async Task<IActionResult> UpdateCondition([FromBody] ConditionRequest request)
@@ -6077,7 +7700,11 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
     {
         public string WagonNumber { get; set; } = string.Empty;
     }
-
+    public class ConditionRequestUpload
+    {
+        public string WagonNumber { get; set; } = string.Empty;
+        public int ConditionScore { get; set; }
+    }
     public class RecalculateRequestUpload
     {
         public string WagonNumber { get; set; } = string.Empty;
