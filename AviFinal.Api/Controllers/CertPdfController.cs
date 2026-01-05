@@ -988,7 +988,7 @@ namespace AviAppFinal.Server.Controllers
                     //PLEASE ADD
                     // market value (from master)
                     decimal marketValue = ParseDecimalSafe(master?.MarketValue);
-                    decimal asset = Convert.ToDecimal(dash.AssetValue??"0");
+                    decimal asset = ParseDecimalSafe(dash?.AssetValue);
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
 
                     //PLEASE ADD

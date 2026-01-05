@@ -649,6 +649,39 @@ public class DashboardController : ControllerBase
             Data = data
         });
     }
+
+    [HttpPost("getUploadedWagonsForExport")]
+    public async Task<IActionResult> GetUploadedWagonsForExport([FromBody] WagonDashboardQueryDto query)
+    {
+        _context.Database.SetCommandTimeout(180);
+
+        IQueryable<WagonDashboardUploaded> q = _context.WagonDashboardUploadeds
+            .Where(x => x.WagonStatus == "Uploaded");
+
+        // Global search
+        if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
+        {
+            string filter = query.GlobalFilter.ToLower();
+
+            q = q.Where(x =>
+                x.WagonNumber.ToString().Contains(filter) ||
+                x.WagonGroup.ToLower().Contains(filter) ||
+                x.InspectorName.ToLower().Contains(filter)
+            );
+        }
+
+        int totalRecords = await q.CountAsync();
+
+        List<WagonDashboardUploaded> data = await q
+            .OrderByDescending(x => x.UploadDate)
+            .ToListAsync();
+
+        return Ok(new PagedResult<WagonDashboardUploaded>
+        {
+            TotalRecords = totalRecords,
+            Data = data
+        });
+    }
     [HttpPost("getUploadedLocosPaged")]
     public async Task<IActionResult> GetUploadedLocosPaged([FromBody] WagonDashboardQueryDto query)
     {
@@ -689,6 +722,44 @@ public class DashboardController : ControllerBase
             Data = data
         });
     }
+    [HttpPost("getUploadedLocosForExport")]
+    public async Task<IActionResult> GetUploadedLocosForExport(
+    [FromBody] WagonDashboardQueryDto query)
+    {
+        _context.Database.SetCommandTimeout(180);
+
+        IQueryable<LocoDashboard> q = _context.LocoDashboards
+            .AsNoTracking()
+            .Where(x => x.UploadStatus == "Uploaded");
+
+        // Global search
+        if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
+        {
+            string filter = $"%{query.GlobalFilter.Trim()}%";
+
+            q = q.Where(x =>
+                (x.LocoNumber != null &&
+                 EF.Functions.Like(x.LocoNumber.ToString(), filter)) ||
+
+                (!string.IsNullOrEmpty(x.LocoClass) &&
+                 EF.Functions.Like(x.LocoClass, filter)) ||
+
+                (!string.IsNullOrEmpty(x.InspectorName) &&
+                 EF.Functions.Like(x.InspectorName, filter))
+            );
+        }
+
+        var data = await q
+            .OrderByDescending(x => x.UploadDate)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            totalRecords = data.Count,
+            data
+        });
+    }
+
     [HttpGet("getUploadedWagons")]
     public async Task<IActionResult> GetUploadedWagons()
     {
