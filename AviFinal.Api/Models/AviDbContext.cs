@@ -33,6 +33,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<CirBreakPanInspect> CirBreakPanInspects { get; set; }
 
+    public virtual DbSet<CockpitAllocation> CockpitAllocations { get; set; }
+
     public virtual DbSet<ComFanInspect> ComFanInspects { get; set; }
 
     public virtual DbSet<ConditionRating> ConditionRatings { get; set; }
@@ -747,6 +749,22 @@ public partial class AviDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_CirBreakPanInspects_LeaseCoUsers");
+        });
+
+        modelBuilder.Entity<CockpitAllocation>(entity =>
+        {
+            entity.HasKey(e => e.AllocationId).HasName("PK__CockpitA__B3C6D64B1F90214B");
+
+            entity.ToTable("CockpitAllocation");
+
+            entity.Property(e => e.AssetType).HasMaxLength(50);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.RefNo)
+                .HasMaxLength(50)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<ComFanInspect>(entity =>
@@ -6566,7 +6584,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.TotalLaborValue).HasMaxLength(100);
             entity.Property(e => e.TotalValue).HasMaxLength(100);
             entity.Property(e => e.UploadDate).HasMaxLength(20);
-            entity.Property(e => e.UploadStatus).HasMaxLength(20);
+            entity.Property(e => e.UploadStatus).HasMaxLength(100);
         });
 
         modelBuilder.Entity<LocoInfoCapture>(entity =>
@@ -7358,7 +7376,7 @@ public partial class AviDbContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.WagonStatus)
-                .HasMaxLength(20)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.WagonType)
                 .HasMaxLength(80)
