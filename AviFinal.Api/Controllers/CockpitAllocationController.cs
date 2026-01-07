@@ -3,6 +3,7 @@ using AviFinal.Api.DTO;
 using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 [ApiController]
 [Route("api/cockpit-allocation")]
@@ -21,10 +22,52 @@ public class CockpitAllocationController : ControllerBase
         return $"{prefix}-{DateTime.Now:ddMMyy-HHmmss}";
     }
 
+    public class EnableCockpitRequest
+    {
+        public bool IsEnabled { get; set; }
+    }
+
     public CockpitAllocationController(AviDbContext context)
     {
         _context = context;
     }
+
+    [HttpGet("enable-cockpit")]
+    public async Task<IActionResult> GetCockpitStatus()
+    {
+        var config = await _context.CockpitGlobalConfigs.FirstOrDefaultAsync();
+
+        return Ok(new
+        {
+            isEnabled = config?.IsEnabled ?? true
+        });
+    }
+    [HttpPost("enable-cockpit")]
+    public async Task<IActionResult> UpdateCockpitStatus(
+    [FromBody] EnableCockpitRequest request)
+    {
+        var config = await _context.CockpitGlobalConfigs.FirstOrDefaultAsync();
+
+        if (config == null)
+        {
+            _context.CockpitGlobalConfigs.Add(new CockpitGlobalConfig
+            {
+                IsEnabled = request.IsEnabled,
+                UpdatedBy = User.Identity?.Name ?? "Admin"
+            });
+        }
+        else
+        {
+            config.IsEnabled = request.IsEnabled;
+            config.UpdatedDate = DateTime.Now;
+            config.UpdatedBy = User.Identity?.Name ?? "Admin";
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok("Cockpit status updated");
+    }
+
+
 
     [HttpGet("grouped")]
     public async Task<IActionResult> GetGroupedByRefNo(
@@ -222,7 +265,106 @@ public class CockpitAllocationController : ControllerBase
 
         return Ok("Cockpit allocation saved successfully");
     }
-    [HttpDelete("by-refno/{refNo}")]
+    [HttpGet("pending-assets")]
+    public async Task<IActionResult> GetPendingAssetsForTeam()
+    {
+        // 1️⃣ Get logged-in username
+       
+        var userName = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        if (string.IsNullOrWhiteSpace(userName))
+            return Unauthorized("User not logged in");
+
+        // 2️⃣ Resolve ALL TeamIds for this user (MULTI-TEAM)
+        var teamIds = await _context.TeamInspectors
+            .Where(ti => ti.InspectorId == userName)
+            .Select(ti => ti.TeamId)
+            .Distinct()
+            .ToListAsync();
+
+        if (!teamIds.Any())
+            return BadRequest("No teams assigned to user");
+
+        // 3️⃣ Fetch pending assets for ALL those teams
+        var pendingAssets = await _context.CockpitAllocations
+            .Where(ca =>
+                teamIds.Contains(ca.TeamId) && ca.AssetType == "Loco" &&
+
+                // ❌ Asset NOT yet completed in inspection
+                !_context.LocoInfoCaptures.Any(li =>
+                    li.LocoNumber == ca.AssetId
+                )
+            )
+            .Select(ca => new
+            {
+                assetType = ca.AssetType,
+                assetNumber = ca.AssetId,
+                refNo = ca.RefNo,
+                teamId = ca.TeamId   // optional (useful for UI/debug)
+            })
+            .Distinct()
+            .ToListAsync();
+
+        // 4️⃣ Return response
+        return Ok(new
+        {
+            message = pendingAssets.Any()
+                ? "Pending assets allocated to your teams"
+                : "No pending assets for your teams",
+            assets = pendingAssets
+        });
+    }
+
+    [HttpGet("pending-assets-wagon")]
+    public async Task<IActionResult> GetPendingWagonAssetsForTeam()
+    {
+        // 1️⃣ Get logged-in username
+        var userName = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+
+        if (string.IsNullOrWhiteSpace(userName))
+            return Unauthorized("User not logged in");
+
+        // 2️⃣ Resolve ALL TeamIds for this user (MULTI-TEAM)
+        var teamIds = await _context.TeamInspectors
+            .Where(ti => ti.InspectorId == userName)
+            .Select(ti => ti.TeamId)
+            .Distinct()
+            .ToListAsync();
+
+        if (!teamIds.Any())
+            return BadRequest("No teams assigned to user");
+
+        // 3️⃣ Fetch pending assets for ALL those teams
+        var pendingAssets = await _context.CockpitAllocations
+            .Where(ca =>
+                teamIds.Contains(ca.TeamId) && ca.AssetType == "Wagon" &&
+
+                // ❌ Asset NOT yet completed in inspection
+                !_context.WagonInfoCaptures.Any(li =>
+                    li.WagonNumber == ca.AssetId
+                )
+            )
+            .Select(ca => new
+            {
+                assetType = ca.AssetType,
+                assetNumber = ca.AssetId,
+                refNo = ca.RefNo,
+                teamId = ca.TeamId   // optional (useful for UI/debug)
+            })
+            .Distinct()
+            .ToListAsync();
+
+        // 4️⃣ Return response
+        return Ok(new
+        {
+            message = pendingAssets.Any()
+                ? "Pending assets allocated to your teams"
+                : "No pending assets for your teams",
+            assets = pendingAssets
+        });
+    }
+
+
+    [HttpGet("by-refno/{refNo}")]
     public async Task<IActionResult> DeleteByRefNo(string refNo)
     {
         var records = await _context.CockpitAllocations

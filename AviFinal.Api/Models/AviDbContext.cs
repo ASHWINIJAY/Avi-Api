@@ -35,6 +35,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<CockpitAllocation> CockpitAllocations { get; set; }
 
+    public virtual DbSet<CockpitGlobalConfig> CockpitGlobalConfigs { get; set; }
+
     public virtual DbSet<ComFanInspect> ComFanInspects { get; set; }
 
     public virtual DbSet<ConditionRating> ConditionRatings { get; set; }
@@ -387,7 +389,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-
+   
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -765,6 +767,18 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.RefNo)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<CockpitGlobalConfig>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CockpitG__3214EC07122F9108");
+
+            entity.ToTable("CockpitGlobalConfig");
+
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
         });
 
         modelBuilder.Entity<ComFanInspect>(entity =>
