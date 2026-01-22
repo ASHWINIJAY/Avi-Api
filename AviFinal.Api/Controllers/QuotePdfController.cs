@@ -286,8 +286,8 @@ namespace AviAppFinal.Server.Controllers
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Replace Total").SetFont(bold)));
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Lift & Barrel Total").SetFont(bold)));
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Labor Total").SetFont(bold)));
-                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Asset Value").SetFont(bold)));
-                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Overall Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Market Value").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Return to Service Cost").SetFont(bold)));
 
                     totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalRefurbish:F2}").SetFont(regular)));
                     totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalMissing:F2}").SetFont(regular)));
@@ -602,8 +602,8 @@ namespace AviAppFinal.Server.Controllers
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Replace Total").SetFont(bold)));
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Lift & Barrel Total").SetFont(bold)));
                     totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Labor Total").SetFont(bold)));
-                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Asset Value").SetFont(bold)));
-                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Overall Total").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Market Value").SetFont(bold)));
+                    totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Return to Service Cost").SetFont(bold)));
 
                     totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalRefurbish:F2}").SetFont(regular)));
                     totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalMissing:F2}").SetFont(regular)));
@@ -1970,8 +1970,8 @@ namespace AviAppFinal.Server.Controllers
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Missing Total").SetFont(bold)));
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Replace Total").SetFont(bold)));
                 totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Labor Total").SetFont(bold)));
-                totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Asset Value").SetFont(bold)));
-                totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Overall Total").SetFont(bold)));
+                totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Market Value").SetFont(bold)));
+                totalsTable.AddHeaderCell(new Cell().Add(new Paragraph("Return to Service Cost").SetFont(bold)));
 
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalRefurbish:F2}").SetFont(regular)));
                 totalsTable.AddCell(new Cell().Add(new Paragraph($"R{grandTotalMissing:F2}").SetFont(regular)));

@@ -323,6 +323,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<LocoInput> LocoInputs { get; set; }
 
+    public virtual DbSet<ManualDcfinput> ManualDcfinputs { get; set; }
+
     public virtual DbSet<MarketValueLoco> MarketValueLocos { get; set; }
 
     public virtual DbSet<MarketValueWagon> MarketValueWagons { get; set; }
@@ -389,7 +391,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
-   
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
@@ -6652,6 +6654,22 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ScrapValue).HasMaxLength(100);
             entity.Property(e => e.ScrappingCost).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<ManualDcfinput>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("ManualDCFInput");
+
+            entity.Property(e => e.AssetNumber).HasColumnType("numeric(18, 0)");
+            entity.Property(e => e.AssetType).HasMaxLength(50);
+            entity.Property(e => e.CreatedBy).HasMaxLength(50);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.RefurbishValue).HasMaxLength(50);
+            entity.Property(e => e.ScrapValue).HasMaxLength(50);
+            entity.Property(e => e.TransferValue).HasMaxLength(50);
         });
 
         modelBuilder.Entity<MarketValueLoco>(entity =>

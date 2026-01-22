@@ -696,17 +696,17 @@ public class DashboardController : ControllerBase
             string filter = query.GlobalFilter.ToLower();
 
             q = q.Where(x =>
-     (x.LocoNumber != null &&
-      x.LocoNumber.ToString().Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+                (x.LocoNumber != null &&
+                 x.LocoNumber.ToString().ToLower().Contains(filter)) ||
 
-     (!string.IsNullOrEmpty(x.LocoClass) &&
-      x.LocoClass.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(x.LocoClass) &&
+                 x.LocoClass.ToLower().Contains(filter)) ||
 
-     (!string.IsNullOrEmpty(x.InspectorName) &&
-      x.InspectorName.Contains(filter, StringComparison.OrdinalIgnoreCase))
- );
-
+                (!string.IsNullOrEmpty(x.InspectorName) &&
+                 x.InspectorName.ToLower().Contains(filter))
+            );
         }
+
 
         int totalRecords = await q.CountAsync();
 
@@ -3073,6 +3073,14 @@ public class DashboardController : ControllerBase
         if (exists)
         {
             return Ok(new { message = "Yes" });
+        }
+        else
+        {
+            bool manualData = _context.ManualDcfinputs.Any(c => c.AssetNumber == locoNumber);
+            if (manualData)
+            {
+                return Ok(new { message = "Yes" });
+            }
         }
 
         return Ok(new { message = "No" });
