@@ -6658,15 +6658,12 @@ public partial class AviDbContext : DbContext
 
         modelBuilder.Entity<ManualDcfinput>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("ManualDCFInput");
+            entity.ToTable("ManualDCFInput");
 
             entity.Property(e => e.AssetNumber).HasColumnType("numeric(18, 0)");
             entity.Property(e => e.AssetType).HasMaxLength(50);
             entity.Property(e => e.CreatedBy).HasMaxLength(50);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.RefurbishValue).HasMaxLength(50);
             entity.Property(e => e.ScrapValue).HasMaxLength(50);
             entity.Property(e => e.TransferValue).HasMaxLength(50);

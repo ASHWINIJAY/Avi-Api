@@ -77,8 +77,8 @@ namespace AviAppFinal.Server.Controllers
             if (model == null)
                 return BadRequest($"No WagonInfoCaptures record found for wagon {wagonNumber}.");
 
-            if (input == null)
-                return BadRequest($"Inputs for wagon {wagonNumber} was not found. Please contact administrator for assistence.");
+           // if (input == null)
+               // return BadRequest($"Inputs for wagon {wagonNumber} was not found. Please contact administrator for assistence.");
 
             // Ensure directory exists
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "CertPdf");
@@ -211,7 +211,7 @@ namespace AviAppFinal.Server.Controllers
                     decimal asset = ParseDecimalSafe(dash?.AssetValue); //PLEASE ADD (NEW)
 
                     // FIXED: previously you added refVal twice — use repVal here
-                    decimal repairValue = refVal + misVal + repVal + labVal + liftBarrelTotal;
+                    decimal repairValue = ParseDecimalSafe(dash?.TotalValue); 
                     string totalRepair = "R" + repairValue.ToString("N2", new CultureInfo("en-ZA"));
 
                     //PLEASE ADD
@@ -232,7 +232,9 @@ namespace AviAppFinal.Server.Controllers
                         else
                             netBookValue = model.NetBookValue;
                     }
-
+                    decimal scrapPre = 0;
+                    decimal refurPre = 0;
+                    decimal transPre = 0;
                     //PLEASE ADD
                     // City via reverse geocode (best-effort)
                     string city = "Not Captured";
@@ -243,90 +245,102 @@ namespace AviAppFinal.Server.Controllers
                         if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
                             city = resolved;
                     }
-
-                    double scrapCost = Convert.ToDouble(input.ScrappingCost);
-                    double scrapValue = Convert.ToDouble(input.ScrapValue);
-                    double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
-                    double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
-                    int leaseTerm = Convert.ToInt32(input.LeaseTerm);
-                    double leaseIncome = Convert.ToDouble(input.LeaseIncome);
-                    double escalationRate = Convert.ToDouble(input.EscalationRate) / 100;
-                    int wearTear = Convert.ToInt32(input.WearTearPeriod);
-                    double operatingCosts = Convert.ToDouble(input.OperatingCosts);
-                    double operatingEscalation = Convert.ToDouble(input.OperatingCostsEscalation) / 100;
-                    double residualValue = Convert.ToDouble(input.ResidualValue);
-                    double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
-                    double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
-                    double netBook = Convert.ToDouble(input.NetBookValue);
-
-                    int maxPeriods = 20;
-                    int minTerm = Math.Min(leaseTerm, wearTear);
-
-                    double[] J = new double[maxPeriods + 1];
-                    double[] N = new double[maxPeriods + 1];
-
-                    double totalScrapValue = scrapValue + scrapCost;
-
-                    double J2 = (totalScrapValue + refurbishCost) * -1;
-                    double N2 = -totalScrapValue * (1 - corporateTax);
-
-                    J[0] = J2;
-                    N[0] = N2;
-
-                    for (int t = 1; t <= maxPeriods; t++)
+                    if (input != null)
                     {
-                        // B
-                        double lease = (t <= leaseTerm)
-                            ? leaseIncome * Math.Pow(1 + escalationRate, t - 1)
+                        double scrapCost = Convert.ToDouble(input.ScrappingCost);
+                        double scrapValue = Convert.ToDouble(input.ScrapValue);
+                        double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
+                        double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
+                        int leaseTerm = Convert.ToInt32(input.LeaseTerm);
+                        double leaseIncome = Convert.ToDouble(input.LeaseIncome);
+                        double escalationRate = Convert.ToDouble(input.EscalationRate) / 100;
+                        int wearTear = Convert.ToInt32(input.WearTearPeriod);
+                        double operatingCosts = Convert.ToDouble(input.OperatingCosts);
+                        double operatingEscalation = Convert.ToDouble(input.OperatingCostsEscalation) / 100;
+                        double residualValue = Convert.ToDouble(input.ResidualValue);
+                        double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
+                        double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
+                        double netBook = Convert.ToDouble(input.NetBookValue);
+
+                        int maxPeriods = 20;
+                        int minTerm = Math.Min(leaseTerm, wearTear);
+
+                        double[] J = new double[maxPeriods + 1];
+                        double[] N = new double[maxPeriods + 1];
+
+                        double totalScrapValue = scrapValue + scrapCost;
+
+                        double J2 = (totalScrapValue + refurbishCost) * -1;
+                        double N2 = -totalScrapValue * (1 - corporateTax);
+
+                        J[0] = J2;
+                        N[0] = N2;
+
+                        for (int t = 1; t <= maxPeriods; t++)
+                        {
+                            // B
+                            double lease = (t <= leaseTerm)
+                                ? leaseIncome * Math.Pow(1 + escalationRate, t - 1)
+                                : 0;
+
+                            // D
+                            double refurbish = (t <= minTerm)
+                                ? refurbishCost / minTerm
+                                : 0;
+
+                            // E
+                            double operating = (t <= leaseTerm)
+                                ? operatingCosts * Math.Pow(1 + operatingEscalation, t - 1)
+                                : 0;
+
+                            // G
+                            double residual = (t == leaseTerm)
+                                ? residualValue
+                                : 0;
+
+                            // H
+                            double cashFlow = lease - refurbish - operating + residual;
+
+                            // I / M
+                            double discountPre = 1 / Math.Pow(1 + waccPre, t);
+                            double discountPost = 1 / Math.Pow(1 + waccPost, t);
+
+                            // J
+                            J[t] = cashFlow * discountPre;
+
+                            // N
+                            double tax = cashFlow * corporateTax;
+                            double postTaxCash = cashFlow - tax;
+                            N[t] = postTaxCash * discountPost;
+                        }
+
+                        double J23 = J.Sum();
+                        double N23 = N.Sum();
+
+                        double O23 = (J23 >= 0)
+                            ? netBook + refurbishCost
                             : 0;
 
-                        // D
-                        double refurbish = (t <= minTerm)
-                            ? refurbishCost / minTerm
+                        double P23 = (N23 >= 0)
+                            ? netBook + refurbishCost
                             : 0;
 
-                        // E
-                        double operating = (t <= leaseTerm)
-                            ? operatingCosts * Math.Pow(1 + operatingEscalation, t - 1)
-                            : 0;
-
-                        // G
-                        double residual = (t == leaseTerm)
-                            ? residualValue
-                            : 0;
-
-                        // H
-                        double cashFlow = lease - refurbish - operating + residual;
-
-                        // I / M
-                        double discountPre = 1 / Math.Pow(1 + waccPre, t);
-                        double discountPost = 1 / Math.Pow(1 + waccPost, t);
-
-                        // J
-                        J[t] = cashFlow * discountPre;
-
-                        // N
-                        double tax = cashFlow * corporateTax;
-                        double postTaxCash = cashFlow - tax;
-                        N[t] = postTaxCash * discountPost;
+                       
+                    scrapPre = ParseDecimalSafe(J23);
+                    refurPre = ParseDecimalSafe(N23);
+                    transPre = ParseDecimalSafe(O23);
+                }
+                   else
+                {
+                    var manualData = _context.ManualDcfinputs.FirstOrDefault(c => c.AssetNumber == wagonNumber);
+                    if (manualData != null)
+                    {
+                        scrapPre = ParseDecimalSafe(manualData.ScrapValue);
+                        refurPre = ParseDecimalSafe(manualData.RefurbishValue);
+                        transPre = ParseDecimalSafe(manualData.TransferValue);
                     }
-
-                    double J23 = J.Sum();
-                    double N23 = N.Sum();
-
-                    double O23 = (J23 >= 0)
-                        ? netBook + refurbishCost
-                        : 0;
-
-                    double P23 = (N23 >= 0)
-                        ? netBook + refurbishCost
-                        : 0;
-
-                    decimal scrapPre = ParseDecimalSafe(J23);
-                    decimal refurPre = ParseDecimalSafe(N23);
-                    decimal transPre = ParseDecimalSafe(O23);
-
-                    string preScrap = "R" + scrapPre.ToString("N2", new CultureInfo("en-ZA"));
+                }
+                string preScrap = "R" + scrapPre.ToString("N2", new CultureInfo("en-ZA"));
                     string preRefur = "R" + refurPre.ToString("N2", new CultureInfo("en-ZA"));
                     string preTrans = "R" + transPre.ToString("N2", new CultureInfo("en-ZA"));
 
@@ -469,8 +483,8 @@ namespace AviAppFinal.Server.Controllers
             if (model == null)
                 return BadRequest($"No WagonInfoCaptures record found for wagon {wagonNumber}.");
 
-            if (input == null)
-                return BadRequest($"Inputs for wagon {wagonNumber} was not found. Please contact administrator for assistence.");
+            //if (input == null)
+              //  return BadRequest($"Inputs for wagon {wagonNumber} was not found. Please contact administrator for assistence.");
 
             // Ensure directory exists
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "CertPdf");
@@ -603,15 +617,17 @@ namespace AviAppFinal.Server.Controllers
                     decimal asset = ParseDecimalSafe(dash?.AssetValue); //PLEASE ADD (NEW)
 
                     // FIXED: previously you added refVal twice — use repVal here
-                    decimal repairValue = refVal + misVal + repVal + labVal + liftBarrelTotal;
-                    string totalRepair = "R" + repairValue.ToString("N2", new CultureInfo("en-ZA"));
+                    decimal repairValue = ParseDecimalSafe(dash?.TotalValue); ;
+                    string totalRepair =  "R" + repairValue.ToString("N2", new CultureInfo("en-ZA"));
 
                     //PLEASE ADD
                     // market value (from master)
                     decimal marketValue = ParseDecimalSafe(master?.MarketValue);
 
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
-
+                    decimal scrapPre = 0;
+                    decimal refurPre = 0;
+                    decimal transPre = 0;
                     //PLEASE ADD
                     // net book value: keep original format if not parseable
                     string netBookValue = "#N/A";
@@ -635,7 +651,8 @@ namespace AviAppFinal.Server.Controllers
                         if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
                             city = resolved;
                     }
-
+                    if(input != null)
+                    { 
                     double scrapCost = Convert.ToDouble(input.ScrappingCost);
                     double scrapValue = Convert.ToDouble(input.ScrapValue);
                     double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
@@ -713,10 +730,21 @@ namespace AviAppFinal.Server.Controllers
                     double P23 = (N23 >= 0)
                         ? netBook + refurbishCost
                         : 0;
-
-                    decimal scrapPre = ParseDecimalSafe(J23);
-                    decimal refurPre = ParseDecimalSafe(N23);
-                    decimal transPre = ParseDecimalSafe(O23);
+                        
+                        scrapPre = ParseDecimalSafe(J23);
+                        refurPre = ParseDecimalSafe(N23);
+                        transPre = ParseDecimalSafe(O23);
+                    }
+                    else
+                    {
+                        var manualData = _context.ManualDcfinputs.FirstOrDefault(c => c.AssetNumber == wagonNumber);
+                        if (manualData != null)
+                        {
+                            scrapPre = ParseDecimalSafe(manualData.ScrapValue);
+                            refurPre = ParseDecimalSafe(manualData.RefurbishValue);
+                            transPre = ParseDecimalSafe(manualData.TransferValue);
+                        }
+                    }
 
                     string preScrap = "R" + scrapPre.ToString("N2", new CultureInfo("en-ZA"));
                     string preRefur = "R" + refurPre.ToString("N2", new CultureInfo("en-ZA"));
@@ -982,7 +1010,7 @@ namespace AviAppFinal.Server.Controllers
                     decimal labVal = ParseDecimalSafe(dash?.TotalLaborValue);
 
                     // FIXED: previously you added refVal twice — use repVal here
-                    decimal repairValue = refVal + misVal + repVal + labVal;
+                    decimal repairValue = ParseDecimalSafe(dash?.TotalValue);
                     string totalRepair = "R" + repairValue.ToString("N2", new CultureInfo("en-ZA"));
 
                     //PLEASE ADD
@@ -1235,6 +1263,10 @@ namespace AviAppFinal.Server.Controllers
         public async Task<IActionResult> SaveManualDcfValues(
         [FromBody] ManualDcfRequest request)
         {
+            try
+            {
+
+            
             if (string.IsNullOrWhiteSpace(request.AssetNumber))
                 return BadRequest("Invalid Loco Number");
 
@@ -1262,6 +1294,12 @@ namespace AviAppFinal.Server.Controllers
             {
                 message = "Manual DCF values saved successfully"
             });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
+
+            }
         }
         public class ManualDcfRequest
         {

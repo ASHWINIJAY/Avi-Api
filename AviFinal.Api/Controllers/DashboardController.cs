@@ -3061,7 +3061,14 @@ public class DashboardController : ControllerBase
         {
             return Ok(new { message = "Yes" });
         }
-
+        else
+        {
+            bool manualData = _context.ManualDcfinputs.Any(c => c.AssetNumber == wagonNumber);
+            if (manualData)
+            {
+                return Ok(new { message = "Yes" });
+            }
+        }
         return Ok(new { message = "No" });
     }
     [HttpGet("checkLocoInputs/{locoNumber}")]

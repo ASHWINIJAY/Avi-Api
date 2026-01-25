@@ -273,10 +273,10 @@ namespace AviAppFinal.Server.Controllers
 
                     decimal marketValue = ParseDecimalSafe(master?.MarketValue);
                     decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor + liftBarrelTotal;
-                    decimal assetValue = marketValue - rts;
+                    decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
 
                     // --- Final Grand Totals ---
-                    decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
+                    decimal grandTotal = ParseDecimalSafe(dash?.TotalValue);// grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
 
                     document.Add(new Paragraph("\nGrand Totals").SetFont(bold).SetFontSize(13).SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT));
 
@@ -530,7 +530,7 @@ namespace AviAppFinal.Server.Controllers
 
                             return new
                             {
-                                p.FormID,
+                                p.FormId,
                                 p.PartDescr,
                                 RefurbishValue = refVal,
                                 MissingValue = missVal,
@@ -565,7 +565,7 @@ namespace AviAppFinal.Server.Controllers
                         foreach (var p in partsWithNumbers)
                         {
                             table.AddCell(new Cell().Add(new Paragraph(index.ToString()).SetFont(regular)));
-                            table.AddCell(new Cell().Add(new Paragraph(p.FormID.ToString()).SetFont(regular)));
+                            table.AddCell(new Cell().Add(new Paragraph(p.FormId.ToString()).SetFont(regular)));
                             table.AddCell(new Cell().Add(new Paragraph(p.PartDescr).SetFont(regular)));
                             table.AddCell(new Cell().Add(new Paragraph(p.RefurbishValue != 0 ? $"R{p.RefurbishValue:F2}" : "-").SetFont(regular)));
                             table.AddCell(new Cell().Add(new Paragraph(p.MissingValue != 0 ? $"R{p.MissingValue:F2}" : "-").SetFont(regular)));
@@ -589,9 +589,9 @@ namespace AviAppFinal.Server.Controllers
 
                     decimal marketValue = ParseDecimalSafe(master?.MarketValue);
                     decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor + liftBarrelTotal;
-                    decimal assetValue = marketValue - rts;
+                    decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
 
-                    decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
+                    decimal grandTotal = ParseDecimalSafe(dash?.TotalValue);// grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
 
                     // --- Final Grand Totals ---
                     document.Add(new Paragraph("\nGrand Totals").SetFont(bold).SetFontSize(13).SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT));
@@ -1206,7 +1206,7 @@ namespace AviAppFinal.Server.Controllers
 
             var master = await _context.MasterLocos.AsNoTracking().FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
             var model = await _context.LocoInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
-            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => locoNumber == locoNumber);
+            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
 
             // Validate basic presence
             if (model == null)
@@ -1640,7 +1640,7 @@ namespace AviAppFinal.Server.Controllers
 
             var master = await _context.MasterLocos.AsNoTracking().FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
             var model = await _context.LocoInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
-            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => locoNumber == locoNumber);
+            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
 
             // Validate basic presence
             if (model == null)
@@ -1959,9 +1959,9 @@ namespace AviAppFinal.Server.Controllers
                 }
                 decimal marketValue = ParseDecimalSafe(master?.MarketValue);
                 decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor ;
-                decimal assetValue = marketValue - rts;
-                // --- Final Grand Totals ---
-                decimal grandTotal = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + assetValue + +grandTotalLabor;
+                decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
+
+                decimal grandTotal = ParseDecimalSafe(dash?.TotalValue);// grandTotalRefurbish + grandTotalMissing + grandTotalReplace + liftBarrelTotal + grandTotalLabor + assetValue;
 
                 document.Add(new Paragraph("\nGrand Totals").SetFont(bold).SetFontSize(13).SetTextAlignment(iText.Layout.Properties.TextAlignment.RIGHT));
 
