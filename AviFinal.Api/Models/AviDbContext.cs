@@ -6579,6 +6579,12 @@ public partial class AviDbContext : DbContext
 
             entity.Property(e => e.AssetValue).HasMaxLength(100);
             entity.Property(e => e.BodyDamage).HasMaxLength(10);
+            entity.Property(e => e.CalCondition)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CalOperateStatus)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.City).HasMaxLength(100);
             entity.Property(e => e.DateAssessed).HasMaxLength(20);
             entity.Property(e => e.GpsLatitude).HasMaxLength(100);
@@ -7373,6 +7379,12 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BrakeLapsed)
                 .HasMaxLength(4)
                 .IsUnicode(false);
+            entity.Property(e => e.CalCondition)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CalOperateStatus)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.City).HasMaxLength(100);
             entity.Property(e => e.DateAssessed).HasMaxLength(50);
             entity.Property(e => e.GpsLatitude).HasMaxLength(100);
@@ -7431,6 +7443,12 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.BrakeDate).HasMaxLength(50);
             entity.Property(e => e.BrakeLapsed)
                 .HasMaxLength(4)
+                .IsUnicode(false);
+            entity.Property(e => e.CalCondition)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CalOperateStatus)
+                .HasMaxLength(100)
                 .IsUnicode(false);
             entity.Property(e => e.City).HasMaxLength(100);
             entity.Property(e => e.DateAssessed).HasMaxLength(50);

@@ -68,4 +68,10 @@ public partial class LocoDashboard
     public string? OperationalStatus { get; set; }
 
     public string? City { get; set; }
+
+    public int? CalScore { get; set; }
+
+    public string? CalOperateStatus { get; set; }
+
+    public string? CalCondition { get; set; }
 }
