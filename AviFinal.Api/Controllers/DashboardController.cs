@@ -432,9 +432,17 @@ public class DashboardController : ControllerBase
             CalOperateStatus = condition?.OperationalStatus ?? "Scrap Only",
             CalCondition = condition?.Condition ?? "Beyond Repair"
         };
+        var existingLoco = await _context.WagonDashboards
+                                        .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+        if (existingLoco != null)
+        {
 
-        _context.WagonDashboards.Add(dashboardEntry);
-        await _context.SaveChangesAsync();
+        }
+        else
+        {
+            _context.WagonDashboards.Add(dashboardEntry);
+            await _context.SaveChangesAsync();
+        }
 
         return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
     }
@@ -724,7 +732,7 @@ public class DashboardController : ControllerBase
     [HttpPost("getUploadedLocosPaged")]
     public async Task<IActionResult> GetUploadedLocosPaged([FromBody] WagonDashboardQueryDto query)
     {
-        _context.Database.SetCommandTimeout(180);
+        _context.Database.SetCommandTimeout(180); 
 
         IQueryable<LocoDashboard> q = _context.LocoDashboards
             .Where(x => x.UploadStatus == "Uploaded");

@@ -14,6 +14,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AviAppFinal.Server.Controllers
@@ -58,21 +59,44 @@ namespace AviAppFinal.Server.Controllers
                 var wacc = await _context.WaccSetups
                     .FirstOrDefaultAsync(w => w.Id == id);
 
-                //var wagonPost = await _context.WagonInputs
-                //    .Where(w => w.PostTax == setup.CurrentPost)
-                //    .ToListAsync();
-
-                //var wagonPre = await _context.WagonInputs
-                //    .Where(w => w.PreTax == setup.CurrentPre)
-                //    .ToListAsync();
-
                 if (wacc != null)
                 {
-                    wacc.PostTax = setup.PostTax ?? "0.00";
-                    wacc.PreTax = setup.PreTax ?? "0.00";
+                    decimal post = ParseDecimalSafe(setup.PostTax);
+                    decimal pre = ParseDecimalSafe(setup.PreTax);
+
+                    wacc.PostTax = post.ToString("N2", new CultureInfo("en-ZA"));
+                    wacc.PreTax = pre.ToString("N2", new CultureInfo("en-ZA"));
                     wacc.UpdateDate = DateTime.Now.ToString("yyyy-MM-dd");
                     wacc.UpdateBy = userName ?? "N/A";
                     _context.WaccSetups.Update(wacc);
+
+                    var wagonInput = await _context.WagonInputs
+                        .ToListAsync();
+
+                    var locoInput = await _context.LocoInputs
+                        .ToListAsync();
+
+                    if (wagonInput.Count != 0)
+                    {
+                        foreach (var wagon in wagonInput)
+                        {
+                            wagon.PostTax = post.ToString("N2", new CultureInfo("en-ZA"));
+                            wagon.PreTax = pre.ToString("N2", new CultureInfo("en-ZA"));
+
+                            _context.WagonInputs.Update(wagon);
+                        }
+                    }
+
+                    if (locoInput.Count != 0)
+                    {
+                        foreach (var loco in locoInput)
+                        {
+                            loco.PostTax = post.ToString("N2", new CultureInfo("en-ZA"));
+                            loco.PreTax = pre.ToString("N2", new CultureInfo("en-ZA"));
+
+                            _context.LocoInputs.Update(loco);
+                        }
+                    }
                 }
                 else
                 {
@@ -103,6 +127,7 @@ namespace AviAppFinal.Server.Controllers
             return Ok(wagon);
         }
 
+        // AJUST ENTIRE METHOD ↓
         [HttpGet("getInfo/{wagonNumber}")]
         public async Task<IActionResult> GetInfo(int wagonNumber)
         {
@@ -124,7 +149,8 @@ namespace AviAppFinal.Server.Controllers
                     input.NetBookValue,
                     input.ScrapValue,
                     input.ScrappingCost,
-                    input.RefurbishmentCost,
+                    input.NewScrapValue,
+                    input.TotalCost,
                     input.LeaseTerm,
                     input.LeaseIncome,
                     input.EscalationRate,
@@ -152,8 +178,14 @@ namespace AviAppFinal.Server.Controllers
             if (master == null)
                 return BadRequest("Wagon does not exist.");
 
-            string netBook = "#N/A";
-            if (!string.IsNullOrWhiteSpace(master.NetBookValue) && master.NetBookValue != "#N/A")
+            string assetType = master.WagonType;
+
+            var asset = await _context.AssetTypeSetups
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.AssetType == assetType);
+
+            string netBook = "0.00";
+            if (!string.IsNullOrWhiteSpace(master.NetBookValue))
             {
                 var sanitized = master.NetBookValue.Replace("R", "").Replace(" ", "").Replace(".", "").Replace(",", ".");
                 if (decimal.TryParse(sanitized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal nb))
@@ -162,58 +194,97 @@ namespace AviAppFinal.Server.Controllers
                     netBook = master.NetBookValue;
             }
 
-            string scrapVal = "#N/A";
-            if (!string.IsNullOrWhiteSpace(master.ScrapValue) && master.ScrapValue != "#N/A")
-            {
-                var sanitized = master.ScrapValue.Replace("R", "").Replace(" ", "").Replace(".", "").Replace(",", ".");
-                if (decimal.TryParse(sanitized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal sv))
-                    scrapVal = sv.ToString("N2", new CultureInfo("en-ZA"));
-                else
-                    scrapVal = master.ScrapValue;
-            }
+            // ADD ↓
+            string? scrapValue = string.Empty;
 
-            //PLEASE ADD ALL (NEW)
-            string assetType = master.WagonType;
+            decimal sv = ParseDecimalSafe(master.ScrapValue);
+            scrapValue = sv.ToString("N2", new CultureInfo("en-ZA"));
 
-            var asset = await _context.AssetTypeSetups
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.AssetType == assetType);
+            // ADD ↓
+            string leaseIncome = string.Empty;
+            int leaseTerm = 0;
+            string escalationRate = string.Empty;
+            int useAfterRefurb = 0;
+            int wearTearPeriod = 0;
+            string operCosts = string.Empty;
+            string operEscalation = string.Empty;
+            string coporateTax = string.Empty;
 
-            string refurbish = string.Empty;
-            string lease = string.Empty;
-
+            // ADD ↓
             if (asset != null)
             {
-                refurbish = asset.RefurbishmentCost;
-                lease = asset.LeaseIncome;
+                leaseIncome = asset.LeaseIncome;
+                leaseTerm = asset.LeaseTerm??0;
+                escalationRate = asset.EscalationRate;
+                useAfterRefurb = asset.UseAfterRefurbish?? 0;
+                wearTearPeriod = asset.WearTearPeriod ?? 0;
+                operCosts = asset.OperatingCosts;
+                operEscalation = asset.OperatingCostsEscalation;
+                coporateTax = asset.CorporateTaxRate;
             }
             else
             {
-                refurbish = "";
-                lease = "";
+                leaseIncome = "";
+                leaseTerm = 0;
+                escalationRate = "";
+                useAfterRefurb = 0;
+                wearTearPeriod = 0;
+                operCosts = "";
+                operEscalation = "";
+                coporateTax = "";
             }
 
+            // ADD ↓
+            var wagon = await _context.WagonDashboards
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
+
+            // ADD ↓
+            string? totalCost = string.Empty;
+
+            if (wagon != null)
+            {
+                decimal tc = ParseDecimalSafe(wagon.TotalValue);
+                totalCost = tc.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else
+            {
+                decimal rev = ParseDecimalSafe(wagon?.RefurbishValue);
+                decimal mv = ParseDecimalSafe(wagon?.MissingValue);
+                decimal rpv = ParseDecimalSafe(wagon?.ReplaceValue);
+                decimal lv = ParseDecimalSafe(wagon?.TotalLaborValue);
+                decimal lfv = ParseDecimalSafe(wagon?.LiftValue);
+                decimal bv = ParseDecimalSafe(wagon?.BarrelValue);
+
+                decimal tv = rev + mv + rpv + lv + lfv + bv;
+
+                totalCost = tv.ToString("N2", new CultureInfo("en-ZA"));
+            }
+
+            // ADJUST ↓
             return Ok(new
             {
-                WagonType = master.WagonType, //PLEASE ADJUST (NEW)
+                master.WagonType,
                 NetBookValue = netBook ?? "0.00",
-                ScrapValue = scrapVal ?? "0.00",
+                ScrapValue = scrapValue ?? "0.00",
                 ScrappingCost = "",
-                RefurbishmentCost = refurbish, //PLEASE ADJUST (NEW)
-                LeaseTerm = "",
-                LeaseIncome = lease, //PLEASE ADJUST (NEW)
-                EscalationRate = "",
-                UseAfterRefurbish = "",
+                NewScrapValue = "",
+                TotalCost = totalCost,
+                LeaseTerm = leaseTerm,
+                LeaseIncome = leaseIncome,
+                EscalationRate = escalationRate,
+                UseAfterRefurbish = useAfterRefurb,
                 ResidualValue = "",
                 PostTax = wacc?.PostTax ?? "0.00",
-                WearTearPeriod = "",
-                OperatingCosts = "",
-                OperatingCostsEscalation = "",
-                CorporateTaxRate = "",
+                WearTearPeriod = wearTearPeriod,
+                OperatingCosts = operCosts,
+                OperatingCostsEscalation = operEscalation,
+                CorporateTaxRate = coporateTax,
                 PreTax = wacc?.PreTax ?? "0.00",
             });
         }
 
+        // ADJUST ENTIRE METHOD ↓
         [HttpPost("updateInsertWagon")]
         public async Task<IActionResult> UpdateInsertWagon([FromForm] InputWagon wagon)
         {
@@ -241,10 +312,26 @@ namespace AviAppFinal.Server.Controllers
                     {
                         input.WagonNumber = wagon.WagonNumber;
                         input.WagonType = wagon.WagonType ?? "N/A";
-                        input.NetBookValue = wagon.NetBookValue ?? "0.00";
-                        input.ScrapValue = wagon.ScrapValue ?? "0.00";
-                        input.RefurbishmentCost = wagon.RefurbishmentCost ?? "0.00"; //PLEASE ADD (NEW)
-                        input.LeaseIncome = wagon.LeaseIncome ?? "0.00"; //PLEASE ADD (NEW)
+
+                        if (wagon.NetBookValue == input.NetBookValue)
+                        {
+                            input.NetBookValue = wagon.NetBookValue;
+                        }
+                        else
+                        {
+                            decimal nbv = ParseDecimalSafe(wagon.NetBookValue);
+                            input.NetBookValue = nbv.ToString("N2", new CultureInfo("en-ZA"));
+                        }
+
+                        if (wagon.ScrapValue == input.ScrapValue)
+                        {
+                            input.ScrapValue = wagon.ScrapValue;
+                        }
+                        else
+                        {
+                            decimal sv = ParseDecimalSafe(wagon.ScrapValue);
+                            input.ScrapValue = sv.ToString("N2", new CultureInfo("en-ZA"));
+                        }
 
                         if (wagon.ScrappingCost == input.ScrappingCost)
                         {
@@ -256,41 +343,15 @@ namespace AviAppFinal.Server.Controllers
                             input.ScrappingCost = scvc.ToString("N2", new CultureInfo("en-ZA"));
                         }
 
-                        //PLEASE REMOVE (NEW)
-                        //if (wagon.RefurbishmentCost == input.RefurbishmentCost)
-                        //{
-                        //    input.RefurbishmentCost = wagon.RefurbishmentCost;
-                        //}
-                        //else
-                        //{
-                        //    decimal rfbc = ParseDecimalSafe(wagon.RefurbishmentCost);
-                        //    input.RefurbishmentCost = rfbc.ToString("N2", new CultureInfo("en-ZA"));
-                        //}
-
-                        input.LeaseTerm = wagon.LeaseTerm;
-
-                        //PLEASE REMOVE (NEW)
-                        //if (wagon.LeaseIncome == input.LeaseIncome)
-                        //{
-                        //    input.LeaseIncome = wagon.LeaseIncome;
-                        //}
-                        //else
-                        //{
-                        //    decimal li = ParseDecimalSafe(wagon.LeaseIncome);
-                        //    input.LeaseIncome = li.ToString("N2", new CultureInfo("en-ZA"));
-                        //}
-
-                        if (wagon.EscalationRate == input.EscalationRate)
+                        if (wagon.NewScrapValue == input.NewScrapValue)
                         {
-                            input.EscalationRate = wagon.EscalationRate;
+                            input.NewScrapValue = wagon.NewScrapValue;
                         }
                         else
                         {
-                            decimal er = ParseDecimalSafe(wagon.EscalationRate);
-                            input.EscalationRate = er.ToString("N2", new CultureInfo("en-ZA"));
+                            decimal nsv = ParseDecimalSafe(wagon.NewScrapValue);
+                            input.NewScrapValue = nsv.ToString("N2", new CultureInfo("en-ZA"));
                         }
-
-                        input.UseAfterRefurbish = wagon.UseAfterRefurbish;
 
                         if (wagon.ResidualValue == input.ResidualValue)
                         {
@@ -302,39 +363,16 @@ namespace AviAppFinal.Server.Controllers
                             input.ResidualValue = rsv.ToString("N2", new CultureInfo("en-ZA"));
                         }
 
+                        input.TotalCost = wagon.TotalCost ?? "0.00";
+                        input.LeaseIncome = wagon.LeaseIncome ?? "0.00";
+                        input.LeaseTerm = wagon.LeaseTerm;
+                        input.EscalationRate = wagon.EscalationRate ?? "0.00";
+                        input.UseAfterRefurbish = wagon.UseAfterRefurbish;
                         input.PostTax = wagon.PostTax ?? "0.00";
                         input.WearTearPeriod = wagon.WearTearPeriod;
-
-                        if (wagon.OperatingCosts == input.OperatingCosts)
-                        {
-                            input.OperatingCosts = wagon.OperatingCosts;
-                        }
-                        else
-                        {
-                            decimal opc = ParseDecimalSafe(wagon.OperatingCosts);
-                            input.OperatingCosts = opc.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
-                        if (wagon.OperatingCostsEscalation == input.OperatingCostsEscalation)
-                        {
-                            input.OperatingCostsEscalation = wagon.OperatingCostsEscalation;
-                        }
-                        else
-                        {
-                            decimal opce = ParseDecimalSafe(wagon.OperatingCostsEscalation);
-                            input.OperatingCostsEscalation = opce.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
-                        if (wagon.CorporateTaxRate == input.CorporateTaxRate)
-                        {
-                            input.CorporateTaxRate = wagon.CorporateTaxRate;
-                        }
-                        else
-                        {
-                            decimal scvc = ParseDecimalSafe(wagon.CorporateTaxRate);
-                            input.CorporateTaxRate = scvc.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
+                        input.OperatingCosts = wagon.OperatingCosts ?? "0.00";
+                        input.OperatingCostsEscalation = wagon.OperatingCostsEscalation ?? "0.00";
+                        input.CorporateTaxRate = wagon.CorporateTaxRate ?? "0.00";
                         input.PreTax = wagon.PreTax ?? "0.00";
                         input.DateSaved = DateTime.Now.ToString("yyyy-MM-dd");
                         input.SavedBy = userName ?? "N/A";
@@ -358,33 +396,49 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                decimal scvc = ParseDecimalSafe(wagon.ScrappingCost);
-                //decimal rfbc = ParseDecimalSafe(wagon.RefurbishmentCost); //PLEASE REMOVE (NEW)
-                //decimal li = ParseDecimalSafe(wagon.LeaseIncome); //PLEASE REMOVE (NEW)
-                decimal rsv = ParseDecimalSafe(wagon.ResidualValue);
-                decimal opc = ParseDecimalSafe(wagon.OperatingCosts);
-                decimal er = ParseDecimalSafe(wagon.EscalationRate);
-                decimal opce = ParseDecimalSafe(wagon.OperatingCostsEscalation);
-                decimal ctr = ParseDecimalSafe(wagon.CorporateTaxRate);
+                // REMOVE ↓
+                //var master = await _context.MasterWagons
+                //    .AsNoTracking()
+                //    .FirstOrDefaultAsync(m => m.WagonNumber == wagon.WagonNumber);
 
+                //if (master == null)
+                //{
+                //    return BadRequest("Wagon does exist in master data.");
+                //}
+
+                // ADD ↓
+                decimal nbv = ParseDecimalSafe(wagon.NetBookValue);
+                decimal sv = ParseDecimalSafe(wagon.ScrapValue);
+                decimal scvc = ParseDecimalSafe(wagon.ScrappingCost);
+                decimal nsv = ParseDecimalSafe(wagon.NewScrapValue);
+                decimal rsv = ParseDecimalSafe(wagon.ResidualValue);
+
+                // REMOVE ↓
+                //decimal opc = ParseDecimalSafe(wagon.OperatingCosts);
+                //decimal er = ParseDecimalSafe(wagon.EscalationRate);
+                //decimal opce = ParseDecimalSafe(wagon.OperatingCostsEscalation);
+                //decimal ctr = ParseDecimalSafe(wagon.CorporateTaxRate);
+
+                // ADD & ADJUST ↓
                 var inputEntry = new WagonInput
                 {
                     WagonNumber = wagon.WagonNumber,
                     WagonType = wagon.WagonType ?? "N/A",
-                    NetBookValue = wagon.NetBookValue ?? "0.00",
-                    ScrapValue = wagon.ScrapValue ?? "0.00",
+                    NetBookValue = nbv.ToString("N2", new CultureInfo("en-ZA")),
+                    ScrapValue = sv.ToString("N2", new CultureInfo("en-ZA")),
                     ScrappingCost = scvc.ToString("N2", new CultureInfo("en-ZA")),
-                    RefurbishmentCost = wagon.RefurbishmentCost ?? "0.00", //PLEASE ADJUST (NEW)
+                    NewScrapValue = nsv.ToString("N2", new CultureInfo("en-ZA")),
+                    TotalCost = wagon.TotalCost ?? "0.00",
                     LeaseTerm = wagon.LeaseTerm,
-                    LeaseIncome = wagon.LeaseIncome ?? "0.00", //PLEASE ADJUST (NEW)
-                    EscalationRate = er.ToString("N2", new CultureInfo("en-ZA")),
+                    LeaseIncome = wagon.LeaseIncome ?? "0.00",
+                    EscalationRate = wagon.EscalationRate ?? "0.00",
                     UseAfterRefurbish = wagon.UseAfterRefurbish,
                     ResidualValue = rsv.ToString("N2", new CultureInfo("en-ZA")),
                     PostTax = wagon.PostTax ?? "0.00",
                     WearTearPeriod = wagon.WearTearPeriod,
-                    OperatingCosts = opc.ToString("N2", new CultureInfo("en-ZA")),
-                    OperatingCostsEscalation = opce.ToString("N2", new CultureInfo("en-ZA")),
-                    CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA")),
+                    OperatingCosts = wagon.OperatingCosts ?? "0.00",
+                    OperatingCostsEscalation = wagon.OperatingCostsEscalation ?? "0.00",
+                    CorporateTaxRate = wagon.CorporateTaxRate ?? "0.00",
                     PreTax = wagon.PreTax ?? "0.00",
                     DateSaved = DateTime.Now.ToString("yyyy-MM-dd"),
                     SavedBy = userName ?? "N/A",
@@ -415,6 +469,7 @@ namespace AviAppFinal.Server.Controllers
             return Ok(loco);
         }
 
+        // ADJUST ENTIRE METHOD ↓
         [HttpGet("getInfoLoco/{locoNumber}")]
         public async Task<IActionResult> GetInfoLoco(int locoNumber)
         {
@@ -436,7 +491,8 @@ namespace AviAppFinal.Server.Controllers
                     input.NetBookValue,
                     input.ScrapValue,
                     input.ScrappingCost,
-                    input.RefurbishmentCost,
+                    input.NewScrapValue,
+                    input.TotalCost,
                     input.LeaseTerm,
                     input.LeaseIncome,
                     input.EscalationRate,
@@ -474,58 +530,100 @@ namespace AviAppFinal.Server.Controllers
                     netBook = master.NetBookValue;
             }
 
-            string scrapVal = "#N/A";
-            if (!string.IsNullOrWhiteSpace(master.ScrapValue.ToString()) && master.ScrapValue.ToString() != "#N/A")
-            {
-                var sanitized = master.ScrapValue.ToString() ?? "0.00".Replace("R", "").Replace(" ", "").Replace(".", "").Replace(",", ".");
-                if (decimal.TryParse(sanitized, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal sv))
-                    scrapVal = sv.ToString("N2", new CultureInfo("en-ZA"));
-                else
-                    scrapVal = master.ScrapValue.ToString() ?? "0.00";
-            }
+            // ADD ↓
+            string? scrapValue = string.Empty;
 
-            //PLEASE ADD ALL (NEW)
+            decimal sv = ParseDecimalSafe(master.ScrapValue);
+            scrapValue = sv.ToString("N2", new CultureInfo("en-ZA"));
+
             string assetType = master.LocoClass;
 
             var asset = await _context.AssetTypeSetups
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.AssetType == assetType);
 
-            string refurbish = string.Empty;
-            string lease = string.Empty;
+            // ADD ↓
+            string leaseIncome = string.Empty;
+            int leaseTerm = 0;
+            string escalationRate = string.Empty;
+            int useAfterRefurb = 0;
+            int wearTearPeriod = 0;
+            string operCosts = string.Empty;
+            string operEscalation = string.Empty;
+            string coporateTax = string.Empty;
 
+            // ADD ↓
             if (asset != null)
             {
-                refurbish = asset.RefurbishmentCost;
-                lease = asset.LeaseIncome;
+                leaseIncome = asset.LeaseIncome;
+                leaseTerm = asset.LeaseTerm ?? 0;
+                escalationRate = asset.EscalationRate;
+                useAfterRefurb = asset.UseAfterRefurbish ?? 0;
+                wearTearPeriod = asset.WearTearPeriod??0;
+                operCosts = asset.OperatingCosts;
+                operEscalation = asset.OperatingCostsEscalation;
+                coporateTax = asset.CorporateTaxRate;
             }
             else
             {
-                refurbish = "";
-                lease = "";
+                leaseIncome = "";
+                leaseTerm = 0;
+                escalationRate = "";
+                useAfterRefurb = 0;
+                wearTearPeriod = 0;
+                operCosts = "";
+                operEscalation = "";
+                coporateTax = "";
+            }
+
+            // ADD ↓
+            var loco = await _context.LocoDashboards
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.LocoNumber == locoNumber);
+
+            // ADD ↓
+            string? totalCost = string.Empty;
+
+            if (loco != null)
+            {
+                decimal tc = ParseDecimalSafe(loco.TotalValue);
+                totalCost = tc.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else
+            {
+                decimal rev = ParseDecimalSafe(loco?.RefurbishValue);
+                decimal mv = ParseDecimalSafe(loco?.MissingValue);
+                decimal rpv = ParseDecimalSafe(loco?.ReplaceValue);
+                decimal lv = ParseDecimalSafe(loco?.TotalLaborValue);
+
+                decimal tv = rev + mv + rpv + lv;
+
+                totalCost = tv.ToString("N2", new CultureInfo("en-ZA"));
             }
 
             return Ok(new
             {
-                LocoType = master.LocoClass, //PLEASE ADJUST (NEW)
+                LocoType = master.LocoClass,
                 NetBookValue = netBook ?? "0.00",
-                ScrapValue = scrapVal ?? "0.00",
+                ScrapValue = scrapValue ?? "0.00",
                 ScrappingCost = "",
-                RefurbishmentCost = refurbish, //PLEASE ADJUST (NEW)
-                LeaseTerm = "",
-                LeaseIncome = lease, //PLEASE ADJUST (NEW)
-                EscalationRate = "",
-                UseAfterRefurbish = "",
+                NewScrapValue = "",
+                TotalCost = totalCost,
+                LeaseTerm = leaseTerm,
+                LeaseIncome = leaseIncome,
+                EscalationRate = escalationRate,
+                UseAfterRefurbish = useAfterRefurb,
                 ResidualValue = "",
                 PostTax = wacc?.PostTax ?? "0.00",
-                WearTearPeriod = "",
-                OperatingCosts = "",
-                OperatingCostsEscalation = "",
-                CorporateTaxRate = "",
+                WearTearPeriod = wearTearPeriod,
+                OperatingCosts = operCosts,
+                OperatingCostsEscalation = operEscalation,
+                CorporateTaxRate = coporateTax,
                 PreTax = wacc?.PreTax ?? "0.00",
             });
         }
 
+        // ADJUST ENTIRE METHOD ↓
         [HttpPost("updateInsertLoco")]
         public async Task<IActionResult> UpdateInsertLoco([FromForm] InputLoco loco)
         {
@@ -553,10 +651,26 @@ namespace AviAppFinal.Server.Controllers
                     {
                         input.LocoNumber = loco.LocoNumber;
                         input.LocoType = loco.LocoType ?? "N/A";
-                        input.NetBookValue = loco.NetBookValue ?? "0.00";
-                        input.ScrapValue = loco.ScrapValue ?? "0.00";
-                        input.RefurbishmentCost = loco.RefurbishmentCost ?? "0.00"; //PLEASE ADD (NEW)
-                        input.LeaseIncome = loco.LeaseIncome ?? "0.00"; //PLEASE ADD (NEW)
+
+                        if (loco.NetBookValue == input.NetBookValue)
+                        {
+                            input.NetBookValue = loco.NetBookValue;
+                        }
+                        else
+                        {
+                            decimal nbv = ParseDecimalSafe(loco.NetBookValue);
+                            input.NetBookValue = nbv.ToString("N2", new CultureInfo("en-ZA"));
+                        }
+
+                        if (loco.ScrapValue == input.ScrapValue)
+                        {
+                            input.ScrapValue = loco.ScrapValue;
+                        }
+                        else
+                        {
+                            decimal sv = ParseDecimalSafe(loco.ScrapValue);
+                            input.ScrapValue = sv.ToString("N2", new CultureInfo("en-ZA"));
+                        }
 
                         if (loco.ScrappingCost == input.ScrappingCost)
                         {
@@ -568,19 +682,20 @@ namespace AviAppFinal.Server.Controllers
                             input.ScrappingCost = scvc.ToString("N2", new CultureInfo("en-ZA"));
                         }
 
-                        input.LeaseTerm = loco.LeaseTerm;
-
-
-                        if (loco.EscalationRate == input.EscalationRate)
+                        if (loco.NewScrapValue == input.NewScrapValue)
                         {
-                            input.EscalationRate = loco.EscalationRate;
+                            input.NewScrapValue = loco.NewScrapValue;
                         }
                         else
                         {
-                            decimal er = ParseDecimalSafe(loco.EscalationRate);
-                            input.EscalationRate = er.ToString("N2", new CultureInfo("en-ZA"));
+                            decimal nsv = ParseDecimalSafe(loco.NewScrapValue);
+                            input.NewScrapValue = nsv.ToString("N2", new CultureInfo("en-ZA"));
                         }
 
+                        input.TotalCost = loco.TotalCost ?? "0.00";
+                        input.LeaseIncome = loco.LeaseIncome ?? "0.00";
+                        input.LeaseTerm = loco.LeaseTerm;
+                        input.EscalationRate = loco.EscalationRate ?? "0.00";
                         input.UseAfterRefurbish = loco.UseAfterRefurbish;
 
                         if (loco.ResidualValue == input.ResidualValue)
@@ -595,37 +710,9 @@ namespace AviAppFinal.Server.Controllers
 
                         input.PostTax = loco.PostTax ?? "0.00";
                         input.WearTearPeriod = loco.WearTearPeriod;
-
-                        if (loco.OperatingCosts == input.OperatingCosts)
-                        {
-                            input.OperatingCosts = loco.OperatingCosts;
-                        }
-                        else
-                        {
-                            decimal opc = ParseDecimalSafe(loco.OperatingCosts);
-                            input.OperatingCosts = opc.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
-                        if (loco.OperatingCostsEscalation == input.OperatingCostsEscalation)
-                        {
-                            input.OperatingCostsEscalation = loco.OperatingCostsEscalation;
-                        }
-                        else
-                        {
-                            decimal opce = ParseDecimalSafe(loco.OperatingCostsEscalation);
-                            input.OperatingCostsEscalation = opce.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
-                        if (loco.CorporateTaxRate == input.CorporateTaxRate)
-                        {
-                            input.CorporateTaxRate = loco.CorporateTaxRate;
-                        }
-                        else
-                        {
-                            decimal scvc = ParseDecimalSafe(loco.CorporateTaxRate);
-                            input.CorporateTaxRate = scvc.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
+                        input.OperatingCosts = loco.OperatingCosts ?? "0.00";
+                        input.OperatingCostsEscalation = loco.OperatingCostsEscalation ?? "0.00";
+                        input.CorporateTaxRate = loco.CorporateTaxRate ?? "0.00";
                         input.PreTax = loco.PreTax ?? "0.00";
                         input.DateSaved = DateTime.Now.ToString("yyyy-MM-dd");
                         input.SavedBy = userName ?? "N/A";
@@ -649,31 +736,39 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
+                // ADD ↓
+                decimal nbv = ParseDecimalSafe(loco.NetBookValue);
+                decimal sv = ParseDecimalSafe(loco.ScrapValue);
                 decimal scvc = ParseDecimalSafe(loco.ScrappingCost);
+                decimal nsv = ParseDecimalSafe(loco.NewScrapValue);
                 decimal rsv = ParseDecimalSafe(loco.ResidualValue);
-                decimal opc = ParseDecimalSafe(loco.OperatingCosts);
-                decimal er = ParseDecimalSafe(loco.EscalationRate);
-                decimal opce = ParseDecimalSafe(loco.OperatingCostsEscalation);
-                decimal ctr = ParseDecimalSafe(loco.CorporateTaxRate);
 
+                // REMOVE ↓
+                //decimal opc = ParseDecimalSafe(loco.OperatingCosts);
+                //decimal er = ParseDecimalSafe(loco.EscalationRate);
+                //decimal opce = ParseDecimalSafe(loco.OperatingCostsEscalation);
+                //decimal ctr = ParseDecimalSafe(loco.CorporateTaxRate);
+
+                // ADD & ADJUST ↓
                 var inputEntry = new LocoInput
                 {
                     LocoNumber = loco.LocoNumber,
                     LocoType = loco.LocoType ?? "N/A",
-                    NetBookValue = loco.NetBookValue ?? "0.00",
-                    ScrapValue = loco.ScrapValue ?? "0.00",
+                    NetBookValue = nbv.ToString("N2", new CultureInfo("en-ZA")),
+                    ScrapValue = sv.ToString("N2", new CultureInfo("en-ZA")),
                     ScrappingCost = scvc.ToString("N2", new CultureInfo("en-ZA")),
-                    RefurbishmentCost = loco.RefurbishmentCost ?? "0.00", //PLEASE ADJUST (NEW)
+                    NewScrapValue = nsv.ToString("N2", new CultureInfo("en-ZA")),
+                    TotalCost = loco.TotalCost ?? "0.00",
                     LeaseTerm = loco.LeaseTerm,
-                    LeaseIncome = loco.LeaseIncome ?? "0.00", //PLEASE ADJUST (NEW)
-                    EscalationRate = er.ToString("N2", new CultureInfo("en-ZA")),
+                    LeaseIncome = loco.LeaseIncome ?? "0.00",
+                    EscalationRate = loco.EscalationRate ?? "0.00",
                     UseAfterRefurbish = loco.UseAfterRefurbish,
                     ResidualValue = rsv.ToString("N2", new CultureInfo("en-ZA")),
                     PostTax = loco.PostTax ?? "0.00",
                     WearTearPeriod = loco.WearTearPeriod,
-                    OperatingCosts = opc.ToString("N2", new CultureInfo("en-ZA")),
-                    OperatingCostsEscalation = opce.ToString("N2", new CultureInfo("en-ZA")),
-                    CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA")),
+                    OperatingCosts = loco.OperatingCosts ?? "0.00",
+                    OperatingCostsEscalation = loco.OperatingCostsEscalation ?? "0.00",
+                    CorporateTaxRate = loco.CorporateTaxRate ?? "0.00",
                     PreTax = loco.PreTax ?? "0.00",
                     DateSaved = DateTime.Now.ToString("yyyy-MM-dd"),
                     SavedBy = userName ?? "N/A",
@@ -689,6 +784,33 @@ namespace AviAppFinal.Server.Controllers
             {
                 return StatusCode(500, new { error = "Insert failed.", detail = ex.Message });
             }
+        }
+
+        // ADD ENTIRE METHOD ↓
+        [HttpPost("calNewScrapVal")]
+        public IActionResult CalNewScrapVal([FromBody] ScrapCalRequest req)
+        {
+            decimal sv;
+            decimal sc;
+            decimal nsv;
+
+            string newScrapValue;
+
+            if (!string.IsNullOrWhiteSpace(req.ScrapValue) && !string.IsNullOrWhiteSpace(req.ScrappingCost))
+            {
+                sv = ParseDecimalSafe(req.ScrapValue);
+                sc = ParseDecimalSafe(req.ScrappingCost);
+
+                nsv = sv + sc;
+
+                newScrapValue = nsv.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else
+            {
+                newScrapValue = "0.00";
+            }
+
+            return Ok(new { newScrapValue });
         }
 
         [HttpGet("getInputWagons")]
@@ -717,6 +839,7 @@ namespace AviAppFinal.Server.Controllers
             return Ok(locoInput);
         }
 
+        // ADJUST ENTIRE METHOD ↓
         [HttpPost("insertUpdateAsset")]
         public async Task<IActionResult> InsertUpdateAsset([FromForm] AssetSet assetSet)
         {
@@ -739,35 +862,252 @@ namespace AviAppFinal.Server.Controllers
                     var asset = await _context.AssetTypeSetups
                         .FirstOrDefaultAsync(a => a.AssetType == assetSet.AssetType);
 
+                    var wagonInput = await _context.WagonInputs
+                        .Where(w => w.WagonType == assetSet.AssetType)
+                        .ToListAsync();
+
+                    var locoInput = await _context.LocoInputs
+                        .Where(w => w.LocoType == assetSet.AssetType)
+                        .ToListAsync();
+
                     if (asset != null)
                     {
                         asset.AssetType = assetSet.AssetType;
 
-                        if (assetSet.RefurbishmentCost == asset.RefurbishmentCost)
-                        {
-                            asset.RefurbishmentCost = assetSet.RefurbishmentCost;
-                        }
-                        else
-                        {
-                            decimal refurbish = ParseDecimalSafe(assetSet.RefurbishmentCost);
-                            asset.RefurbishmentCost = refurbish.ToString("N2", new CultureInfo("en-ZA"));
-                        }
-
                         if (assetSet.LeaseIncome == asset.LeaseIncome)
                         {
                             asset.LeaseIncome = assetSet.LeaseIncome;
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.LeaseIncome = assetSet.LeaseIncome;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.LeaseIncome = assetSet.LeaseIncome;
+                                }
+                            }
                         }
                         else
                         {
-                            decimal lease = ParseDecimalSafe(assetSet.LeaseIncome);
-                            asset.LeaseIncome = lease.ToString("N2", new CultureInfo("en-ZA"));
+                            decimal leaseIncome = ParseDecimalSafe(assetSet.LeaseIncome);
+                            asset.LeaseIncome = leaseIncome.ToString("N2", new CultureInfo("en-ZA"));
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.LeaseIncome = leaseIncome.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.LeaseIncome = leaseIncome.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
                         }
 
                         asset.DateSaved = DateTime.Now.ToString("yyyy-MM-dd");
 
                         asset.SavedBy = userName;
 
+                        asset.LeaseTerm = assetSet.LeaseTerm;
+
+                        if (assetSet.EscalationRate == asset.EscalationRate)
+                        {
+                            asset.EscalationRate = assetSet.EscalationRate;
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.EscalationRate = assetSet.EscalationRate;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.EscalationRate = assetSet.EscalationRate;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            decimal er = ParseDecimalSafe(assetSet.EscalationRate);
+                            asset.EscalationRate = er.ToString("N2", new CultureInfo("en-ZA"));
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.EscalationRate = er.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.EscalationRate = er.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                        }
+
+                        asset.UseAfterRefurbish = assetSet.UseAfterRefurbish;
+                        asset.WearTearPeriod = assetSet.WearTearPeriod;
+
+                        if (assetSet.OperatingCosts == asset.OperatingCosts)
+                        {
+                            asset.OperatingCosts = assetSet.OperatingCosts;
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.OperatingCosts = assetSet.OperatingCosts;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.OperatingCosts = assetSet.OperatingCosts;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            decimal oc = ParseDecimalSafe(assetSet.OperatingCosts);
+                            asset.OperatingCosts = oc.ToString("N2", new CultureInfo("en-ZA"));
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.OperatingCosts = oc.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.OperatingCosts = oc.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                        }
+
+                        if (assetSet.OperatingCostsEscalation == asset.OperatingCostsEscalation)
+                        {
+                            asset.OperatingCostsEscalation = assetSet.OperatingCostsEscalation;
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.OperatingCostsEscalation = assetSet.OperatingCostsEscalation;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.OperatingCostsEscalation = assetSet.OperatingCostsEscalation;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            decimal oce = ParseDecimalSafe(assetSet.OperatingCostsEscalation);
+                            asset.OperatingCostsEscalation = oce.ToString("N2", new CultureInfo("en-ZA"));
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.OperatingCostsEscalation = oce.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.OperatingCostsEscalation = oce.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                        }
+
+                        if (assetSet.CorporateTaxRate == asset.CorporateTaxRate)
+                        {
+                            asset.CorporateTaxRate = assetSet.CorporateTaxRate;
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.CorporateTaxRate = assetSet.CorporateTaxRate;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.CorporateTaxRate = assetSet.CorporateTaxRate;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            decimal ctr = ParseDecimalSafe(assetSet.CorporateTaxRate);
+                            asset.CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA"));
+
+                            if (wagonInput.Count != 0)
+                            {
+                                foreach (var wagon in wagonInput)
+                                {
+                                    wagon.CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                            else if (locoInput.Count != 0)
+                            {
+                                foreach (var loco in locoInput)
+                                {
+                                    loco.CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA")); ;
+                                }
+                            }
+                        }
+
                         _context.AssetTypeSetups.Update(asset);
+
+                        if (wagonInput.Count != 0)
+                        {
+                            foreach (var wagon in wagonInput)
+                            {
+                                wagon.LeaseTerm = assetSet.LeaseTerm;
+                                wagon.UseAfterRefurbish = assetSet.UseAfterRefurbish;
+                                wagon.WearTearPeriod = assetSet.WearTearPeriod;
+
+                                _context.WagonInputs.Update(wagon);
+                            }
+                        }
+                        else if (locoInput.Count != 0)
+                        {
+                            foreach (var loco in locoInput)
+                            {
+                                loco.LeaseTerm = assetSet.LeaseTerm;
+                                loco.UseAfterRefurbish = assetSet.UseAfterRefurbish;
+                                loco.WearTearPeriod = assetSet.WearTearPeriod;
+
+                                _context.LocoInputs.Update(loco);
+                            }
+                        }
+
                         await _context.SaveChangesAsync();
 
                         return Ok(new { message = "Asset setup updated successfully." });
@@ -785,16 +1125,26 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                decimal refurbish = ParseDecimalSafe(assetSet.RefurbishmentCost);
-                decimal lease = ParseDecimalSafe(assetSet.LeaseIncome);
+                decimal leaseIncome = ParseDecimalSafe(assetSet.LeaseIncome);
+                decimal er = ParseDecimalSafe(assetSet.EscalationRate);
+                decimal oc = ParseDecimalSafe(assetSet.OperatingCosts);
+                decimal oce = ParseDecimalSafe(assetSet.OperatingCostsEscalation);
+                decimal ctr = ParseDecimalSafe(assetSet.CorporateTaxRate);
 
                 var assetEntry = new AssetTypeSetup
                 {
                     AssetType = assetSet.AssetType,
-                    RefurbishmentCost = refurbish.ToString("N2", new CultureInfo("en-ZA")),
-                    LeaseIncome = lease.ToString("N2", new CultureInfo("en-ZA")),
+                    LeaseIncome = leaseIncome.ToString("N2", new CultureInfo("en-ZA")),
                     DateSaved = DateTime.Now.ToString("yyyy-MM-dd"),
                     SavedBy = userName,
+                    LeaseTerm = assetSet.LeaseTerm,
+                    EscalationRate = er.ToString("N2", new CultureInfo("en-ZA")),
+                    UseAfterRefurbish = assetSet.UseAfterRefurbish,
+                    WearTearPeriod = assetSet.WearTearPeriod,
+                    OperatingCosts = oc.ToString("N2", new CultureInfo("en-ZA")),
+                    OperatingCostsEscalation = oce.ToString("N2", new CultureInfo("en-ZA")),
+                    CorporateTaxRate = ctr.ToString("N2", new CultureInfo("en-ZA"))
+
                 };
 
                 _context.AssetTypeSetups.Add(assetEntry);
@@ -808,7 +1158,7 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        //PLEASE ADD (NEW)
+        // AJUST ENTIRE METHOD ↓
         [HttpGet("getInfoAsset/{assetType}")]
         public async Task<IActionResult> GetInfoAsset(string assetType)
         {
@@ -826,21 +1176,33 @@ namespace AviAppFinal.Server.Controllers
 
                 return Ok(new
                 {
-                    asset.RefurbishmentCost,
                     asset.LeaseIncome,
+                    asset.LeaseTerm,
+                    asset.EscalationRate,
+                    asset.UseAfterRefurbish,
+                    asset.WearTearPeriod,
+                    asset.OperatingCosts,
+                    asset.OperatingCostsEscalation,
+                    asset.CorporateTaxRate
                 });
             }
             else
             {
                 return Ok(new
                 {
-                    RefurbishmentCost = "",
                     LeaseIncome = "",
+                    LeaseTerm = 0,
+                    EscalationRate = "",
+                    UseAfterRefurbish = 0,
+                    WearTearPeriod = 0,
+                    OperatingCosts = "",
+                    OperatingCostsEscalation = "",
+                    CorporateTaxRate = ""
                 });
             }
         }
 
-        //PLEASE ADD (NEW)
+        // MULTIPLE CHANGES PLEASE ADJUST ↓
         [HttpGet("generateDcfWagon/{wagonNumber}")]
         public async Task<IActionResult> GenerateDcfWagon(int wagonNumber)
         {
@@ -850,20 +1212,30 @@ namespace AviAppFinal.Server.Controllers
             if (input == null)
                 return BadRequest("Wagon does not exist.");
 
-            double scrapCost = Convert.ToDouble(input.ScrappingCost);
-            double scrapValue = Convert.ToDouble(input.ScrapValue);
-            double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
-            double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
-            int leaseTerm = Convert.ToInt32(input.LeaseTerm);
-            double leaseIncome = Convert.ToDouble(input.LeaseIncome);
-            double escalationRate = Convert.ToDouble(input.EscalationRate) / 100;
-            int wearTear = Convert.ToInt32(input.WearTearPeriod);
-            double operatingCosts = Convert.ToDouble(input.OperatingCosts);
-            double operatingEscalation = Convert.ToDouble(input.OperatingCostsEscalation) / 100;
-            double residualValue = Convert.ToDouble(input.ResidualValue);
-            double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
-            double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
-            double netBook = Convert.ToDouble(input.NetBookValue);
+            double scrapCost = ParseDoubleSafe(input.ScrappingCost);
+            double scrapValue = ParseDoubleSafe(input.ScrapValue);
+            double refurbishCost = ParseDoubleSafe(input.TotalCost);
+            double corporateTax = ParseDoubleSafe(input.CorporateTaxRate) / 100;
+
+            int leaseTerm = ParseIntSafe(input.LeaseTerm);
+
+            double leaseIncome = ParseDoubleSafe(input.LeaseIncome);
+            double escalationRate = ParseDoubleSafe(input.EscalationRate) / 100;
+
+            int wearTear = ParseIntSafe(input.WearTearPeriod);
+
+            double operatingCosts = ParseDoubleSafe(input.OperatingCosts);
+            double operatingEscalation = ParseDoubleSafe(input.OperatingCostsEscalation) / 100;
+
+            double residualValue = ParseDoubleSafe(input.ResidualValue);
+
+            double waccPre = ParseDoubleSafe(input.PreTax) / 100;
+            double waccPost = ParseDoubleSafe(input.PostTax) / 100;
+
+            double netBook = ParseDoubleSafe(input.NetBookValue);
+
+
+            //1ST ROW
 
             //C2
             double totalScrapValue = scrapValue + scrapCost;
@@ -872,7 +1244,9 @@ namespace AviAppFinal.Server.Controllers
             double J2 = (totalScrapValue + refurbishCost) * -1;
 
             //N2
-            double N2 = -totalScrapValue * 1 * (1 - corporateTax);
+            double N2 = (totalScrapValue + refurbishCost) * -1;
+
+            //2ND ROW
 
             //B3
             double B3 = (1 <= leaseTerm)
@@ -917,6 +1291,8 @@ namespace AviAppFinal.Server.Controllers
             //N3
             double N3 = L3 * M3;
 
+            //3RD ROW
+
             //B4
             double B4 = (2 <= leaseTerm)
                 ? leaseIncome * Math.Pow(1 + escalationRate, 2 - 1)
@@ -951,13 +1327,17 @@ namespace AviAppFinal.Server.Controllers
             //K4
             double K4 = H4 * corporateTax;
 
+            //L4
+            double L4 = H4 - K4;
+
             //M4
             double M4 = 1 / Math.Pow(1 + waccPost, 2);
 
             //N4
             double N4 = H4 * M4;
 
-            //FOURTH ROW
+            //4TH ROW
+
             //B5
             double B5 = (3 <= leaseTerm)
                 ? leaseIncome * Math.Pow(1 + escalationRate, 3 - 1)
@@ -992,13 +1372,17 @@ namespace AviAppFinal.Server.Controllers
             //K5
             double K5 = H5 * corporateTax;
 
+            //L5
+            double L5 = H5 - K5;
+
             //M5
             double M5 = 1 / Math.Pow(1 + waccPost, 3);
 
             //N5
             double N5 = H5 * M5;
 
-            //FIFTH ROW
+            //5TH ROW
+
             //B6
             double B6 = (4 <= leaseTerm)
                 ? leaseIncome * Math.Pow(1 + escalationRate, 4 - 1)
@@ -1032,6 +1416,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K6
             double K6 = H6 * corporateTax;
+
+            //L6
+            double L6 = H6 - K6;
 
             //M6
             double M6 = 1 / Math.Pow(1 + waccPost, 4);
@@ -1074,6 +1461,9 @@ namespace AviAppFinal.Server.Controllers
             //K7
             double K7 = H7 * corporateTax;
 
+            //L7
+            double L7 = H7 - K7;
+
             //M7
             double M7 = 1 / Math.Pow(1 + waccPost, 5);
 
@@ -1114,6 +1504,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K8
             double K8 = H8 * corporateTax;
+
+            //L8
+            double L8 = H8 - K8;
 
             //M8
             double M8 = 1 / Math.Pow(1 + waccPost, 6);
@@ -1156,6 +1549,9 @@ namespace AviAppFinal.Server.Controllers
             //K9
             double K9 = H9 * corporateTax;
 
+            //L9
+            double L9 = H9 - K9;
+
             //M9
             double M9 = 1 / Math.Pow(1 + waccPost, 7);
 
@@ -1196,6 +1592,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K10
             double K10 = H10 * corporateTax;
+
+            //L10
+            double L10 = H10 - K10;
 
             //M10
             double M10 = 1 / Math.Pow(1 + waccPost, 8);
@@ -1238,6 +1637,9 @@ namespace AviAppFinal.Server.Controllers
             //K11
             double K11 = H11 * corporateTax;
 
+            //L11
+            double L11 = H11 - K11;
+
             //M11
             double M11 = 1 / Math.Pow(1 + waccPost, 9);
 
@@ -1278,6 +1680,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K12
             double K12 = H12 * corporateTax;
+
+            //L12
+            double L12 = H12 - K12;
 
             //M12
             double M12 = 1 / Math.Pow(1 + waccPost, 10);
@@ -1320,6 +1725,9 @@ namespace AviAppFinal.Server.Controllers
             //K13
             double K13 = H13 * corporateTax;
 
+            //L13
+            double L13 = H13 - K13;
+
             //M13
             double M13 = 1 / Math.Pow(1 + waccPost, 11);
 
@@ -1360,6 +1768,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K14
             double K14 = H14 * corporateTax;
+
+            //L14
+            double L14 = H14 - K14;
 
             //M14
             double M14 = 1 / Math.Pow(1 + waccPost, 12);
@@ -1402,6 +1813,9 @@ namespace AviAppFinal.Server.Controllers
             //K15
             double K15 = H15 * corporateTax;
 
+            //L15
+            double L15 = H15 - K15;
+
             //M15
             double M15 = 1 / Math.Pow(1 + waccPost, 13);
 
@@ -1442,6 +1856,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K16
             double K16 = H16 * corporateTax;
+
+            //L16
+            double L16 = H16 - K16;
 
             //M16
             double M16 = 1 / Math.Pow(1 + waccPost, 14);
@@ -1484,6 +1901,9 @@ namespace AviAppFinal.Server.Controllers
             //K17
             double K17 = H17 * corporateTax;
 
+            //L17
+            double L17 = H17 - K17;
+
             //M17
             double M17 = 1 / Math.Pow(1 + waccPost, 15);
 
@@ -1524,6 +1944,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K18
             double K18 = H18 * corporateTax;
+
+            //L18
+            double L18 = H18 - K18;
 
             //M18
             double M18 = 1 / Math.Pow(1 + waccPost, 16);
@@ -1566,6 +1989,9 @@ namespace AviAppFinal.Server.Controllers
             //K19
             double K19 = H19 * corporateTax;
 
+            //L19
+            double L19 = H19 - K19;
+
             //M19
             double M19 = 1 / Math.Pow(1 + waccPost, 17);
 
@@ -1606,6 +2032,9 @@ namespace AviAppFinal.Server.Controllers
 
             //K20
             double K20 = H20 * corporateTax;
+
+            //L20
+            double L20 = H20 - K20;
 
             //M20
             double M20 = 1 / Math.Pow(1 + waccPost, 18);
@@ -1648,6 +2077,9 @@ namespace AviAppFinal.Server.Controllers
             //K21
             double K21 = H21 * corporateTax;
 
+            //L21
+            double L21 = H21 - K21;
+
             //M21
             double M21 = 1 / Math.Pow(1 + waccPost, 19);
 
@@ -1689,6 +2121,9 @@ namespace AviAppFinal.Server.Controllers
             //K22
             double K22 = H22 * corporateTax;
 
+            //L22
+            double L22 = H22 - K22;
+
             //M22
             double M22 = 1 / Math.Pow(1 + waccPost, 20);
 
@@ -1707,6 +2142,28 @@ namespace AviAppFinal.Server.Controllers
             double P23 = (N23 >= 0)
                 ? netBook + refurbishCost
                 : 0;
+
+            //23RD ROW
+            string stat1;
+            string stat2;
+
+            if (J23 >= 0)
+            {
+                stat1 = "REFURBISH";
+            }
+            else
+            {
+                stat1 = "SCRAP";
+            }
+
+            if (N23 >= 0)
+            {
+                stat2 = "REFURBISH";
+            }
+            else
+            {
+                stat2 = "SCRAP";
+            }
 
             using (var workbook = new XLWorkbook())
             {
@@ -1750,7 +2207,7 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("J2").Style.NumberFormat.Format = "#,##0.00";
                 ws.Cell("K2").Value = "-";
                 ws.Cell("L2").Value = "-";
-                ws.Cell("M2").Value = 1;
+                ws.Cell("M2").Value = -1;
                 ws.Cell("M2").Style.NumberFormat.Format = "0";
                 ws.Cell("N2").Value = N2;
                 ws.Cell("N2").Style.NumberFormat.Format = "#,##0.00";
@@ -1824,7 +2281,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H4 * Inputs!$B$20
                 ws.Cell("K4").Value = K4;
                 ws.Cell("K4").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L4").Value = "-";
+                ws.Cell("L4").Value = L4;
+                ws.Cell("L4").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$16)^A4
                 ws.Cell("M4").Value = M4;
                 ////= H4 * O4
@@ -1861,7 +2319,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H5 * Inputs!$B$20
                 ws.Cell("K5").Value = K5;
                 ws.Cell("K5").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L5").Value = "-";
+                ws.Cell("L5").Value = L5;
+                ws.Cell("L5").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$16)^A5
                 ws.Cell("M5").Value = M5;
                 ////= H5 * O5
@@ -1898,7 +2357,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H6 * Inputs!$B$20
                 ws.Cell("K6").Value = K6;
                 ws.Cell("K6").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L6").Value = "-";
+                ws.Cell("L6").Value = L6;
+                ws.Cell("L6").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$16)^A6
                 ws.Cell("M6").Value = M6;
                 ////= H6 * O6
@@ -1935,7 +2395,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H7 * Inputs!$B$20
                 ws.Cell("K7").Value = K7;
                 ws.Cell("K7").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L7").Value = "-";
+                ws.Cell("L7").Value = L7;
+                ws.Cell("L7").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$17)^A7
                 ws.Cell("M7").Value = M7;
                 ////= H7 * O7
@@ -1972,7 +2433,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H8 * Inputs!$B$20
                 ws.Cell("K8").Value = K8;
                 ws.Cell("K8").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L8").Value = "-";
+                ws.Cell("L8").Value = L8;
+                ws.Cell("L8").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$18)^A8
                 ws.Cell("M8").Value = M8;
                 ////= H8 * O8
@@ -2009,7 +2471,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H9 * Inputs!$B$20
                 ws.Cell("K9").Value = K9;
                 ws.Cell("K9").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L9").Value = "-";
+                ws.Cell("L9").Value = L9;
+                ws.Cell("L9").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$19)^A9
                 ws.Cell("M9").Value = M9;
                 ////= H9 * O9
@@ -2046,7 +2509,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H10 * Inputs!$B$20
                 ws.Cell("K10").Value = K10;
                 ws.Cell("K10").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L10").Value = "-";
+                ws.Cell("L10").Value = L10;
+                ws.Cell("L10").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$110)^A10
                 ws.Cell("M10").Value = M10;
                 ////= H10 * O10
@@ -2083,7 +2547,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H11 * Inputs!$B$20
                 ws.Cell("K11").Value = K11;
                 ws.Cell("K11").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L11").Value = "-";
+                ws.Cell("L11").Value = L11;
+                ws.Cell("L11").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$111)^A11
                 ws.Cell("M11").Value = M11;
                 ////= H11 * O11
@@ -2120,7 +2585,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H12 * Inputs!$B$20
                 ws.Cell("K12").Value = K12;
                 ws.Cell("K12").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L12").Value = "-";
+                ws.Cell("L12").Value = L12;
+                ws.Cell("L12").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$112)^A12
                 ws.Cell("M12").Value = M12;
                 ////= H12 * O12
@@ -2157,7 +2623,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H13 * Inputs!$B$20
                 ws.Cell("K13").Value = K13;
                 ws.Cell("K13").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L13").Value = "-";
+                ws.Cell("L13").Value = L13;
+                ws.Cell("L13").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$113)^A13
                 ws.Cell("M13").Value = M13;
                 ////= H13 * O13
@@ -2194,7 +2661,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H14 * Inputs!$B$20
                 ws.Cell("K14").Value = K14;
                 ws.Cell("K14").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L14").Value = "-";
+                ws.Cell("L14").Value = L14;
+                ws.Cell("L14").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$114)^A14
                 ws.Cell("M14").Value = M14;
                 ////= H14 * O14
@@ -2231,7 +2699,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H15 * Inputs!$B$20
                 ws.Cell("K15").Value = K15;
                 ws.Cell("K15").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L15").Value = "-";
+                ws.Cell("L15").Value = L15;
+                ws.Cell("L15").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$115)^A15
                 ws.Cell("M15").Value = M15;
                 ////= H15 * O15
@@ -2268,7 +2737,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H16 * Inputs!$B$20
                 ws.Cell("K16").Value = K16;
                 ws.Cell("K16").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L16").Value = "-";
+                ws.Cell("L16").Value = L16;
+                ws.Cell("L16").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$116)^A16
                 ws.Cell("M16").Value = M16;
                 ////= H16 * O16
@@ -2305,7 +2775,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H17 * Inputs!$B$20
                 ws.Cell("K17").Value = K17;
                 ws.Cell("K17").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L17").Value = "-";
+                ws.Cell("L17").Value = L17;
+                ws.Cell("L17").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$117)^A17
                 ws.Cell("M17").Value = M17;
                 ////= H17 * O17
@@ -2342,7 +2813,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H18 * Inputs!$B$20
                 ws.Cell("K18").Value = K18;
                 ws.Cell("K18").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L18").Value = "-";
+                ws.Cell("L18").Value = L18;
+                ws.Cell("L18").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$118)^A18
                 ws.Cell("M18").Value = M18;
                 ////= H18 * O18
@@ -2379,7 +2851,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H19 * Inputs!$B$20
                 ws.Cell("K19").Value = K19;
                 ws.Cell("K19").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L19").Value = "-";
+                ws.Cell("L19").Value = L19;
+                ws.Cell("L19").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$119)^A19
                 ws.Cell("M19").Value = M19;
                 ////= H19 * O19
@@ -2416,7 +2889,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H20 * Inputs!$B$20
                 ws.Cell("K20").Value = K20;
                 ws.Cell("K20").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L20").Value = "-";
+                ws.Cell("L20").Value = L20;
+                ws.Cell("L20").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$120)^A20
                 ws.Cell("M20").Value = M20;
                 ////= H20 * O20
@@ -2453,7 +2927,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H21 * Inputs!$B$20
                 ws.Cell("K21").Value = K21;
                 ws.Cell("K21").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L21").Value = "-";
+                ws.Cell("L21").Value = L21;
+                ws.Cell("L21").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$121)^A21
                 ws.Cell("M21").Value = M21;
                 ////= H21 * O21
@@ -2490,7 +2965,8 @@ namespace AviAppFinal.Server.Controllers
                 ////= H22 * Inputs!$B$20
                 ws.Cell("K22").Value = K22;
                 ws.Cell("K22").Style.NumberFormat.Format = "#,##0.00";
-                ws.Cell("L22").Value = "-";
+                ws.Cell("L22").Value = L22;
+                ws.Cell("L22").Style.NumberFormat.Format = "#,##0.00";
                 ////= 1 / (1 + Inputs!$B$122)^A22
                 ws.Cell("M22").Value = M22;
                 ////= H22 * O22
@@ -2529,7 +3005,6 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("P23").Style.Font.Bold = true;
                 ws.Cell("P23").Style.Fill.BackgroundColor = XLColor.LightGray;
 
-                //PLEASE ADD (NEW)
                 //23RD ROW
                 ws.Cell("A24").Value = "-";
                 ws.Cell("B24").Value = "-";
@@ -2540,15 +3015,33 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("G24").Value = "-";
                 ws.Cell("H24").Value = "-";
                 ws.Cell("I24").Value = "-";
-                ws.Cell("J24").Value = "SCRAP";
+                ws.Cell("J24").Value = stat1;
                 ws.Cell("J24").Style.Font.Bold = true;
-                ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Red;
+
+                if (stat1 == "REFURBISH")
+                {
+                    ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Green;
+                }
+                else
+                {
+                    ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Red;
+                }
+
                 ws.Cell("K24").Value = "-";
                 ws.Cell("L24").Value = "-";
                 ws.Cell("M24").Value = "-";
-                ws.Cell("N24").Value = "REFURBISH";
+                ws.Cell("N24").Value = stat2;
                 ws.Cell("N24").Style.Font.Bold = true;
-                ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Green;
+
+                if (stat2 == "REFURBISH")
+                {
+                    ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Green;
+                }
+                else
+                {
+                    ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Red;
+                }
+
                 ws.Cell("O24").Value = "-";
                 ws.Cell("P24").Value = "-";
 
@@ -2561,14 +3054,69 @@ namespace AviAppFinal.Server.Controllers
                 {
                     workbook.SaveAs(stream);
                     var content = stream.ToArray();
-                    return File(content,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                $"{wagonNumber}_DCF_Report.xlsx");
+
+                    var formulas = new Dictionary<string, string>();
+
+                    formulas["C2"] = "Scrap Value + Scrapping Cost";
+                    formulas["F2"] = "Return to Service Cost from Dashboard";
+                    formulas["J2"] = "(C2 + F2) * I2";
+                    formulas["N2"] = "(C2 + F2) * M2";
+                    formulas["E3"] = "IF(A3 <= Lease Term; Operating Costs; 0)";
+                    formulas["N3"] = "L3 * M3";
+                    formulas["J23"] = "SUM(J2 : J22)";
+                    formulas["N23"] = "SUM(N2 : N22)";
+                    formulas["O23"] = "IF(J23 >= 0; (Net Book Value + F2); 0)";
+                    formulas["P23"] = "IF(N23 >= 0; (Net Book Value + F2); 0)";
+                    formulas["J24"] = "IF(J23 >= 0; \"Refurbish\"; \"Scrap\")";
+                    formulas["N24"] = "IF(N23 >= 0; \"Refurbish\"; \"Scrap\")";
+
+                    for (int r = 3; r <= 22; r++)
+                    {
+                        formulas[$"B{r}"] = $"IF(A{r} <= Lease Term; Lease Income * (1 + Escalation Rate)^(A{r} - 1) ; 0)";
+                        formulas[$"D{r}"] = $"IF(A{r} <= MIN(Lease Term; Wear & Tear Period); F2 / MIN(Lease Term; Wear & Tear Period) ; 0)";
+                        formulas[$"G{r}"] = $"IF(A{r} = Lease Term; Residual Value; 0)";
+                        formulas[$"H{r}"] = $"B{r} - D{r} - E{r} + G{r}";
+                        formulas[$"I{r}"] = $"1 / (1 + WACC (Pre-Tax) from Input)^A{r}";
+                        formulas[$"J{r}"] = $"H{r} * I{r}";
+                        formulas[$"K{r}"] = $"H{r} * Corporate Tax Rate";
+                        formulas[$"L{r}"] = $"H{r} - K{r}";
+                        formulas[$"M{r}"] = $"1 / (1 + WACC (Post-Tax) from Input)^A{r}";
+                    }
+
+                    for (int r = 4; r <= 22; r++)
+                    {
+                        formulas[$"E{r}"] = $"IF(A{r} <= Lease Term; Operating Costs; 0) * (1 + Operating Costs Escalation)^(A{r} - 1)";
+                        formulas[$"N{r}"] = $"H{r} * M{r}";
+                    }
+
+                    return Ok(new
+                    {
+                        fileName = $"{wagonNumber}_DCF_Report.xlsx",
+                        fileBytes = Convert.ToBase64String(content),
+                        formulas = formulas
+                    });
                 }
             }
         }
+        private static double ParseDoubleSafe(object value)
+        {
+            if (value == null) return 0;
 
-        //PLEASE ADD (NEW)
+            return double.Parse(
+                value.ToString(),
+                NumberStyles.Any,
+                CultureInfo.InvariantCulture
+            );
+        }
+
+        private static int ParseIntSafe(object value)
+        {
+            if (value == null) return 0;
+
+            return Convert.ToInt32(value);
+        }
+
+        // MULTIPLE CHANGES BUT DO NOT ADJUST YET ↓
         [HttpGet("generateDcfLoco/{locoNumber}")]
         public async Task<IActionResult> GenerateDcfLoco(int locoNumber)
         {
@@ -2578,20 +3126,28 @@ namespace AviAppFinal.Server.Controllers
             if (input == null)
                 return BadRequest("Locomotive does not exist.");
 
-            double scrapCost = Convert.ToDouble(input.ScrappingCost);
-            double scrapValue = Convert.ToDouble(input.ScrapValue);
-            double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
-            double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
-            int leaseTerm = Convert.ToInt32(input.LeaseTerm);
-            double leaseIncome = Convert.ToDouble(input.LeaseIncome);
-            double escalationRate = Convert.ToDouble(input.EscalationRate) / 100;
-            int wearTear = Convert.ToInt32(input.WearTearPeriod);
-            double operatingCosts = Convert.ToDouble(input.OperatingCosts);
-            double operatingEscalation = Convert.ToDouble(input.OperatingCostsEscalation) / 100;
-            double residualValue = Convert.ToDouble(input.ResidualValue);
-            double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
-            double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
-            double netBook = Convert.ToDouble(input.NetBookValue);
+            double scrapCost = ParseDoubleSafe(input.ScrappingCost);
+            double scrapValue = ParseDoubleSafe(input.ScrapValue);
+            double refurbishCost = ParseDoubleSafe(input.TotalCost);
+            double corporateTax = ParseDoubleSafe(input.CorporateTaxRate) / 100;
+
+            int leaseTerm = ParseIntSafe(input.LeaseTerm);
+
+            double leaseIncome = ParseDoubleSafe(input.LeaseIncome);
+            double escalationRate = ParseDoubleSafe(input.EscalationRate) / 100;
+
+            int wearTear = ParseIntSafe(input.WearTearPeriod);
+
+            double operatingCosts = ParseDoubleSafe(input.OperatingCosts);
+            double operatingEscalation = ParseDoubleSafe(input.OperatingCostsEscalation) / 100;
+
+            double residualValue = ParseDoubleSafe(input.ResidualValue);
+
+            double waccPre = ParseDoubleSafe(input.PreTax) / 100;
+            double waccPost = ParseDoubleSafe(input.PostTax) / 100;
+
+            double netBook = ParseDoubleSafe(input.NetBookValue);
+
 
             //C2
             double totalScrapValue = scrapValue + scrapCost;
@@ -3435,6 +3991,28 @@ namespace AviAppFinal.Server.Controllers
             double P23 = (N23 >= 0)
                 ? netBook + refurbishCost
                 : 0;
+
+            //23RD ROW
+            string stat1;
+            string stat2;
+
+            if (J23 >= 0)
+            {
+                stat1 = "REFURBISH";
+            }
+            else
+            {
+                stat1 = "SCRAP";
+            }
+
+            if (N23 >= 0)
+            {
+                stat2 = "REFURBISH";
+            }
+            else
+            {
+                stat2 = "SCRAP";
+            }
 
             using (var workbook = new XLWorkbook())
             {
@@ -4268,15 +4846,33 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("G24").Value = "-";
                 ws.Cell("H24").Value = "-";
                 ws.Cell("I24").Value = "-";
-                ws.Cell("J24").Value = "SCRAP";
+                ws.Cell("J24").Value = stat1;
                 ws.Cell("J24").Style.Font.Bold = true;
-                ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Red;
+
+                if (stat1 == "REFURBISH")
+                {
+                    ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Green;
+                }
+                else
+                {
+                    ws.Cell("J24").Style.Fill.BackgroundColor = XLColor.Red;
+                }
+
                 ws.Cell("K24").Value = "-";
                 ws.Cell("L24").Value = "-";
                 ws.Cell("M24").Value = "-";
-                ws.Cell("N24").Value = "REFURBISH";
+                ws.Cell("N24").Value = stat2;
                 ws.Cell("N24").Style.Font.Bold = true;
-                ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Green;
+
+                if (stat2 == "REFURBISH")
+                {
+                    ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Green;
+                }
+                else
+                {
+                    ws.Cell("N24").Style.Fill.BackgroundColor = XLColor.Red;
+                }
+
                 ws.Cell("O24").Value = "-";
                 ws.Cell("P24").Value = "-";
 
@@ -4289,44 +4885,88 @@ namespace AviAppFinal.Server.Controllers
                 {
                     workbook.SaveAs(stream);
                     var content = stream.ToArray();
-                    return File(content,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                $"{locoNumber}_DCF_Report.xlsx");
+
+                    var formulas = new Dictionary<string, string>();
+
+                    formulas["C2"] = "Scrap Value + Scrapping Cost";
+                    formulas["F2"] = "Return to Service Cost from Dashboard";
+                    formulas["J2"] = "(C2 + F2) * I2";
+                    formulas["N2"] = "(C2 + F2) * M2";
+                    formulas["E3"] = "IF(A3 <= Lease Term; Operating Costs; 0)";
+                    formulas["N3"] = "L3 * M3";
+                    formulas["J23"] = "SUM(J2 : J22)";
+                    formulas["N23"] = "SUM(N2 : N22)";
+                    formulas["O23"] = "IF(J23 >= 0; (Net Book Value + F2); 0)";
+                    formulas["P23"] = "IF(N23 >= 0; (Net Book Value + F2); 0)";
+                    formulas["J24"] = "IF(J23 >= 0; \"Refurbish\"; \"Scrap\")";
+                    formulas["N24"] = "IF(N23 >= 0; \"Refurbish\"; \"Scrap\")";
+
+                    for (int r = 3; r <= 22; r++)
+                    {
+                        formulas[$"B{r}"] = $"IF(A{r} <= Lease Term; Lease Income * (1 + Escalation Rate)^(A{r} - 1) ; 0)";
+                        formulas[$"D{r}"] = $"IF(A{r} <= MIN(Lease Term; Wear & Tear Period); F2 / MIN(Lease Term; Wear & Tear Period) ; 0)";
+                        formulas[$"G{r}"] = $"IF(A{r} = Lease Term; Residual Value; 0)";
+                        formulas[$"H{r}"] = $"B{r} - D{r} - E{r} + G{r}";
+                        formulas[$"I{r}"] = $"1 / (1 + WACC (Pre-Tax) from Input)^A{r}";
+                        formulas[$"J{r}"] = $"H{r} * I{r}";
+                        formulas[$"K{r}"] = $"H{r} * Corporate Tax Rate";
+                        formulas[$"L{r}"] = $"H{r} - K{r}";
+                        formulas[$"M{r}"] = $"1 / (1 + WACC (Post-Tax) from Input)^A{r}";
+                    }
+
+                    for (int r = 4; r <= 22; r++)
+                    {
+                        formulas[$"E{r}"] = $"IF(A{r} <= Lease Term; Operating Costs; 0) * (1 + Operating Costs Escalation)^(A{r} - 1)";
+                        formulas[$"N{r}"] = $"H{r} * M{r}";
+                    }
+
+                    return Ok(new
+                    {
+                        fileName = $"{locoNumber}_DCF_Report.xlsx",
+                        fileBytes = Convert.ToBase64String(content),
+                        formulas = formulas
+                    });
                 }
             }
         }
 
-
-
+        // ADJUST ENTIRE METHOD ↓
         private static decimal ParseDecimalSafe(object? obj)
         {
             if (obj == null) return 0m;
-            try
+
+            // Already numeric
+            if (obj is decimal d) return d;
+            if (obj is int i) return i;
+            if (obj is long l) return l;
+            if (obj is double db) return Convert.ToDecimal(db);
+            if (obj is float f) return Convert.ToDecimal(f);
+
+            var s = obj.ToString();
+            if (string.IsNullOrWhiteSpace(s)) return 0m;
+
+            s = s.Trim();
+
+            // Remove currency symbols and non-numeric noise except separators
+            s = Regex.Replace(s, @"[^\d\.,\-]", "");
+
+            // Case 1: Both comma and dot exist
+            if (s.Contains(",") && s.Contains("."))
             {
-                // If already numeric types
-                if (obj is decimal d) return d;
-                if (obj is double db) return Convert.ToDecimal(db);
-                if (obj is int i) return i;
-
-                string s = obj.ToString() ?? "";
-                if (string.IsNullOrWhiteSpace(s)) return 0m;
-
-                // remove currency symbols and spaces; replace comma thousands separators
-                s = s.Replace("R", "", StringComparison.InvariantCultureIgnoreCase)
-                     .Replace(" ", "")
-                     .Trim();
-
-                // If the value contains both . and , assume comma is thousands separator => remove commas
-                // Otherwise let . be decimal point. Use invariant parsing.
+                // Assume comma is thousands separator: 12,345.67
                 s = s.Replace(",", "");
-
-                if (decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal result))
-                    return result;
             }
-            catch
+            // Case 2: Only comma exists
+            else if (s.Contains(",") && !s.Contains("."))
             {
-                // ignored - fallback 0
+                // Treat comma as decimal separator: 12345,67 → 12345.67
+                s = s.Replace(",", ".");
             }
+
+            // Final parse using invariant culture
+            if (decimal.TryParse(s, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var result))
+                return result;
+
             return 0m;
         }
     }
@@ -4351,7 +4991,12 @@ namespace AviAppFinal.Server.Controllers
         public string? NetBookValue { get; set; }
         public string? ScrapValue { get; set; }
         public string? ScrappingCost { get; set; }
-        public string? RefurbishmentCost { get; set; }
+
+        // ADD ↓
+        public string? NewScrapValue { get; set; }
+
+        // ADJUST ↓
+        public string? TotalCost { get; set; }
         public int LeaseTerm { get; set; }
         public string? LeaseIncome { get; set; }
         public string? EscalationRate { get; set; }
@@ -4373,7 +5018,12 @@ namespace AviAppFinal.Server.Controllers
         public string? NetBookValue { get; set; }
         public string? ScrapValue { get; set; }
         public string? ScrappingCost { get; set; }
-        public string? RefurbishmentCost { get; set; }
+
+        // ADD ↓
+        public string? NewScrapValue { get; set; }
+
+        // ADJUST ↓
+        public string? TotalCost { get; set; }
         public int LeaseTerm { get; set; }
         public string? LeaseIncome { get; set; }
         public string? EscalationRate { get; set; }
@@ -4388,15 +5038,35 @@ namespace AviAppFinal.Server.Controllers
         public string? UserId { get; set; }
     }
 
-    //PLEASE ADD (NEW)
     public class AssetSet
     {
         public string AssetType { get; set; } = null!;
 
-        public string RefurbishmentCost { get; set; } = null!;
-
         public string LeaseIncome { get; set; } = null!;
 
+        // ADD ↓
+        public int LeaseTerm { get; set; }
+
+        public string EscalationRate { get; set; } = null!;
+
+        public int UseAfterRefurbish { get; set; }
+
+        public int WearTearPeriod { get; set; }
+
+        public string OperatingCosts { get; set; } = null!;
+
+        public string OperatingCostsEscalation { get; set; } = null!;
+
+        public string CorporateTaxRate { get; set; } = null!;
+
         public string UserId { get; set; } = null!;
+    }
+
+    // ADD ENTIRE CLOSS
+    public class ScrapCalRequest
+    {
+        public string? ScrapValue { get; set; }
+
+        public string? ScrappingCost { get; set; }
     }
 }

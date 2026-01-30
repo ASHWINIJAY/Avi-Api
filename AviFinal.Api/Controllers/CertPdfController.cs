@@ -249,7 +249,7 @@ namespace AviAppFinal.Server.Controllers
                     {
                         double scrapCost = Convert.ToDouble(input.ScrappingCost);
                         double scrapValue = Convert.ToDouble(input.ScrapValue);
-                        double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
+                        double refurbishCost = Convert.ToDouble(input.TotalCost);
                         double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
                         int leaseTerm = Convert.ToInt32(input.LeaseTerm);
                         double leaseIncome = Convert.ToDouble(input.LeaseIncome);
@@ -655,7 +655,7 @@ namespace AviAppFinal.Server.Controllers
                     { 
                     double scrapCost = Convert.ToDouble(input.ScrappingCost);
                     double scrapValue = Convert.ToDouble(input.ScrapValue);
-                    double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
+                    double refurbishCost = Convert.ToDouble(input.TotalCost);
                     double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
                     int leaseTerm = Convert.ToInt32(input.LeaseTerm);
                     double leaseIncome = Convert.ToDouble(input.LeaseIncome);
@@ -1049,7 +1049,7 @@ namespace AviAppFinal.Server.Controllers
                     {
                         double scrapCost = Convert.ToDouble(input.ScrappingCost);
                         double scrapValue = Convert.ToDouble(input.ScrapValue);
-                        double refurbishCost = Convert.ToDouble(input.RefurbishmentCost);
+                        double refurbishCost = Convert.ToDouble(input.TotalCost);
                         double corporateTax = Convert.ToDouble(input.CorporateTaxRate) / 100;
                         int leaseTerm = Convert.ToInt32(input.LeaseTerm);
                         double leaseIncome = Convert.ToDouble(input.LeaseIncome);

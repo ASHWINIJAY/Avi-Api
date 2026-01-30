@@ -15,11 +15,11 @@ public partial class WagonInput
 
     public string ScrappingCost { get; set; } = null!;
 
-    public string RefurbishmentCost { get; set; } = null!;
+    public string? TotalCost { get; set; }
 
     public int LeaseTerm { get; set; }
 
-    public string LeaseIncome { get; set; } = null!;
+    public string? LeaseIncome { get; set; }
 
     public string EscalationRate { get; set; } = null!;
 
@@ -39,7 +39,11 @@ public partial class WagonInput
 
     public string PreTax { get; set; } = null!;
 
-    public string? DateSaved { get; set; }
+    public string DateSaved { get; set; } = null!;
 
-    public string? SavedBy { get; set; }
+    public string SavedBy { get; set; } = null!;
+
+    public string NewScrapValue { get; set; } = null!;
+
+    public string? InspectStatus { get; set; }
 }

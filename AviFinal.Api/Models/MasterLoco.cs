@@ -67,7 +67,7 @@ public partial class MasterLoco
 
     public string? NetBookValue { get; set; }
 
-    public decimal? ScrapValue { get; set; }
+    public string? ScrapValue { get; set; }
 
     public string _619 { get; set; } = null!;
 
@@ -84,6 +84,8 @@ public partial class MasterLoco
     public DateTime? InspectedDate { get; set; }
 
     public string? MarketValue { get; set; }
+
+    public int? TareWeight { get; set; }
 
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 

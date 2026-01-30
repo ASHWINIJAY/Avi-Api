@@ -212,4 +212,6 @@ public partial class MasterWagon
     public string Decision { get; set; } = null!;
 
     public string? MarketValue { get; set; }
+
+    public int? TareWeight { get; set; }
 }

@@ -323,6 +323,8 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<LocoInput> LocoInputs { get; set; }
 
+    public virtual DbSet<LocoScrapValue> LocoScrapValues { get; set; }
+
     public virtual DbSet<ManualDcfinput> ManualDcfinputs { get; set; }
 
     public virtual DbSet<MarketValueLoco> MarketValueLocos { get; set; }
@@ -388,6 +390,8 @@ public partial class AviDbContext : DbContext
     public virtual DbSet<WagonInput> WagonInputs { get; set; }
 
     public virtual DbSet<WagonPartsInspect> WagonPartsInspects { get; set; }
+
+    public virtual DbSet<WagonScrapValue> WagonScrapValues { get; set; }
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
@@ -458,22 +462,23 @@ public partial class AviDbContext : DbContext
 
         modelBuilder.Entity<AssetTypeSetup>(entity =>
         {
-            entity.HasKey(e => e.AssetType).HasName("PK__AssetTyp__7F6321AB361EB453");
+            entity.HasKey(e => e.AssetType).HasName("PK__AssetTyp__7F6321ABD2E87DFD");
 
             entity.ToTable("AssetTypeSetup");
 
             entity.Property(e => e.AssetType)
                 .HasMaxLength(15)
                 .IsUnicode(false);
+            entity.Property(e => e.CorporateTaxRate).HasMaxLength(30);
             entity.Property(e => e.DateSaved)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.EscalationRate).HasMaxLength(30);
             entity.Property(e => e.LeaseIncome)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            entity.Property(e => e.RefurbishmentCost)
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.Property(e => e.OperatingCosts).HasMaxLength(100);
+            entity.Property(e => e.OperatingCostsEscalation).HasMaxLength(30);
             entity.Property(e => e.SavedBy)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -6638,28 +6643,38 @@ public partial class AviDbContext : DbContext
 
         modelBuilder.Entity<LocoInput>(entity =>
         {
-            entity.HasKey(e => e.LocoNumber).HasName("PK__LocoInpu__9083114F094339F0");
+            entity.HasKey(e => e.LocoNumber);
 
             entity.Property(e => e.LocoNumber).ValueGeneratedNever();
             entity.Property(e => e.CorporateTaxRate).HasMaxLength(30);
             entity.Property(e => e.DateSaved).HasMaxLength(50);
             entity.Property(e => e.EscalationRate).HasMaxLength(30);
+            entity.Property(e => e.InspectStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.LeaseIncome).HasMaxLength(100);
             entity.Property(e => e.LocoType)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.NetBookValue).HasMaxLength(100);
+            entity.Property(e => e.NewScrapValue).HasMaxLength(100);
             entity.Property(e => e.OperatingCosts).HasMaxLength(100);
             entity.Property(e => e.OperatingCostsEscalation).HasMaxLength(30);
             entity.Property(e => e.PostTax).HasMaxLength(30);
             entity.Property(e => e.PreTax).HasMaxLength(30);
-            entity.Property(e => e.RefurbishmentCost).HasMaxLength(100);
             entity.Property(e => e.ResidualValue).HasMaxLength(100);
-            entity.Property(e => e.SavedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.Property(e => e.SavedBy).HasMaxLength(100);
             entity.Property(e => e.ScrapValue).HasMaxLength(100);
             entity.Property(e => e.ScrappingCost).HasMaxLength(100);
+            entity.Property(e => e.TotalCost).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<LocoScrapValue>(entity =>
+        {
+            entity.HasKey(e => e.LocoNumber);
+
+            entity.Property(e => e.LocoNumber).ValueGeneratedNever();
+            entity.Property(e => e.ScrapValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<ManualDcfinput>(entity =>
@@ -6745,7 +6760,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.Remark).HasMaxLength(100);
             entity.Property(e => e.RepairC).HasMaxLength(100);
             entity.Property(e => e.ReturnToServiceCostAsIs).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ScrapValue).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ScrapValue).HasMaxLength(100);
             entity.Property(e => e.Sdate).HasColumnName("SDate");
             entity.Property(e => e.Sdep)
                 .HasMaxLength(100)
@@ -7586,25 +7601,27 @@ public partial class AviDbContext : DbContext
 
         modelBuilder.Entity<WagonInput>(entity =>
         {
-            entity.HasKey(e => e.WagonNumber).HasName("PK__WagonInp__14359E4552755701");
+            entity.HasKey(e => e.WagonNumber);
 
             entity.Property(e => e.WagonNumber).ValueGeneratedNever();
             entity.Property(e => e.CorporateTaxRate).HasMaxLength(30);
             entity.Property(e => e.DateSaved).HasMaxLength(50);
             entity.Property(e => e.EscalationRate).HasMaxLength(30);
+            entity.Property(e => e.InspectStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.LeaseIncome).HasMaxLength(100);
             entity.Property(e => e.NetBookValue).HasMaxLength(100);
+            entity.Property(e => e.NewScrapValue).HasMaxLength(100);
             entity.Property(e => e.OperatingCosts).HasMaxLength(100);
             entity.Property(e => e.OperatingCostsEscalation).HasMaxLength(30);
             entity.Property(e => e.PostTax).HasMaxLength(30);
             entity.Property(e => e.PreTax).HasMaxLength(30);
-            entity.Property(e => e.RefurbishmentCost).HasMaxLength(100);
             entity.Property(e => e.ResidualValue).HasMaxLength(100);
-            entity.Property(e => e.SavedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.Property(e => e.SavedBy).HasMaxLength(100);
             entity.Property(e => e.ScrapValue).HasMaxLength(100);
             entity.Property(e => e.ScrappingCost).HasMaxLength(100);
+            entity.Property(e => e.TotalCost).HasMaxLength(100);
             entity.Property(e => e.WagonType)
                 .HasMaxLength(20)
                 .IsUnicode(false);
@@ -7648,6 +7665,14 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.WagonType)
                 .HasMaxLength(80)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<WagonScrapValue>(entity =>
+        {
+            entity.HasKey(e => e.WagonNumber);
+
+            entity.Property(e => e.WagonNumber).ValueGeneratedNever();
+            entity.Property(e => e.ScrapValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<WalkAroundInspect>(entity =>
