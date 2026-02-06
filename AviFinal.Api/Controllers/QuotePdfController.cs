@@ -73,7 +73,7 @@ namespace AviAppFinal.Server.Controllers
             };
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
             if (!Directory.Exists(folderPath))
@@ -389,7 +389,7 @@ namespace AviAppFinal.Server.Controllers
             };
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
             if (!Directory.Exists(folderPath))
@@ -713,7 +713,7 @@ namespace AviAppFinal.Server.Controllers
             };
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "SowPdf");
             if (!Directory.Exists(folderPath))
@@ -952,7 +952,7 @@ namespace AviAppFinal.Server.Controllers
             };
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "SowPdf");
             if (!Directory.Exists(folderPath))
@@ -1374,7 +1374,7 @@ namespace AviAppFinal.Server.Controllers
             }
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Locos", "SowPdf");
             if (!Directory.Exists(folderPath))
@@ -1554,6 +1554,70 @@ namespace AviAppFinal.Server.Controllers
                 return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
             }
         }
+        [HttpGet("GenerateAndSaveSOWPdfForAllLoco")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllLoco()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new LocoQuotePdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveSowPdfForLoco(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("GenerateAndSaveSOWPdfForAllLocoNU")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllLocoNU()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new LocoQuotePdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveSowPdfForLoco(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+
+        [HttpGet("GenerateAndSaveSOWPdfForAllWagon")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllWagon()
+        {
+            var existingDashboard = await _context.WagonDashboardUploadeds
+                .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new QuotePdfRequestUpload();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await RegenerateAndSaveQuotePdf(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("GenerateAndSaveSOWPdfForAllWagonNU")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllWagonNU()
+        {
+            var existingDashboard = await _context.WagonDashboards
+                .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new QuotePdfRequest();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveSowPdf(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+       
+
+      
 
         //PLEASE ADD
         private static decimal ParseDecimalSafe(object? obj)
@@ -1808,7 +1872,7 @@ namespace AviAppFinal.Server.Controllers
             }
 
             if (inspectionSources.All(s => !s.Value.Any()))
-                return NotFound("No parts found for this wagon number.");
+                return Ok("No parts found for this wagon number.");
 
             // --- Ensure folder exists ---
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Locos", "QuotePdf");
@@ -2009,6 +2073,66 @@ namespace AviAppFinal.Server.Controllers
             }
 
             return Ok(new { message = "PDF generated successfully", path = filePath });
+        }
+        [HttpGet("ReGenerateAndSaveQuotePdfForAllLoco")]
+        public async Task<IActionResult> ReGenerateAndSaveQuotePdfForAllLoco()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new LocoQuotePdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveQuotePdfForLocos(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("ReGenerateAndSaveQuotePdfForAllLocoNU")]
+        public async Task<IActionResult> ReGenerateAndSaveQuotePdfForAllLocoNU()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new LocoQuotePdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveQuotePdfForLocos(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("ReGenerateAndSaveQuotePdfForAllWagon")]
+        public async Task<IActionResult> ReGenerateAndSaveQuotePdfForAllWagon()
+        {
+            var existingDashboard = await _context.WagonDashboardUploadeds
+                .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new QuotePdfRequestUpload();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await RegenerateAndSaveQuotePdf(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("ReGenerateAndSaveQuotePdfForAllWagonNU")]
+        public async Task<IActionResult> ReGenerateAndSaveQuotePdfForAllWagonNU()
+        {
+            var existingDashboard = await _context.WagonDashboards
+                .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new QuotePdfRequest();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveQuotePdf(payload);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
         }
         [HttpPost("GenerateAndSaveQuotePdfForAllLocos")]
         public async Task<IActionResult> GenerateAndSaveQuotePdfForAllLocos()

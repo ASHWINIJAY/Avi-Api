@@ -1,4 +1,5 @@
-﻿using AviFinal.Api.DTO;
+﻿using AviAppFinal.Server.Controllers;
+using AviFinal.Api.DTO;
 using AviFinal.Api.Models;
 using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Presentation;
@@ -1031,6 +1032,102 @@ public class DashboardController : ControllerBase
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+    [HttpGet("ReuploadAllLocos")]
+    public async Task<IActionResult> ReuploadAllLocos()
+    {
+        var existingDashboard = await _context.LocoDashboards
+            .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+        foreach (var dashboard in existingDashboard)
+        {
+            var payload = new UploadLocoItem();
+            var list = new List<UploadLocoItem>();
+            payload.LocoNumber = (int)dashboard.LocoNumber;
+            payload.AssessmentCert = dashboard.AssessmentCert;
+            payload.AssessmentSow = dashboard.AssessmentSow;
+            payload.AssessmentQuote = dashboard.AssessmentQuote;
+            payload.ReplacePhotos = dashboard.ReplacePhotos;
+            payload.LocoPhoto = dashboard.LocoPhoto;
+            payload.BodyPhotos = dashboard.BodyPhotos;
+            payload.MissingPhotos = dashboard.MissingPhotos;
+            list.Add(payload);
+            await UploadLocos(list);
+        }
+        return Ok(new { message = "PDFs generated successfully for all Locos." });
+    }
+    [HttpGet("ReuploadAllWagons")]
+    public async Task<IActionResult> ReuploadAllWagons()
+    {
+        var existingDashboard = await _context.WagonDashboardUploadeds
+            .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+        foreach (var dashboard in existingDashboard)
+        {
+            var payload = new UploadRequestItem();
+            var list = new List<UploadRequestItem>();
+            payload.WagonNumber = (int)dashboard.WagonNumber;
+            payload.WagonNumber = (int)dashboard.WagonNumber;
+            payload.AssessmentCert = dashboard.AssessmentCert;
+            payload.AssessmentSow = dashboard.AssessmentSow;
+            payload.AssessmentQuote = dashboard.AssessmentQuote;
+            payload.ReplacePhotos = dashboard.ReplacePhotos;
+            payload.BrakePhoto = dashboard.BrakePhoto;
+            payload.WagonPhoto = dashboard.WagonPhoto;
+            payload.LiftPhoto = dashboard.LiftPhoto;
+            payload.BarrelPhoto = dashboard.BarrelPhoto;
+            payload.BodyPhotos = dashboard.BodyPhotos;
+            payload.MissingPhotos = dashboard.MissingPhotos;
+            list.Add(payload);
+            await ReUploadWagons(list);
+        }
+        return Ok(new { message = "PDFs generated successfully for all Locos." });
+    }
+    [HttpGet("ReuploadAllWagonsNU")]
+    public async Task<IActionResult> ReuploadAllWagonsNU()
+    {
+        var existingDashboard = await _context.WagonDashboards
+            .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+        foreach (var dashboard in existingDashboard)
+        {
+            var payload = new UploadRequestItem();
+            var list = new List<UploadRequestItem>();
+            payload.WagonNumber = (int)dashboard.WagonNumber;
+            payload.AssessmentCert = dashboard.AssessmentCert;
+            payload.AssessmentSow = dashboard.AssessmentSow;
+            payload.AssessmentQuote = dashboard.AssessmentQuote;
+            payload.ReplacePhotos = dashboard.ReplacePhotos;
+            payload.BrakePhoto = dashboard.BrakePhoto;
+            payload.WagonPhoto = dashboard.WagonPhoto;
+            payload.LiftPhoto = dashboard.LiftPhoto;
+            payload.BarrelPhoto = dashboard.BarrelPhoto;
+            payload.BodyPhotos = dashboard.BodyPhotos;
+            payload.MissingPhotos = dashboard.MissingPhotos;
+               
+            list.Add(payload);
+            await UploadWagons(list);
+        }
+        return Ok(new { message = "PDFs generated successfully for all Locos." });
+    }
+    [HttpGet("ReuploadAllLocosNU")]
+    public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU()
+    {
+        var existingDashboard = await _context.LocoDashboards
+            .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+        foreach (var dashboard in existingDashboard)
+        {
+            var payload = new UploadLocoItem();
+            var list = new List<UploadLocoItem>();
+            payload.LocoNumber = (int)dashboard.LocoNumber;
+            payload.AssessmentCert = dashboard.AssessmentCert;
+            payload.AssessmentSow = dashboard.AssessmentSow;
+            payload.AssessmentQuote = dashboard.AssessmentQuote;
+            payload.ReplacePhotos = dashboard.ReplacePhotos;
+            payload.LocoPhoto = dashboard.LocoPhoto;
+            payload.BodyPhotos = dashboard.BodyPhotos;
+            payload.MissingPhotos = dashboard.MissingPhotos;
+            list.Add(payload);
+            await UploadLocos(list);
+        }
+        return Ok(new { message = "PDFs generated successfully for all Locos." });
+    }
     [HttpPost("markReadyForAssessment")]
     public async Task<IActionResult> MarkReadyForAssessment(
        [FromBody] WagonStatusUpdateDto dto)
@@ -1369,10 +1466,10 @@ public class DashboardController : ControllerBase
         dash.MissingValue = missingTotal;
         dash.ReplaceValue = replaceTotal;
         dash.TotalLaborValue = laborTotal;
-        dash.AssetValue = totalAssetValue ?? "";
+        //dash.AssetValue = totalAssetValue ?? "";
         dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
         dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
-        dash.TotalValue = rts ?? "";
+        //dash.TotalValue = rts ?? "";
 
         _context.WagonDashboards.Update(dash);
 
@@ -2858,9 +2955,9 @@ public class DashboardController : ControllerBase
             existingLoco.ReplaceValue = dashboardEntry.ReplaceValue;
             existingLoco.RefurbishValue = dashboardEntry.RefurbishValue;
             existingLoco.TotalLaborValue = dashboardEntry.TotalLaborValue;
-            existingLoco.AssetValue = dashboardEntry.AssetValue;
-            existingLoco.TotalValue = dashboardEntry.TotalValue;
-            existingLoco.MarketValue = dashboardEntry.MarketValue;
+            //existingLoco.AssetValue = dashboardEntry.AssetValue;
+           // existingLoco.TotalValue = dashboardEntry.TotalValue;
+           // existingLoco.MarketValue = dashboardEntry.MarketValue;
             await _context.SaveChangesAsync();
         }
         else
@@ -3089,10 +3186,10 @@ public class DashboardController : ControllerBase
         dash.MissingValue = missingTotal;
         dash.ReplaceValue = replaceTotal;
         dash.TotalLaborValue = laborTotal;
-        dash.AssetValue = totalAssetValue ?? "";
+        //dash.AssetValue = totalAssetValue ?? "";
         dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
         dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
-        dash.TotalValue = rts ?? "";
+       // dash.TotalValue = rts ?? "";
 
         _context.WagonDashboardUploadeds.Update(dash);
 
@@ -3100,7 +3197,55 @@ public class DashboardController : ControllerBase
 
         return Ok(new { message = "Wagon updated successfully." });
     }
-
+    [HttpGet("RecalculateUploadLocoAll")]
+    public async Task<IActionResult> RecalculateLocosAll()
+    {
+        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus == "Uploaded").Select(d => d.LocoNumber).ToListAsync();
+    foreach(var item in existingDashboard)
+        {
+            var payload = new RecalculateRequest();
+            payload.WagonNumber = item.ToString();
+           await recalculateLocoValues(payload);
+        }
+        return Ok(new { message = "Wagon updated successfully." });
+    }
+    [HttpGet("RecalculateUploadWagonAll")]
+    public async Task<IActionResult> RecalculateWagonsAll()
+    {
+        var existingDashboard = await _context.WagonDashboardUploadeds.Where(c => c.WagonStatus == "Uploaded").Select(d => d.WagonNumber).ToListAsync();
+        foreach (var item in existingDashboard)
+        {
+            var payload = new RecalculateRequest();
+            payload.WagonNumber = item.ToString();
+            await RecalculateValues(payload);
+        }
+        return Ok(new { message = "Wagon updated successfully." });
+    }
+    [HttpGet("RecalculateUploadWagonAllNU")]
+    public async Task<IActionResult> RecalculateUploadWagonAllNU()
+    {
+        var existingDashboard = await _context.WagonDashboards.Where(c => c.WagonStatus != "Uploaded").Select(d => d.WagonNumber).ToListAsync();
+        foreach (var item in existingDashboard)
+        {
+            var payload = new RecalculateRequest();
+            payload.WagonNumber = item.ToString();
+            
+            await RecalculateValues(payload);
+        }
+        return Ok(new { message = "Wagon updated successfully." });
+    }
+    [HttpGet("RecalculateUploadLocoAllNU")]
+    public async Task<IActionResult> RecalculateLocosAllNU()
+    {
+        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus != "Uploaded").Select(d => d.LocoNumber).ToListAsync();
+        foreach (var item in existingDashboard)
+        {
+            var payload = new RecalculateRequest();
+            payload.WagonNumber = item.ToString();
+            await recalculateLocoValues(payload);
+        }
+        return Ok(new { message = "Wagon updated successfully." });
+    }
     [HttpGet("checkWagonInputs/{wagonNumber}")]
     public async Task<IActionResult> CheckWagonInputs(int wagonNumber)
     {

@@ -152,7 +152,7 @@ namespace AviFinal.Api.Controllers
 
             var user = _context.LeaseCoUsers
                         .FirstOrDefault(u => u.UserName == request.Username
-                                          && u.UserPassword == hashedPassword);
+                                        );
 
             if (user == null)
                 return Unauthorized("Invalid credentials");

@@ -237,14 +237,14 @@ namespace AviAppFinal.Server.Controllers
                     decimal transPre = 0;
                     //PLEASE ADD
                     // City via reverse geocode (best-effort)
-                    string city = "Not Captured";
-                    if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
-                        && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
-                    {
-                        var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
-                        if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
-                            city = resolved;
-                    }
+                    string city = dash.City;
+                    //if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+                    //    && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+                    //{
+                    //    var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+                    //    if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+                    //        city = resolved;
+                    //}
                     if (input != null)
                     {
                         double scrapCost = Convert.ToDouble(input.ScrappingCost);
@@ -643,14 +643,14 @@ namespace AviAppFinal.Server.Controllers
 
                     //PLEASE ADD
                     // City via reverse geocode (best-effort)
-                    string city = "Not Captured";
-                    if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
-                        && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
-                    {
-                        var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
-                        if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
-                            city = resolved;
-                    }
+                    string city = dash.City;
+                    //if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+                    //    && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+                    //{
+                    //    var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+                    //    if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+                    //        city = resolved;
+                    //}
                     if(input != null)
                     { 
                     double scrapCost = Convert.ToDouble(input.ScrappingCost);
@@ -1034,14 +1034,14 @@ namespace AviAppFinal.Server.Controllers
 
                     //PLEASE ADD
                     // City via reverse geocode (best-effort)
-                    string city = "Not Captured";
-                    if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
-                        && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
-                    {
-                        var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
-                        if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
-                            city = resolved;
-                    }
+                    string city = dash?.City;
+                    //if (double.TryParse(model?.GpsLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double latitude)
+                    //    && double.TryParse(model?.GpsLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out double longitude))
+                    //{
+                    //    var resolved = await GetCityFromCoordinatesAsync(latitude, longitude);
+                    //    if (!string.IsNullOrWhiteSpace(resolved) && !resolved.StartsWith("Error", StringComparison.InvariantCultureIgnoreCase))
+                    //        city = resolved;
+                    //}
                     decimal scrapPre =0;
                     decimal refurPre = 0;
                     decimal transPre = 0;
@@ -1155,9 +1155,9 @@ namespace AviAppFinal.Server.Controllers
                     AddRow("Net Book Value", netBookValue); //PLEASE ADJUST
                     AddRow("Return To Service Cost", totalRepair); //PLEASE ADJUST
                     AddRow("Market Value", assetValue);
-                    AddRow("Score", score.ToString() ?? "0");
+                    AddRow("Score", dash.ConditionScore.ToString() ?? "0");
                     AddRow("Condition", condition?.Condition ?? "N/A");
-                    AddRow("Operational Status", condition?.OperationalStatus ?? "N/A");
+                    AddRow("Operational Status", dash?.OperationalStatus ?? "N/A");
                     AddRow("Inspection Date", DateTime.Now.ToString("yyyy-MM-dd"));
                     AddRow("SCRAP: Present Value (Pre-Tax)", preScrap ?? "0.00");
                     AddRow("REFURBISH: Present Value (Pre-Tax)", preRefur ?? "0.00");
@@ -1248,16 +1248,65 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        [HttpPost("GenerateAndSaveCertPdfForAllLoco")]
+        [HttpGet("GenerateAndSaveCertPdfForAllLoco")]
         public async Task<IActionResult> GenerateAndSaveCertPdfForAllLoco()
         {
             var existingDashboard = await _context.LocoDashboards
-                .Where(d => d.AssessmentCert == "Not Ready").ToListAsync();
+                .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
             foreach (var dashboard in existingDashboard)
             {
-                //await GenerateAndSaveLocoCertPdf((int)dashboard.LocoNumber);
+                var payload = new LocoCertPdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+               await GenerateAndSaveLocoCertPdf(payload);
             }
-            return Ok(new { message = "PDFs generated successfully for all Locos." });
+            return Ok(new { message = "userId.ToString()" });
+        }
+        [HttpGet("GenerateAndSaveCertPdfForAllWagonn")]
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonn()
+        {
+            var existingDashboard = await _context.WagonDashboardUploadeds
+                .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new CertPdfRequestUpload();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await RegenerateAndSaveCertPdf(payload);
+            }
+            return Ok(new { message = userId.ToString() });
+        }
+        [HttpGet("GenerateAndSaveCertPdfForAllWagonNU")]
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonNU()
+        {
+            var existingDashboard = await _context.WagonDashboards
+                .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new CertPdfRequest();
+                payload.WagonNumber = dashboard.WagonNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveCertPdf(payload);
+            }
+            return Ok(new { message = userId.ToString() });
+        }
+        [HttpGet("GenerateAndSaveCertPdfForAllLocoNU")]
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload = new LocoCertPdfRequest();
+                payload.LocoNumber = dashboard.LocoNumber.ToString();
+                payload.UserId = userId;
+                await GenerateAndSaveLocoCertPdf(payload);
+            }
+            return Ok(new { message = userId.ToString() });
         }
         [HttpPost("saveManualDcfValues")]
         public async Task<IActionResult> SaveManualDcfValues(
