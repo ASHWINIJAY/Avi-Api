@@ -12,11 +12,15 @@ using iText.Layout.Element;
 using iText.Layout.Properties;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using SixLabors.ImageSharp.Processing;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static DashboardController;
 
 namespace AviAppFinal.Server.Controllers
 {
@@ -951,8 +955,8 @@ namespace AviAppFinal.Server.Controllers
                 { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
             };
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+           // if (inspectionSources.All(s => !s.Value.Any()))
+                //return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "SowPdf");
             if (!Directory.Exists(folderPath))
@@ -1373,8 +1377,8 @@ namespace AviAppFinal.Server.Controllers
     };
             }
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+            //if (inspectionSources.All(s => !s.Value.Any()))
+               // return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Locos", "SowPdf");
             if (!Directory.Exists(folderPath))
@@ -1596,9 +1600,275 @@ namespace AviAppFinal.Server.Controllers
                 var payload = new QuotePdfRequestUpload();
                 payload.WagonNumber = dashboard.WagonNumber.ToString();
                 payload.UserId = userId;
-                await RegenerateAndSaveQuotePdf(payload);
+                await RegenerateAndSaveSowPdf(payload);
             }
             return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("GenerateAndSaveSOWPdfForAllWagonNP")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllWagonNP()
+        {
+            var existingDashboard = await _context.WagonDashboardUploadeds
+                .Where(d => d.WagonStatus == "Uploaded" && d.AssessmentSow == "Not Ready").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload1 = new QuotePdfRequestUpload();
+                payload1.WagonNumber = dashboard.WagonNumber.ToString();
+                payload1.UserId = userId;
+                await RegenerateAndSaveSowPdf(payload1);
+                var payload = new UploadRequestItem();
+                var list = new List<UploadRequestItem>();
+                payload.WagonNumber = (int)dashboard.WagonNumber;
+                payload.WagonNumber = (int)dashboard.WagonNumber;
+                payload.AssessmentCert = dashboard.AssessmentCert;
+                payload.AssessmentSow = dashboard.AssessmentSow;
+                payload.AssessmentQuote = dashboard.AssessmentQuote;
+                payload.ReplacePhotos = dashboard.ReplacePhotos;
+                payload.BrakePhoto = dashboard.BrakePhoto;
+                payload.WagonPhoto = dashboard.WagonPhoto;
+                payload.LiftPhoto = dashboard.LiftPhoto;
+                payload.BarrelPhoto = dashboard.BarrelPhoto;
+                payload.BodyPhotos = dashboard.BodyPhotos;
+                payload.MissingPhotos = dashboard.MissingPhotos;
+                list.Add(payload);
+                await ReUploadWagons(list);
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpGet("GenerateAndSaveSOWPdfForAllLocoNP")]
+        public async Task<IActionResult> GenerateAndSaveSOWPdfForAllLocoNP()
+        {
+            var existingDashboard = await _context.LocoDashboards
+                .Where(d =>  d.AssessmentQuote == "Not Ready").ToListAsync();
+            var userId = User.FindFirst("UserId")?.Value;
+            foreach (var dashboard in existingDashboard)
+            {
+                var payload1 = new LocoQuotePdfRequest();
+                payload1.LocoNumber = dashboard.LocoNumber.ToString();
+                payload1.UserId = userId;
+              await  GenerateAndSaveQuotePdfForLocos(payload1);
+            }
+                foreach (var dashboard in existingDashboard)
+            {
+                var payload1 = new LocoQuotePdfRequest();
+                payload1.LocoNumber = dashboard.LocoNumber.ToString();
+                payload1.UserId = userId;
+                await GenerateAndSaveSowPdfForLoco(payload1);
+              
+            }
+            return Ok(new { message = "PDFs generated successfully for all Locos." });
+        }
+        [HttpPost("reUploadWagons")]
+        public async Task<IActionResult> ReUploadWagons([FromBody] List<UploadRequestItem> items)
+        {
+            if (items == null || !items.Any())
+                return BadRequest("No wagons selected for upload.");
+
+            // --- Ensure server folder exists ---
+            string serverFolder = @"C:\WagonDashboardItemsUploaded";
+            if (!Directory.Exists(serverFolder))
+                Directory.CreateDirectory(serverFolder);
+
+            // --- Create ZIP file name including wagon numbers ---
+            string wagonNumbersPart = string.Join("_", items.Select(i => i.WagonNumber));
+            var existingZips = Directory.GetFiles(
+       serverFolder,
+       $"*{wagonNumbersPart}*.zip",
+       SearchOption.TopDirectoryOnly
+   );
+
+            foreach (var file in existingZips)
+            {
+                try
+                {
+                    System.IO.File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    // optional: log error
+                    Console.WriteLine($"Failed to delete {file}: {ex.Message}");
+                }
+            }
+            string zipName = $"WagonDashboardReUpload_{wagonNumbersPart}_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            string zipPath = Path.Combine(serverFolder, zipName);
+
+            using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                foreach (var item in items)
+                {
+                    string wagonFolderName = $"{item.WagonNumber}_Dash_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+                    // Mapping folder names for categories
+                    var folderMap = new Dictionary<string, string>
+            {
+                { "BodyPhotos", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "LiftPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "BarrelPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "BrakePhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "WagonPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") },
+                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") },
+                { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") }
+            };
+
+                    //PLEASE ADD (ADDING FILES USING HELPERS)
+                    async Task AddFilesToZipAsync(string? source, string targetFolder)
+                    {
+                        if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
+
+                        List<string> paths = new();
+                        if (source.StartsWith("["))
+                        {
+                            var deserialized = JsonSerializer.Deserialize<List<string>>(source);
+                            if (deserialized != null) paths.AddRange(deserialized);
+                        }
+                        else
+                        {
+                            paths.Add(source);
+                        }
+
+                        foreach (var p in paths)
+                        {
+                            if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+
+                            string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
+                            if (!System.IO.File.Exists(sourcePath)) continue;
+
+                            string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+
+                            var entry = zipArchive.CreateEntry(entryName, CompressionLevel.SmallestSize);
+                            await using var entryStream = entry.Open();
+
+                            if (IsImage(sourcePath))
+                            {
+                                // REAL compression happens here
+                                await using var processedImage = await PreprocessImageAsync(sourcePath);
+                                await processedImage.CopyToAsync(entryStream);
+                            }
+                            else
+                            {
+                                // Non-image files copied as-is
+                                await using var fileStream = System.IO.File.OpenRead(sourcePath);
+                                await fileStream.CopyToAsync(entryStream);
+                            }
+                        }
+                    }
+
+                    // Use reflection to loop through all properties dynamically
+                    var properties = typeof(UploadRequestItem).GetProperties();
+                    foreach (var prop in properties)
+                    {
+                        if (!folderMap.ContainsKey(prop.Name)) continue;
+
+                        var value = prop.GetValue(item) as string;
+
+                        //PLEASE ADD (METHOD IS NOW ASYNC)
+                        await AddFilesToZipAsync(value, folderMap[prop.Name]);
+                    }
+
+                    bool exists = await _context.WagonDashboardUploadeds
+                        .AnyAsync(e => e.WagonNumber == item.WagonNumber);
+
+                    if (exists)
+                    {
+                        var dashboardEntry = await _context.WagonDashboardUploadeds.FirstOrDefaultAsync(w => w.WagonNumber == item.WagonNumber);
+
+                        if (dashboardEntry != null)
+                        {
+                            dashboardEntry.WagonStatus = "Uploaded";
+                            dashboardEntry.UploadDate = DateTime.Now.ToString("yyyy-MM-dd");
+
+                            _context.WagonDashboardUploadeds.Update(dashboardEntry);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Wagon does not exist.");
+                    }
+                }
+            }
+
+            return Ok(new { success = true, zipPath, zipName });
+        }
+
+        private static bool IsImage(string path)
+        {
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            return ext == ".jpg" || ext == ".jpeg" || ext == ".png";
+        }
+
+        //PLEASE ADD (IMAGE COMPRESSION)
+        private static async Task<Stream> PreprocessImageAsync(string sourcePath)
+        {
+            byte[] originalBytes = await System.IO.File.ReadAllBytesAsync(sourcePath);
+
+            using var image = await SixLabors.ImageSharp.Image.LoadAsync(sourcePath);
+
+            // Resize only if larger than 1920px
+            bool resized = false;
+            if (image.Width > 1920)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new SixLabors.ImageSharp.Size(1920, 0)
+                }));
+                resized = true;
+            }
+
+            // 🔥 STRIP EXIF / IPTC / XMP
+            StripImageMetadata(image);
+
+            var output = new MemoryStream();
+            string ext = Path.GetExtension(sourcePath).ToLowerInvariant();
+
+            if (ext == ".png")
+            {
+                // PNG: only re-encode if resized (otherwise keep original)
+                if (!resized)
+                    return new MemoryStream(originalBytes);
+
+                var pngEncoder = new SixLabors.ImageSharp.Formats.Png.PngEncoder
+                {
+                    CompressionLevel = SixLabors.ImageSharp.Formats.Png.PngCompressionLevel.Level6
+                };
+
+                await image.SaveAsync(output, pngEncoder);
+            }
+            else
+            {
+                // JPEG: metadata stripped + moderate quality
+                var jpegEncoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder
+                {
+                    Quality = 82
+                };
+
+                await image.SaveAsync(output, jpegEncoder);
+            }
+
+            // 🚨 Final guard: never make file bigger
+            if (output.Length >= originalBytes.Length)
+                return new MemoryStream(originalBytes);
+
+            output.Position = 0;
+            return output;
+        }
+
+
+        //PLEASE ADD (EXIF STRIP HELPER)
+        private static void StripImageMetadata(SixLabors.ImageSharp.Image image)
+        {
+            // Remove EXIF
+            image.Metadata.ExifProfile = null;
+
+            // Remove IPTC (sometimes present)
+            image.Metadata.IptcProfile = null;
+
+            // Remove XMP (can be large)
+            image.Metadata.XmpProfile = null;
         }
         [HttpGet("GenerateAndSaveSOWPdfForAllWagonNU")]
         public async Task<IActionResult> GenerateAndSaveSOWPdfForAllWagonNU()
@@ -1871,8 +2141,8 @@ namespace AviAppFinal.Server.Controllers
     };
             }
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+            //if (inspectionSources.All(s => !s.Value.Any()))
+               // return Ok("No parts found for this wagon number.");
 
             // --- Ensure folder exists ---
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Locos", "QuotePdf");

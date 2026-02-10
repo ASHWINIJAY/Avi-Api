@@ -21,37 +21,82 @@ namespace AviAppFinal.Server.Controllers
 
         //(↓ entire method was changed)
         [HttpGet("validateLoco/{locoNumber}")]
-        public async Task<IActionResult> ValidateLoco(int locoNumber)
+        public async Task<IActionResult> ValidateLoco(int locoNumber,
+    [FromQuery] decimal? latitude,
+    [FromQuery] decimal? longitude)
         {
             if (locoNumber <= 0)
-                return Ok(new { isValid = false, message = "Invalid Loco/Asset number." });
+                return await ReturnWithLog(
+                    locoNumber,
+                    "Invalid Loco/Asset number.", latitude, longitude
+                );
 
             var masterLoco = await _context.MasterLocos
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
 
             if (masterLoco == null)
-                return Ok(new { isValid = false, message = "Loco/Asset number not found in master data." });
+                return await ReturnWithLog(
+                    locoNumber,
+                    "Loco/Asset number not found in master data.", latitude, longitude
+                );
 
             bool existsInDashboard = await _context.LocoDashboards
                 .AnyAsync(d => d.LocoNumber == locoNumber);
 
             if (existsInDashboard)
-                return Ok(new { isValid = false, message = "Loco/Asset number has already been inspected." });
+                return await ReturnWithLog(
+                    locoNumber,
+                    "Loco/Asset number has already been inspected.", latitude, longitude
+                );
 
             if (string.IsNullOrEmpty(masterLoco.LocoClass))
-                return Ok(new { isValid = false, message = "Loco/Asset class not found in master data." });
+                return await ReturnWithLog(
+                    locoNumber,
+                    "Loco/Asset class not found in master data.", latitude, longitude
+                );
 
             if (string.IsNullOrEmpty(masterLoco.LocoModel))
-                return Ok(new { isValid = false, message = "Loco/Asset model not found in master data." });
+                return await ReturnWithLog(
+                    locoNumber,
+                    "Loco/Asset model not found in master data.", latitude, longitude
+                );
 
+            // ✅ SUCCESS (no warning logged)
             return Ok(new
             {
                 isValid = true,
                 locoClass = masterLoco.LocoClass,
                 locoModel = masterLoco.LocoModel
             });
+
+
+            
         }
+        private async Task<IActionResult> ReturnWithLog(
+       int assetNumber,
+       string message,
+       decimal? latitude = null,
+       decimal? longitude = null
+   )
+        {
+            var inspectionInfo = new InspectionWarnInfo
+            {
+                InspectionNumber = assetNumber > 0 ? assetNumber.ToString() : "N/A",
+                InspectionType = "Loco",
+                Info = message,
+                CreatedTime = DateTime.Now,
+                Username = User.Identity?.Name,
+                Lat = latitude.ToString(),
+                Long = longitude.ToString()
+            };
+
+            _context.InspectionWarnInfos.Add(inspectionInfo);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { isValid = false, message });
+        }
+
     }
 }
 
