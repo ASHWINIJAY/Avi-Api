@@ -214,4 +214,6 @@ public partial class MasterWagon
     public string? MarketValue { get; set; }
 
     public int? TareWeight { get; set; }
+
+    public int Phase { get; set; }
 }

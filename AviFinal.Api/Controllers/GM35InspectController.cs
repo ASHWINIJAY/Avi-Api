@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
+using System.Drawing;
 
-namespace AviAppFinal.Server.Controllers
+namespace AviFinal.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -14,30 +14,50 @@ namespace AviAppFinal.Server.Controllers
     {
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
-        private readonly ILogger<GM35InspectController> _logger;
-        private readonly string _connectionString;
+        private readonly ILogger<GE36InspectController> _logger;
+        private readonly IConfiguration _config;
 
-        public GM35InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<GM35InspectController> logger, IConfiguration config)
+        public GM35InspectController(AviDbContext context, IWebHostEnvironment env, ILogger<GE36InspectController> logger, IConfiguration config)
         {
             _context = context;
             _env = env;
             _logger = logger;
-            _connectionString = config.GetConnectionString("DefaultConnection")!;
+            _config = config;
         }
 
-        // ✅ Get parts
         [HttpGet("getParts/{formID}")]
         public async Task<IActionResult> GetParts(string formID)
         {
+            if (string.IsNullOrWhiteSpace(formID))
+                return BadRequest("FormId is required.");
+
             try
             {
                 var partsList = await _context.Gm35finalParts
                     .Where(p => p.FormId == formID)
-                    .OrderBy(p => p.Id)
-                    .Select(p => new { p.PartId, p.PartDescr })
                     .ToListAsync();
 
-                return Ok(partsList);
+                if (partsList.Count == 0)
+                    return BadRequest($"Unsupported formID: {formID}");
+
+                // Step 2: Sort numerically after fetching (in memory)
+                var orderedParts = partsList
+                    .OrderBy(p =>
+                    {
+                        // Extract numeric part of PartId (e.g., "PRT12" → 12)
+                        var numPart = new string(p.PartId?.Where(char.IsDigit).ToArray());
+                        return int.TryParse(numPart, out int n) ? n : int.MaxValue;
+                    })
+                    .ToList();
+
+                // Step 3: Project and return
+                var result = orderedParts.Select(p => new
+                {
+                    PartId = p.PartId,
+                    PartDescr = p.PartDescr
+                });
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -46,33 +66,66 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        // ✅ Get cost
         [HttpGet("getPartCost")]
         public async Task<IActionResult> GetPartCost(string partId, string field)
         {
-            if (string.IsNullOrWhiteSpace(partId)) return BadRequest("partId required");
-            var part = await _context.Gm35finalParts.FirstOrDefaultAsync(p => p.PartId == partId);
-            if (part == null) return NotFound();
-
-            string cost = field switch
-            {
-                "Refurbish" => part.RefurbishValue,
-                "Missing" => part.MissingValue,
-                "Replace" => part.ReplaceValue,
-                _ => "0.00"
-            };
-            return Ok(cost);
-        }
-
-        // ✅ Upload photo
-        [HttpPost("UploadPhoto")]
-        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string locoNumber, [FromForm] string locoModel)
-        {
-            if (file == null) return BadRequest("Missing file.");
+            if (string.IsNullOrWhiteSpace(partId) || string.IsNullOrWhiteSpace(field))
+                return BadRequest("PartId and field are required.");
 
             try
             {
-                string baseFolder = Path.Combine(_env.WebRootPath, "GM35", formId.ToUpper());
+                var part = await _context.Gm35finalParts
+                    .FirstOrDefaultAsync(p => p.PartId == partId);
+
+                if (part == null) return NotFound();
+
+                string cost = "0.00";
+                string laborValue = "0.00";
+
+                switch (field)
+                {
+                    case "Refurbish":
+                        cost = part.RefurbishValue ?? "0.00";
+                        laborValue = part.LabourValue + ".00" ?? "0.00";
+                        break;
+
+                    case "Missing":
+                        cost = part.MissingValue ?? "0.00";
+                        laborValue = part.LabourValue + ".00" ?? "0.00";
+                        break;
+
+                    case "Replace":
+                        cost = part.ReplaceValue ?? "0.00";
+                        laborValue = part.LabourValue + ".00" ?? "0.00";
+                        break;
+
+                    default:
+                        break;
+                }
+
+                return Ok(new
+                {
+                    cost,
+                    laborValue
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetPartCost failed for {partId}", partId);
+                return StatusCode(500, "Error getting part cost.");
+            }
+        }
+
+        [HttpPost("UploadPhoto")]
+        public async Task<IActionResult> UploadPhoto([FromForm] IFormFile file, [FromForm] string formId, [FromForm] string partId, [FromForm] string photoType, [FromForm] string locoNumber, [FromForm] string locoModel)
+        {
+            if (file == null || string.IsNullOrEmpty(photoType) || string.IsNullOrEmpty(partId))
+                return BadRequest("Missing required parameters.");
+
+            try
+            {
+                string baseFolder = Path.Combine(_env.WebRootPath, locoModel.ToUpper(), formId.ToUpper());
+
                 string subFolder = photoType.ToLower() switch
                 {
                     "damage" => "DamagePhotos",
@@ -80,176 +133,385 @@ namespace AviAppFinal.Server.Controllers
                     _ => "Other"
                 };
 
-                string folder = Path.Combine(baseFolder, subFolder);
-                Directory.CreateDirectory(folder);
+                string fullFolderPath = Path.Combine(baseFolder, subFolder);
 
-                string fileName = $"{locoNumber}_{locoModel}_{photoType}_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(file.FileName)}";
-                string fullPath = Path.Combine(folder, fileName);
-                using var fs = new FileStream(fullPath, FileMode.Create);
-                await file.CopyToAsync(fs);
+                // Ensure folder exists
+                if (!Directory.Exists(fullFolderPath))
+                    Directory.CreateDirectory(fullFolderPath);
 
-                string relative = Path.Combine("GM35", formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
-                return Ok(new { path = relative });
+                // Generate file name: LocoNumber_LocoModel_PhotoType_yyyyMMdd_HHmmss.ext
+                string fileExtension = Path.GetExtension(file.FileName);
+                string sanitizedLocoModel = locoModel.Replace(" ", "_"); // optional
+                string sanitizedPhotoType = photoType.Equals("damage", StringComparison.OrdinalIgnoreCase) ? "Damage" : "Missing";
+                string fileName = $"{locoNumber}_{sanitizedLocoModel}_{sanitizedPhotoType}_{DateTime.Now:yyyyMMdd_HHmmss}{fileExtension}";
+
+                string fullPath = Path.Combine(fullFolderPath, fileName);
+
+                // Save the file
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Return relative path for front-end
+                string relativePath = Path.Combine(locoModel.ToUpper(), formId.ToUpper(), subFolder, fileName).Replace("\\", "/");
+                return Ok(new { path = relativePath });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Upload failed");
+                _logger.LogError(ex, "Photo upload failed for part {PartId}", partId);
                 return StatusCode(500, "Photo upload failed.");
             }
         }
 
-        [HttpPost("DeletePhoto")]
-        public IActionResult DeletePhoto([FromBody] DeletePhotoRequest request)
+        public class DeletePhotoRequest1
         {
-            if (string.IsNullOrEmpty(request.Path)) return BadRequest("Missing path.");
+            public string Path { get; set; } = string.Empty;
+        }
+
+        [HttpPost("DeletePhoto")]
+        public IActionResult DeletePhoto([FromBody] DeletePhotoRequest1 request)
+        {
+            if (request == null || string.IsNullOrEmpty(request.Path))
+                return BadRequest("Missing photo path.");
+
             try
             {
-                string full = Path.Combine(_env.WebRootPath, request.Path.Replace("/", "\\"));
-                if (System.IO.File.Exists(full))
-                    System.IO.File.Delete(full);
-                return Ok();
+                // Construct absolute path from relative path
+                string fullPath = Path.Combine(_env.WebRootPath, request.Path.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                    return Ok("Deleted");
+                }
+
+                // If file doesn't exist, still return OK since it's non-blocking
+                return Ok("File not found, nothing to delete.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DeletePhoto failed");
+                _logger.LogWarning(ex, "DeletePhoto failed for path {Path}", request.Path);
                 return StatusCode(500, "Delete failed.");
             }
         }
 
-        public class DeletePhotoRequest { public string Path { get; set; } = ""; }
-
-        // ✅ DTO
-        public class GM35InspectDto
+        public class InspectDto
         {
-            public string? LaborValue { get; set; }
             public int LocoNumber { get; set; }
-            public string LocoClass { get; set; } = "";
+            public string LocoClass { get; set; } = null!;
             public string? LocoModel { get; set; }
-            public string FormId { get; set; } = "";
-            public string PartId { get; set; } = "";
-            public string PartDescr { get; set; } = "";
-            public string GoodCheck { get; set; } = "No";
-            public string RefurbishCheck { get; set; } = "No";
-            public string MissingCheck { get; set; } = "No";
-            public string ReplaceCheck { get; set; } = "No";
+            public string FormId { get; set; } = null!;
+            public string PartId { get; set; } = null!;
+            public string PartDescr { get; set; } = null!;
+            public string GoodCheck { get; set; } = null!;
+            public string RefurbishCheck { get; set; } = null!;
+            public string MissingCheck { get; set; } = null!;
+            public string DamageCheck { get; set; } = null!;
             public string? RefurbishValue { get; set; }
             public string? MissingValue { get; set; }
             public string? MissingPhoto { get; set; }
             public string? ReplaceValue { get; set; }
-            public string? ReplacePhoto { get; set; }
+            public string? DamagePhoto { get; set; }
+            public string? LaborValue { get; set; }
         }
 
-        // ✅ Submit (Insert / Update logic)
+        private void MapInspection(dynamic entity, InspectDto d, int phase)
+        {
+            entity.LocoNumber = d.LocoNumber;
+            entity.LocoClass = d.LocoClass ?? "";
+            entity.LocoModel = d.LocoModel ?? "";
+            entity.FormId = d.FormId ?? "";
+            entity.PartId = d.PartId ?? "";
+            entity.PartDescr = d.PartDescr ?? "";
+            entity.GoodCheck = d.GoodCheck ?? "No";
+            entity.RefurbishCheck = d.RefurbishCheck ?? "No";
+            entity.MissingCheck = d.MissingCheck ?? "No";
+            entity.ReplaceCheck = d.DamageCheck ?? "No";
+            entity.RefurbishValue = d.RefurbishValue;
+            entity.MissingValue = d.MissingValue;
+            entity.ReplaceValue = d.ReplaceValue;
+            entity.MissingPhoto = d.MissingPhoto;
+            entity.ReplacePhoto = d.DamagePhoto;
+            entity.LaborValue = d.LaborValue;
+            entity.Phase = phase;
+        }
+
         [HttpPost("SubmitInspection")]
-        public async Task<IActionResult> SubmitInspection([FromBody] List<GM35InspectDto> dtos)
+        public async Task<IActionResult> SubmitInspection([FromBody] List<InspectDto> dtos)
         {
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
-
-            string formId = dtos.First().FormId.ToUpper();
-            string tableName = formId switch
+            using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            await con.OpenAsync();
+            var partIds = dtos.Select(d => d.PartId).ToList();
+            var partCostData = await _context.Gm35finalParts
+                .Where(p => partIds.Contains(p.PartId))
+                .ToDictionaryAsync(p => p.PartId, p => new
+                {
+                    p.RefurbishValue,
+                    p.MissingValue,
+                    p.ReplaceValue,
+                    p.LabourValue
+                });
+            foreach (var d in dtos)
             {
-                "WA001" => "Gm35wainspects",
-                "FL001" => "Gm35flinspects",
-                "SN001" => "Gm35sninspects",
-                "CL001" => "Gm35clinspects",
-                "EL001" => "Gm35elinspects",
-                "BS001" => "Gm35bsinspects",
-                "LM001" => "Gm35lminspects",
-                "CB001" => "Gm35cbinspects",
-                "TR001" => "Gm35trinspects",
-                "MP001" => "Gm35mpinspects",
-                "BL001" => "Gm35blinspects",
-                "CA001" => "Gm35cainspects",
-                "ED001" => "Gm35edinspects",
-                "CF001" => "Gm35cfinspects",
-                "DE001" => "Gm35deinspects",
-                "RF001" => "Gm35rfinspects",
-                _ => null
-            };
+                if (partCostData.TryGetValue(d.PartId, out var cost))
+                {
+                    if (d.RefurbishCheck == "Yes")
+                    {
+                        d.RefurbishValue = cost.RefurbishValue ?? "0.00";
+                        d.LaborValue = cost.LabourValue ?? "0.00";
+                    }
+                    if (d.MissingCheck == "Yes")
+                    {
+                        d.MissingValue = cost.MissingValue ?? "0.00";
+                        d.LaborValue = cost.LabourValue ?? "0.00";
+                    }
+                    if (d.DamageCheck == "Yes")
+                    {
+                        d.ReplaceValue = cost.ReplaceValue ?? "0.00";
+                        d.LaborValue = cost.LabourValue ?? "0.00";
+                    }
+                }
+            }
 
-            if (tableName == null)
-                return BadRequest($"Unsupported formId: {formId}");
+            var firstDto = dtos.First();
+            var prefix = firstDto.FormId.Substring(0, 2);
+            var model = firstDto.LocoModel;
+
+            bool existsTFR = await _context.MasterLocosTFR
+                .AnyAsync(e => e.LocoNumber == firstDto.LocoNumber);
+
+            bool existsTE = await _context.MasterLocosTE
+                .AnyAsync(e => e.LocoNumber == firstDto.LocoNumber);
+
+            int phase = 0;
+
+            if (existsTFR)
+            {
+                phase = 2;
+            }
+            else if (existsTE)
+            {
+                phase = 3;
+            }
+            else
+            {
+                phase = 1;
+            }
 
             try
             {
-                using var con = new SqlConnection(_connectionString);
-                con.Open();
-                var partIds = dtos.Select(d => d.PartId).ToList();
-                var partCostData = await _context.Gm35finalParts
-                    .Where(p => partIds.Contains(p.PartId))
-                    .ToDictionaryAsync(p => p.PartId, p => new
-                    {
-                        p.RefurbishValue,
-                        p.MissingValue,
-                        p.ReplaceValue,
-                        p.LabourValue
-                    });
-                foreach (var d in dtos)
+                switch ($"{model}_{prefix}")
                 {
-                    if (partCostData.TryGetValue(d.PartId, out var cost))
-                    {
-                        if (d.RefurbishCheck == "Yes")
+                    case "GM35_CA":
+                        var entities1 = dtos.Select(d =>
                         {
-                            d.RefurbishValue = cost.RefurbishValue ?? "0.00";
-                            d.LaborValue = cost.LabourValue ?? "0.00";
-                        }
-                        if (d.MissingCheck == "Yes")
-                        {
-                            d.MissingValue = cost.MissingValue ?? "0.00";
-                            d.LaborValue = cost.LabourValue ?? "0.00";
-                        }
-                        if (d.ReplaceCheck == "Yes")
-                        {
-                            d.ReplaceValue = cost.ReplaceValue ?? "0.00";
-                            d.LaborValue = cost.LabourValue ?? "0.00";
-                        }
-                    }
-                    string checkSql = $@"SELECT COUNT(*) FROM {tableName}
-                                         WHERE LocoNumber = @LocoNumber AND FormId = @FormId AND PartId = @PartId";
+                            var entity = new Gm35cainspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
 
-                    int exists = await con.ExecuteScalarAsync<int>(checkSql, d);
+                        await _context.Gm35cainspects.AddRangeAsync(entities1);
+                        break;
 
-                    if (exists > 0)
-                    {
-                        string updateSql = $@"
-                            UPDATE {tableName}
-                            SET 
-                                LocoClass=@LocoClass,
-                                LocoModel=@LocoModel,
-                                PartDescr=@PartDescr,
-                                GoodCheck=@GoodCheck,
-                                RefurbishCheck=@RefurbishCheck,
-                                MissingCheck=@MissingCheck,
-                                ReplaceCheck=@ReplaceCheck,
-                                RefurbishValue=@RefurbishValue,
-                                MissingValue=@MissingValue,
-                                ReplaceValue=@ReplaceValue,
-                                MissingPhoto=@MissingPhoto,
-                                ReplacePhoto = @ReplacePhoto, LaborValue= @LaborValue
-                            WHERE LocoNumber=@LocoNumber AND FormId=@FormId AND PartId=@PartId";
-                        await con.ExecuteAsync(updateSql, d);
-                    }
-                    else
-                    {
-                        string insertSql = $@"
-                            INSERT INTO {tableName}
-                            (LocoNumber,LocoClass,LocoModel,FormId,PartId,PartDescr,GoodCheck,RefurbishCheck,MissingCheck,ReplaceCheck,
-                             RefurbishValue,MissingValue,ReplaceValue,MissingPhoto,ReplacePhoto,LaborValue)
-                            VALUES
-                            (@LocoNumber,@LocoClass,@LocoModel,@FormId,@PartId,@PartDescr,@GoodCheck,@RefurbishCheck,@MissingCheck,@ReplaceCheck,
-                             @RefurbishValue,@MissingValue,@ReplaceValue,@MissingPhoto,@ReplacePhoto,@LaborValue)";
-                        await con.ExecuteAsync(insertSql, d);
-                    }
+                    case "GM35_BL":
+                        var entities2 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35blinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35blinspects.AddRangeAsync(entities2);
+                        break;
+
+                    case "GM35_WA":
+                        var entities3 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35wainspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35wainspects.AddRangeAsync(entities3);
+                        break;
+
+                    case "GM35_BS":
+                        var entities4 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35bsinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35bsinspects.AddRangeAsync(entities4);
+                        break;
+
+                    case "GM35_CF":
+                        var entities5 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35cfinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35cfinspects.AddRangeAsync(entities5);
+                        break;
+
+                    case "GM35_CL":
+                        var entities6 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35clinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35clinspects.AddRangeAsync(entities6);
+                        break;
+
+                    case "GM35_DE":
+                        var entities7 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35deinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35deinspects.AddRangeAsync(entities7);
+                        break;
+
+                    case "GM35_EL":
+                        var entities8 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35elinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35elinspects.AddRangeAsync(entities8);
+                        break;
+
+                    case "GM35_ED":
+                        var entities9 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35edinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35edinspects.AddRangeAsync(entities9);
+                        break;
+
+                    case "GM35_FL":
+                        var entities10 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35flinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35flinspects.AddRangeAsync(entities10);
+                        break;
+
+                    case "GM35_MP":
+                        var entities11 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35mpinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35mpinspects.AddRangeAsync(entities11);
+                        break;
+
+                    case "GM35_RF":
+                        var entities12 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35rfinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35rfinspects.AddRangeAsync(entities12);
+                        break;
+
+                    case "GM35_SN":
+                        var entities13 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35sninspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35sninspects.AddRangeAsync(entities13);
+                        break;
+
+                    case "GM35_CB":
+                        var entities14 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35cbinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35cbinspects.AddRangeAsync(entities14);
+                        break;
+
+                    case "GM35_TR":
+                        var entities15 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35trinspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35trinspects.AddRangeAsync(entities15);
+                        break;
+
+                    case "GM35_LM":
+                        var entities16 = dtos.Select(d =>
+                        {
+                            var entity = new Gm35lminspect();
+                            MapInspection(entity, d, phase);
+                            return entity;
+                        }).ToList();
+
+                        await _context.Gm35lminspects.AddRangeAsync(entities16);
+                        break;
+
+                    default:
+                        return BadRequest("Invalid inspection type.");
                 }
 
-                return Ok("Data saved successfully.");
+                await _context.SaveChangesAsync();
+
+                return Ok();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "SubmitInspection failed for {FormId}", formId);
+                _logger.LogError(ex, "SubmitInspection failed");
                 return StatusCode(500, "Submit failed.");
             }
         }
+
+        //private static string? GetTableName(string formId) => formId.ToUpper() switch
+        //{
+        //    "BD001" => "GE34BDInspects",
+        //    "FL001" => "GE34FLInspects",
+        //    "SN001" => "GE34SNInspects",
+        //    "CL001" => "GE34CLInspects",
+        //    "EC001" => "GE34ECInspects",
+        //    "BS001" => "GE34BSInspects",
+        //    "OD001" => "GE34ODInspects",
+        //    "BC001" => "GE34BCInspects",
+        //    "AC001" => "GE34ACInspects",
+        //    "ED001" => "GE34EDInspects",
+        //    "CF001" => "GE34CFInspects",
+        //    "DE001" => "GE34DEInspects",
+        //    "RF001" => "GE34RFInspects",
+        //    _ => null
+        //};
     }
 }

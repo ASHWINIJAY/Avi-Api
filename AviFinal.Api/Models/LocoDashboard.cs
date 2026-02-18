@@ -74,4 +74,6 @@ public partial class LocoDashboard
     public string? CalOperateStatus { get; set; }
 
     public string? CalCondition { get; set; }
+
+    public int Phase { get; set; }
 }

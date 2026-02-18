@@ -6,7 +6,6 @@ namespace AviFinal.Api.Models;
 public partial class E18inspect
 {
     public int Id { get; set; }
-
     public string UserId { get; set; } = null!;
 
     public int LocoNumber { get; set; }

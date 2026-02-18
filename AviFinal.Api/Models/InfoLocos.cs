@@ -37,5 +37,5 @@ public partial class InfoLocos
 
     public byte[]? LiftingPhotoPaths { get; set; }
 
-    public virtual MasterLocos LocoNumberNavigation { get; set; } = null!;
+    public virtual MasterLoco LocoNumberNavigation { get; set; } = null!;
 }

@@ -1,7 +1,9 @@
+﻿using AviAppFinal.Server.Models;
 using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace AviAppFinal.Server.Controllers
 {
@@ -12,6 +14,7 @@ namespace AviAppFinal.Server.Controllers
         private readonly AviDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<WagonInfoController> _logger;
+       // private readonly JsonDbService _jsonDb;
 
         public WagonInfoController(AviDbContext context, IWebHostEnvironment env, ILogger<WagonInfoController> logger)
         {
@@ -24,19 +27,53 @@ namespace AviAppFinal.Server.Controllers
         [HttpGet("{wagonNumber}")]
         public async Task<IActionResult> GetWagonInfo(int wagonNumber)
         {
-            var wagon = await _context.MasterWagons
-                .Where(w => w.WagonNumber == wagonNumber)
-                .Select(w => new
-                {
-                    w.InventoryNumber,
-                    w.NetBookValue,
-                })
-                .FirstOrDefaultAsync();
+            bool existsP1 = await _context.MasterWagons
+                .AnyAsync(e => e.WagonNumber == wagonNumber);
 
-            if (wagon == null)
-                return NotFound("Wagon cannot be found.");
+            bool existsP2 = await _context.MasterWagonsTFR
+                .AnyAsync(e => e.WagonNumber == wagonNumber);
 
-            return Ok(wagon);
+            string? inventoryNumber = "";
+
+            string? netBookValue = "";
+
+            if (existsP1)
+            {
+                var master = await _context.MasterWagons
+                    .Where(e => e.WagonNumber == wagonNumber)
+                    .Select(e => new
+                    {
+                        InventoryNumber = e.InventoryNumber,
+                        NetBookValue = e.NetBookValue,
+                    })
+                    .FirstOrDefaultAsync();
+
+                inventoryNumber = master?.InventoryNumber;
+                netBookValue = master?.NetBookValue;
+            }
+            else if (existsP2)
+            {
+                var master = await _context.MasterWagonsTFR
+                    .Where(e => e.WagonNumber == wagonNumber)
+                    .Select(e => new
+                    {
+                        NetBookValue = e.NetBookValue,
+                    })
+                    .FirstOrDefaultAsync();
+
+                inventoryNumber = "N/A";
+                netBookValue = master?.NetBookValue.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else
+            {
+                return NotFound("Wagon/Asset number cannot be found.");
+            }
+
+            return Ok(new
+            {
+                InventoryNumber = inventoryNumber,
+                NetBookValue = netBookValue,
+            });
         }
 
         // GET api/WagonInfo/getBrakeType/{wagonGroup}
@@ -65,6 +102,17 @@ namespace AviAppFinal.Server.Controllers
             if (model == null)
                 return BadRequest("No data received.");
 
+            var user = await _context.LeaseCoUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.UserId == model.UserId);
+
+            string userName = "";
+
+            if (user != null)
+            {
+                userName = user.UserName;
+            }
+
             var wagonInfo = new WagonInfoCapture
             {
                 WagonNumber = model.WagonNumber,
@@ -76,7 +124,8 @@ namespace AviAppFinal.Server.Controllers
                 WagonGroup = model.WagonGroup ?? string.Empty,
                 BrakeType = model.BrakeType ?? string.Empty,
                 WagonType = model.WagonType ?? string.Empty,
-                CreatedBy = User?.Identity?.Name,
+                Phase = model.Phase,
+                CreatedBy = userName,
             };
 
             // Prepare photo folders under wwwroot/wagons
@@ -142,20 +191,12 @@ namespace AviAppFinal.Server.Controllers
             {
                 wagonInfo.BarrelLapsed = barrelLapsed;
             }
+
             string startTime = DateTime.Now.ToString("HH:mm:ss"); //PLEASE ADD
-
             wagonInfo.StartInspectTime = startTime;
-            var existingRecord = await _context.WagonInfoCaptures
-                .FirstOrDefaultAsync(w => w.WagonNumber == model.WagonNumber);
-            if (existingRecord != null)
-            {
 
-            }
-            else
-            {
-                        _context.WagonInfoCaptures.Add(wagonInfo);
-                    }
-                await _context.SaveChangesAsync();
+            _context.WagonInfoCaptures.Add(wagonInfo);
+            await _context.SaveChangesAsync();
 
             // (Luca) Add
             var group = model.WagonGroup;
@@ -197,68 +238,167 @@ namespace AviAppFinal.Server.Controllers
                 wagonStan, // (Luca) Add
             });
         }
-        [HttpGet("CleanLocoInfoCaptures")]
-        public async Task<IActionResult> CleanLocoInfoCaptures()
-        {
-            try
-            {
-                var currentUser = User?.Identity?.Name;
-                // 1?? Find all loco numbers matching the condition
-                var locoNumbersToDelete = await (
-                    from ml in _context.MasterWagons
-                    join wd in _context.WagonDashboards on ml.WagonNumber equals wd.WagonNumber into wdGroup
-                    from wd in wdGroup.DefaultIfEmpty()
-                    join wic in _context.WagonInfoCaptures on ml.WagonNumber equals wic.WagonNumber into wicGroup
-                    from wic in wicGroup.DefaultIfEmpty()
-                    where wd == null && wic != null
-                    select ml.WagonNumber
-                ).Distinct().ToListAsync();
 
-                if (locoNumbersToDelete == null || !locoNumbersToDelete.Any())
+        //NEW
+        [HttpGet("restore/{wagonNumber}")]
+        public async Task<IActionResult> RestoreWagonInfo(int wagonNumber)
+        {
+            var wagonInfo = await _context.WagonInfoCaptures
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.WagonNumber == wagonNumber);
+
+            if (wagonInfo == null)
+                return NotFound("No captured data found for this wagon.");
+
+            return Ok(new
+            {
+                wagonInfo.WagonNumber,
+                wagonInfo.InventoryNumber,
+                wagonInfo.NetBookValue,
+                wagonInfo.GpsLatitude,
+                wagonInfo.GpsLongitude,
+                wagonInfo.WagonPhoto,
+                wagonInfo.BodyDamage,
+                wagonInfo.BodyPhoto1,
+                wagonInfo.BodyPhoto2,
+                wagonInfo.BodyPhoto3,
+                wagonInfo.WagonGroup,
+                wagonInfo.BrakeType,
+                wagonInfo.WagonType,
+                wagonInfo.LiftPhoto,
+                wagonInfo.LiftDate,
+                wagonInfo.BarrelPhoto,
+                wagonInfo.BarrelDate,
+                wagonInfo.BrakePhoto,
+                wagonInfo.BrakeDate
+            });
+        }
+
+        //NEW
+        [HttpPost("update")]
+        public async Task<IActionResult> UpdateForm([FromForm] WagonFormModel model)
+        {
+            if (model == null)
+                return BadRequest("No data received.");
+
+            var existing = await _context.WagonInfoCaptures
+                .FirstOrDefaultAsync(w => w.WagonNumber == model.WagonNumber);
+
+            if (existing == null)
+                return NotFound("Wagon info not found.");
+
+            string rootPath = Path.Combine(_env.WebRootPath ?? "wwwroot", "wagons");
+            string wagonPhotoFolder = Path.Combine(rootPath, "WagonPhotos");
+            string bodyFolder = Path.Combine(rootPath, "BodyDamagePhotos");
+            string liftFolder = Path.Combine(rootPath, "LiftDatePhotos");
+            string barrelFolder = Path.Combine(rootPath, "BarrelTestPhotos");
+            string brakeFolder = Path.Combine(rootPath, "BrakeTestPhotos");
+
+            Directory.CreateDirectory(wagonPhotoFolder);
+            Directory.CreateDirectory(bodyFolder);
+            Directory.CreateDirectory(liftFolder);
+            Directory.CreateDirectory(barrelFolder);
+            Directory.CreateDirectory(brakeFolder);
+
+            string date = DateTime.Now.ToString("yyyyMMdd");
+            string time = DateTime.Now.ToString("HHmmss");
+
+            // 1️⃣ Update simple string fields
+            existing.InventoryNumber = model.InventoryNumber ?? string.Empty;
+            existing.NetBookValue = model.NetBookValue ?? string.Empty;
+            existing.GpsLatitude = model.GpsLatitude ?? string.Empty;
+            existing.GpsLongitude = model.GpsLongitude ?? string.Empty;
+            existing.BodyDamage = string.IsNullOrWhiteSpace(model.BodyDamage) ? "No" : model.BodyDamage;
+            existing.WagonGroup = model.WagonGroup ?? string.Empty;
+            existing.WagonType = model.WagonType ?? string.Empty;
+
+            // 2️⃣ Wagon Photo (special handling)
+            if (model.WagonPhoto != null && model.WagonPhoto.Length > 0)
+            {
+                string wagonFileName = $"{model.WagonNumber}_{Sanitize(model.WagonGroup)}_Wagon_{date}_{time}{Path.GetExtension(model.WagonPhoto.FileName)}";
+                string wagonFilePath = Path.Combine(wagonPhotoFolder, wagonFileName);
+                using (var stream = new FileStream(wagonFilePath, FileMode.Create))
+                    await model.WagonPhoto.CopyToAsync(stream);
+
+                existing.WagonPhoto = $"/wagons/WagonPhotos/{wagonFileName}";
+            }
+
+            // 3️⃣ Body photos
+            existing.BodyPhoto1 = model.BodyPhoto1 != null
+                ? await SaveBodyPhoto(model.BodyPhoto1, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 1)
+                : existing.BodyPhoto1;
+            existing.BodyPhoto2 = model.BodyPhoto2 != null
+                ? await SaveBodyPhoto(model.BodyPhoto2, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 2)
+                : existing.BodyPhoto2;
+            existing.BodyPhoto3 = model.BodyPhoto3 != null
+                ? await SaveBodyPhoto(model.BodyPhoto3, model.WagonNumber, model.WagonGroup, bodyFolder, date, time, 3)
+                : existing.BodyPhoto3;
+
+            // 4️⃣ Lift photo and date
+            existing.LiftPhoto = model.LiftPhoto != null
+                ? await SaveSinglePhoto(model.LiftPhoto, model.WagonNumber, model.WagonGroup, liftFolder, "Lift", date, time)
+                : existing.LiftPhoto;
+            existing.LiftDate = NormalizeDate(model.LiftDate);
+            existing.LiftLapsed = ComputeLapsed(model.LiftDate);
+
+            // 5️⃣ Barrel photo and date (Tankers only)
+            if (string.Equals(model.WagonType, "Tanker", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.BarrelPhoto = model.BarrelPhoto != null
+                    ? await SaveSinglePhoto(model.BarrelPhoto, model.WagonNumber, model.WagonGroup, barrelFolder, "Barrel", date, time)
+                    : existing.BarrelPhoto;
+                existing.BarrelDate = NormalizeDate(model.BarrelDate);
+                existing.BarrelLapsed = ComputeLapsed(model.BarrelDate);
+            }
+            else
+            {
+                existing.BarrelPhoto = "N/A";
+                existing.BarrelDate = "N/A";
+                existing.BarrelLapsed = "N/A";
+            }
+
+            // 6️⃣ Brake photo and date
+            existing.BrakePhoto = model.BrakePhoto != null
+                ? await SaveSinglePhoto(model.BrakePhoto, model.WagonNumber, model.WagonGroup, brakeFolder, "Brake", date, time)
+                : existing.BrakePhoto;
+            existing.BrakeDate = NormalizeDate(model.BrakeDate);
+            existing.BrakeLapsed = ComputeLapsed(model.BrakeDate);
+
+            var wagonGroupData = await _context.WagonGroups
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.Group == model.WagonGroup);
+
+            existing.BrakeType = model.BrakeType ?? existing.BrakeType;
+
+            string startTime = DateTime.Now.ToString("HH:mm:ss"); //PLEASE ADD
+            existing.StartInspectTime = startTime;
+
+            await _context.SaveChangesAsync();
+
+            // 8️⃣ Return Doors/Twistlocks/Stanchions like SubmitForm
+            var wagonData = wagonGroupData == null ? new { Doors = "N/A", Twistlocks = "N/A", Stanchions = "N/A" }
+                : new
                 {
-                    return Ok("? No records found for cleanup.");
-                }
+                    Doors = wagonGroupData.Doors ?? "N/A",
+                    Twistlocks = wagonGroupData.Twistlocks ?? "N/A",
+                    Stanchions = wagonGroupData.Stanchions ?? "N/A"
+                };
 
-                // 2?? Delete from LocoInfoCaptures
-                
-
-                return Ok(new
-                {
-                    Message = "You have the following incomplete wagon(s). Please select and recapture them again."
-,
-
-                    IncompleteWagons = locoNumbersToDelete
-                });
-            }
-            catch (Exception ex)
+            return Ok(new
             {
-                _logger.LogError(ex, "Error cleaning LocoInfoCaptures");
-                return StatusCode(500, "? Server error while cleaning LocoInfoCaptures.");
-            }
-        }
-        [HttpPost("DeleteSelectedWagons")]
-        public IActionResult DeleteSelectedWagons([FromBody] WagonDeleteRequest req)
-        {
-            if (req == null || req.WagonNumbers == null || !req.WagonNumbers.Any())
-                return BadRequest("No wagon numbers provided.");
-
-            var wagonNum = req.WagonNumbers.First();
-            var record = _context.WagonInfoCaptures.FirstOrDefault(w => w.WagonNumber == wagonNum);
-            if (record != null)
-            {
-               // _context.WagonInfoCaptures.Remove(record);
-               // _context.SaveChanges();
-                return Ok(new { message = $"Wagon {wagonNum} deleted successfully." });
-            }
-
-            return NotFound(new { message = $"Wagon {wagonNum} not found." });
+                message = "Wagon info updated successfully.",
+                LiftLapsed = existing.LiftLapsed ?? "N/A",
+                BarrelLapsed = existing.BarrelLapsed ?? "N/A",
+                BrakeLapsed = existing.BrakeLapsed ?? "N/A",
+                BrakeType = existing.BrakeType ?? string.Empty,
+                wagonData.Doors,
+                wagonData.Twistlocks,
+                wagonData.Stanchions
+            });
         }
 
-        public class WagonDeleteRequest
-        {
-            public List<int> WagonNumbers { get; set; } = new();
-        }
-        private async Task<string> SaveBodyPhoto(IFormFile? file, int wagonNumber, string wagonGroup, string folder, string date, string time, int sequence)
+
+        private async Task<string> SaveBodyPhoto(IFormFile? file, int wagonNumber, string? wagonGroup, string folder, string date, string time, int sequence)
         {
             if (file != null && file.Length > 0)
             {
@@ -274,7 +414,7 @@ namespace AviAppFinal.Server.Controllers
             return "No Photo";
         }
 
-        private async Task<string> SaveSinglePhoto(IFormFile? file, int wagonNumber, string wagonGroup, string folder, string type, string date, string time)
+        private async Task<string> SaveSinglePhoto(IFormFile? file, int wagonNumber, string? wagonGroup, string folder, string type, string date, string time)
         {
             if (file != null && file.Length > 0)
             {
@@ -376,6 +516,8 @@ namespace AviAppFinal.Server.Controllers
         public string? BarrelDate { get; set; }
         public IFormFile? BrakePhoto { get; set; }
         public string? BrakeDate { get; set; }
+        public int Phase { get; set; }
+        public string? UserId { get; set; }
 
         internal string FirstOrDefault()
         {

@@ -1,11 +1,11 @@
-﻿using AviFinal.Api.Models;
+﻿using AviAppFinal.Server.Models;
 using Dapper;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using AviFinal.Api.Models;
 
 namespace AviAppFinal.Server.Controllers
 {
@@ -214,12 +214,15 @@ namespace AviAppFinal.Server.Controllers
             public string? MissingPhoto { get; set; }
             public string? ReplaceValue { get; set; }
             public string? DamagePhoto { get; set; }
-            public string? LaborValue { get; set; } //PLEASE ADD
+            public string? LaborValue { get; set; } 
+            public int Phase { get; set; }
         }
 
         [HttpPost("SubmitInspection")]
         public async Task<IActionResult> SubmitInspection([FromBody] List<WagonPartsInspectDto> dtos)
         {
+            _context.Database.SetCommandTimeout(180);
+
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
 
@@ -242,7 +245,8 @@ namespace AviAppFinal.Server.Controllers
                     ReplaceValue = d.ReplaceValue,
                     MissingPhoto = d.MissingPhoto,
                     ReplacePhoto = d.DamagePhoto,
-                    LaborValue = d.LaborValue //PLEASE ADD
+                    LaborValue = d.LaborValue,
+                    Phase = d.Phase,
                 }).ToList();
 
                 // Bulk insert

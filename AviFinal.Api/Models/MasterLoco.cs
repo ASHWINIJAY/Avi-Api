@@ -87,6 +87,8 @@ public partial class MasterLoco
 
     public int? TareWeight { get; set; }
 
+    public int Phase { get; set; }
+
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();

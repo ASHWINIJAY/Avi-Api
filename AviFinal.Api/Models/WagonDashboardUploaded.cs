@@ -94,4 +94,6 @@ public partial class WagonDashboardUploaded
     public string? CalOperateStatus { get; set; }
 
     public string? CalCondition { get; set; }
+
+    public int Phase { get; set; }
 }

@@ -27,7 +27,7 @@ public partial class EndDeckInspects
 
     public int LocoNumber { get; set; }
 
-    public virtual MasterLocos LocoNumberNavigation { get; set; } = null!;
+    public virtual MasterLoco LocoNumberNavigation { get; set; } = null!;
 
     public virtual LeaseCoUsers User { get; set; } = null!;
 }

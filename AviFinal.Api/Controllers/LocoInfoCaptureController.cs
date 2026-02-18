@@ -1,10 +1,11 @@
+﻿using AviAppFinal.Server.Models;
 using AviFinal.Api.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
-namespace AviFinal.Api.Controllers
+namespace AviAppFinal.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -21,63 +22,89 @@ namespace AviFinal.Api.Controllers
             _logger = logger;
         }
 
-        // GET api/WagonInfo/{wagonNumber}
         [HttpGet("{locoNumber}")]
         public async Task<IActionResult> GetLocoInfo(int locoNumber)
         {
-            var loco = await _context.MasterLocos
-                .Where(w => w.LocoNumber == locoNumber)
-                .Select(w => new
-                {
-                    InventoryNumber = w.InventoryNumber,
-                    NetBookValue = w.NetBookValue,
-                })
-                .FirstOrDefaultAsync();
+            bool existsP1 = await _context.MasterLocos
+                .AnyAsync(e => e.LocoNumber == locoNumber);
 
-            if (loco == null)
-                return NotFound("Locomotive cannot be found.");
+            bool existsP2 = await _context.MasterLocosTFR
+                .AnyAsync(e => e.LocoNumber == locoNumber);
 
-            return Ok(loco);
+            bool existsP3 = await _context.MasterLocosTE
+                .AnyAsync(e => e.LocoNumber == locoNumber);
+
+            string? inventoryNumber = "";
+
+            string? netBookValue = "";
+
+            if (existsP1)
+            {
+                var master = await _context.MasterLocos
+                    .Where(e => e.LocoNumber == locoNumber)
+                    .Select(e => new
+                    {
+                        InventoryNumber = e.InventoryNumber,
+                        NetBookValue = e.NetBookValue,
+                    })
+                    .FirstOrDefaultAsync();
+
+                inventoryNumber = master?.InventoryNumber;
+                netBookValue = master?.NetBookValue;
+            }
+            else if (existsP2)
+            {
+                var master = await _context.MasterLocosTFR
+                    .Where(e => e.LocoNumber == locoNumber)
+                    .Select(e => new
+                    {
+                        InventoryNumber = e.InventoryNumber,
+                        NetBookValue = e.NetBookValue,
+                    })
+                    .FirstOrDefaultAsync();
+
+                inventoryNumber = master?.InventoryNumber;
+                netBookValue = master?.NetBookValue.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else if (existsP3)
+            {
+                var master = await _context.MasterLocosTE
+                    .Where(e => e.LocoNumber == locoNumber)
+                    .Select(e => new
+                    {
+                        InventoryNumber = e.InventoryNumber,
+                        NetBookValue = e.NetBookValue,
+                    })
+                    .FirstOrDefaultAsync();
+
+                inventoryNumber = master?.InventoryNumber;
+                netBookValue = master?.NetBookValue.ToString("N2", new CultureInfo("en-ZA"));
+            }
+            else
+            {
+                return NotFound("Loco/Asset number cannot be found.");
+            }   
+
+            return Ok( new
+            {
+                InventoryNumber = inventoryNumber,
+                NetBookValue = netBookValue,
+            });
         }
 
-        [AllowAnonymous]
-        [HttpGet("getAllLocos")]
-        public async Task<IActionResult> GetAllLocoInfo(int locoNumber)
-        {
-            var loco = await _context.MasterLocos                
-                .ToListAsync();
-
-            if (loco == null)
-                return NotFound("Locomotive cannot be found.");
-
-            return Ok(loco);
-        }
-
-        // GET api/WagonInfo/getBrakeType/{wagonGroup}
-        [HttpGet("getBrakeType/{wagonGroup}")]
-        public async Task<IActionResult> GetBrakeType(string wagonGroup)
-        {
-            var wagon = await _context.WagonGroups
-                .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Group == wagonGroup);
-
-            if (wagon == null)
-                return NotFound("Wagon Group cannot be found.");
-
-            string brakeType = wagon.AirBrake == "Yes" ? "Air Brake"
-                             : wagon.VacuumBrake == "Yes" ? "Vacuum Brake"
-                             : wagon.DualBrake == "Yes" ? "Dual Brake"
-                             : "";
-
-            return Ok(new { BrakeType = brakeType });
-        }
-
-        // POST api/WagonInfo/submit
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitForm([FromForm] LocomotiveFormModel model)
         {
             if (model == null)
                 return BadRequest("No data received.");
+
+            var user = await _context.LeaseCoUsers
+                .FirstOrDefaultAsync(e => e.UserId == model.UserID);
+
+            if (user == null)
+                return NotFound("User cannot be found.");
+
+            string userName = user.UserName;
 
             var locoInfo = new LocoInfoCapture
             {
@@ -89,8 +116,8 @@ namespace AviFinal.Api.Controllers
                 BodyDamage = string.IsNullOrWhiteSpace(model.BodyDamage) ? "No" : model.BodyDamage,
                 LocoClass = model.LocoClass ?? string.Empty,
                 LocoModel = model.LocoModel ?? string.Empty,
-                CreatedBy = User?.Identity?.Name,
-
+                Phase = Convert.ToInt32(model.Phase),
+                CreatedBy = userName,
             };
 
             // Prepare photo folders under wwwroot/wagons
@@ -106,7 +133,6 @@ namespace AviFinal.Api.Controllers
             string date = DateTime.Now.ToString("yyyyMMdd");
             string time = DateTime.Now.ToString("HHmmss");
 
-            // Wagon Photo
             if (model.LocoPhoto != null && model.LocoPhoto.Length > 0)
             {
                 string locoFileName = $"{model.LocoNumber}_{Sanitize(model.LocoModel)}_Loco_{date}_{time}{Path.GetExtension(model.LocoPhoto.FileName)}";
@@ -119,7 +145,7 @@ namespace AviFinal.Api.Controllers
             else
             {
                 locoInfo.LocoPhoto = "No Photo";
-            } 
+            }
 
             // Body photos — save with sequence number to avoid collisions
             locoInfo.BodyPhoto1 = await SaveBodyPhoto(model.BodyPhoto1, model.LocoNumber, model.LocoModel, bodyFolder, date, time, 1);
@@ -136,87 +162,12 @@ namespace AviFinal.Api.Controllers
                 locoInfo.LiftPhoto = "No Photo";
                 locoInfo.LiftDate = "No Date";
             }
-            var existingRecord = await _context.LocoInfoCaptures
-                .FirstOrDefaultAsync(l => l.LocoNumber == model.LocoNumber);
-            if (existingRecord != null)
-            {
 
-            }
-            else
-            {
-                        _context.LocoInfoCaptures.Add(locoInfo);
-                        //locoInfo.Id = existingRecord.Id;
-                        //locoInfo.CreatedDate = DateTime.Now;
-                        //_context.LocoInfoCaptures.Update(locoInfo);
-                    }
-                await _context.SaveChangesAsync();
-
-
+            _context.LocoInfoCaptures.Add(locoInfo);
+            await _context.SaveChangesAsync();
 
             return Ok(new { message = "Loco info submitted successfully." });
         }
-        [HttpGet("CleanLocoInfoCaptures")]
-        public async Task<IActionResult> CleanLocoInfoCaptures()
-        {
-            try
-            {
-                var currentUser = User?.Identity?.Name;
-                // 1️⃣ Find all loco numbers matching the condition
-                var locoNumbersToDelete = await (
-                    from ml in _context.MasterLocos
-                    join wd in _context.LocoDashboards on ml.LocoNumber equals wd.LocoNumber into wdGroup
-                    from wd in wdGroup.DefaultIfEmpty()
-                    join wic in _context.LocoInfoCaptures on ml.LocoNumber equals wic.LocoNumber into wicGroup
-                    from wic in wicGroup.DefaultIfEmpty() 
-                    where wd == null && wic != null  
-                    select ml.LocoNumber
-                ).Distinct().ToListAsync();
-
-                if (locoNumbersToDelete == null || !locoNumbersToDelete.Any())
-                {
-                    return Ok("✅ No records found for cleanup.");
-                }
-
-                
-
-                return Ok(new
-                {
-                    Message = "We have the following incomplete loco(s). Please select and recapture them again."
-,
-
-                    IncompleteLocos = locoNumbersToDelete
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cleaning LocoInfoCaptures");
-                return StatusCode(500, "❌ Server error while cleaning LocoInfoCaptures.");
-            }
-        }
-        [HttpPost("DeleteSelectedLocos")]
-        public IActionResult DeleteSelectedLocos([FromBody] LocoDeleteRequest req)
-        {
-            if (req == null || req.LocoNumbers == null || !req.LocoNumbers.Any())
-                return BadRequest("No loco numbers provided.");
-
-            var locoNum = req.LocoNumbers.First();
-            var record = _context.LocoInfoCaptures.FirstOrDefault(x => x.LocoNumber == locoNum);
-
-            if (record != null)
-            {
-                //_context.LocoInfoCaptures.Remove(record);
-               // _context.SaveChanges();
-                return Ok(new { message = $"Loco {locoNum} deleted successfully." });
-            }
-
-            return NotFound(new { message = $"Loco {locoNum} not found." });
-        }
-
-        public class LocoDeleteRequest
-        {
-            public List<int> LocoNumbers { get; set; } = new();
-        }
-
 
         private async Task<string> SaveBodyPhoto(IFormFile? file, int locoNumber, string locoModel, string folder, string date, string time, int sequence)
         {
@@ -304,5 +255,7 @@ namespace AviFinal.Api.Controllers
         public string LocoModel { get; set; } = string.Empty;
         public IFormFile? LiftPhoto { get; set; }
         public string LiftDate { get; set; } = string.Empty;
+        public string Phase {  get; set; } = string.Empty;
+        public string UserID {  get; set; } = string.Empty;
     }
 }

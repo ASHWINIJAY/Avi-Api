@@ -285,7 +285,7 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<Gm36edinspect> Gm36edinspects { get; set; }
 
-    public virtual DbSet<Gm36elinspect> Gm36elinspects { get; set; }
+    //public virtual DbSet<Gm36elinspect> Gm36elinspects { get; set; }
 
     public virtual DbSet<Gm36finalPart> Gm36finalParts { get; set; }
 
@@ -395,9 +395,65 @@ public partial class AviDbContext : DbContext
 
     public virtual DbSet<WalkAroundInspect> WalkAroundInspects { get; set; }
 
+    public virtual DbSet<MasterLocosTFR> MasterLocosTFR { get; set; }
+
+    public virtual DbSet<MasterWagonsTFR> MasterWagonsTFR { get; set; }
+
+    public virtual DbSet<MasterLocosTE> MasterLocosTE { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
+        modelBuilder.Entity<MasterWagonsTFR>(entity =>
+        {
+            entity.HasKey(e => e.WagonNumber);
+            entity.Property(e => e.WagonType)
+                .HasMaxLength(50);
+            entity.Property(e => e.MasterList)
+                .HasMaxLength(50);
+            entity.Property(e => e.CommodityGrouping)
+                .HasMaxLength(100);
+            entity.Property(e => e.BrakeSystem)
+                .HasMaxLength(50);
+            entity.Property(e => e.MisGroup)
+                .HasMaxLength(50);
+            entity.Property(e => e.MisCr)
+                .HasMaxLength(50);
+            entity.Property(e => e.WagonGroup)
+                .HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<MasterLocosTFR>(entity =>
+        {
+            entity.HasKey(e => e.LocoNumber);
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(20);
+            entity.Property(e => e.MasterList)
+                .HasMaxLength(20);
+        });
+
+
+        modelBuilder.Entity<MasterLocosTE>(entity =>
+        {
+            entity.HasKey(e => e.LocoNumber);
+            entity.Property(e => e.InventoryNumber)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoType)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoClass)
+                .HasMaxLength(20);
+            entity.Property(e => e.LocoModel)
+                .HasMaxLength(20);
+            entity.Property(e => e.MasterList)
+                .HasMaxLength(20);
+        });
+
         modelBuilder.Entity<AirBrakeFinalPart>(entity =>
         {
             entity.Property(e => e.Id)
@@ -5959,47 +6015,47 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.ReplaceValue).HasMaxLength(100);
         });
 
-        modelBuilder.Entity<Gm36elinspect>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__GM36ELIn__3214EC27255A14A1");
+        //modelBuilder.Entity<Gm36elinspect>(entity =>
+        //{
+        //    entity.HasKey(e => e.Id).HasName("PK__GM36ELIn__3214EC27255A14A1");
 
-            entity.ToTable("GM36ELInspects");
+        //    entity.ToTable("GM36ELInspects");
 
-            entity.Property(e => e.Id).HasColumnName("ID");
-            entity.Property(e => e.FormId)
-                .HasMaxLength(10)
-                .IsUnicode(false)
-                .HasColumnName("FormID");
-            entity.Property(e => e.GoodCheck)
-                .HasMaxLength(4)
-                .IsUnicode(false);
-            entity.Property(e => e.LaborValue).HasMaxLength(50);
-            entity.Property(e => e.LocoClass)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.LocoModel)
-                .HasMaxLength(80)
-                .IsUnicode(false);
-            entity.Property(e => e.MissingCheck)
-                .HasMaxLength(4)
-                .IsUnicode(false);
-            entity.Property(e => e.MissingValue).HasMaxLength(100);
-            entity.Property(e => e.PartDescr)
-                .HasMaxLength(300)
-                .IsUnicode(false);
-            entity.Property(e => e.PartId)
-                .HasMaxLength(10)
-                .IsUnicode(false)
-                .HasColumnName("PartID");
-            entity.Property(e => e.RefurbishCheck)
-                .HasMaxLength(4)
-                .IsUnicode(false);
-            entity.Property(e => e.RefurbishValue).HasMaxLength(100);
-            entity.Property(e => e.ReplaceCheck)
-                .HasMaxLength(4)
-                .IsUnicode(false);
-            entity.Property(e => e.ReplaceValue).HasMaxLength(100);
-        });
+        //    entity.Property(e => e.Id).HasColumnName("ID");
+        //    entity.Property(e => e.FormId)
+        //        .HasMaxLength(10)
+        //        .IsUnicode(false)
+        //        .HasColumnName("FormID");
+        //    entity.Property(e => e.GoodCheck)
+        //        .HasMaxLength(4)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.LaborValue).HasMaxLength(50);
+        //    entity.Property(e => e.LocoClass)
+        //        .HasMaxLength(10)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.LocoModel)
+        //        .HasMaxLength(80)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.MissingCheck)
+        //        .HasMaxLength(4)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.MissingValue).HasMaxLength(100);
+        //    entity.Property(e => e.PartDescr)
+        //        .HasMaxLength(300)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.PartId)
+        //        .HasMaxLength(10)
+        //        .IsUnicode(false)
+        //        .HasColumnName("PartID");
+        //    entity.Property(e => e.RefurbishCheck)
+        //        .HasMaxLength(4)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.RefurbishValue).HasMaxLength(100);
+        //    entity.Property(e => e.ReplaceCheck)
+        //        .HasMaxLength(4)
+        //        .IsUnicode(false);
+        //    entity.Property(e => e.ReplaceValue).HasMaxLength(100);
+        //});
 
         modelBuilder.Entity<Gm36finalPart>(entity =>
         {

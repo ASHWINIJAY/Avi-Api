@@ -1,9 +1,10 @@
-﻿using System;
+﻿using AviAppFinal.Server.Models;
+using System;
 using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class TankersInspect
+public partial class TankersInspect : IInspectWagonEntity
 {
     public int Id { get; set; }
 
@@ -38,4 +39,6 @@ public partial class TankersInspect
     public int ValveQty { get; set; }
 
     public string? LaborValue { get; set; }
+
+    public int Phase { get; set; }
 }

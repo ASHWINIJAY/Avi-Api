@@ -19,5 +19,5 @@ public partial class D34locos
 
     public string? LocoModel { get; set; }
 
-    public virtual MasterLocos AssetCodeNavigation { get; set; } = null!;
+    public virtual MasterLoco AssetCodeNavigation { get; set; } = null!;
 }

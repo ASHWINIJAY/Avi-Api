@@ -1,9 +1,10 @@
-﻿using System;
+﻿using AviAppFinal.Server.Models;
+using System;
 using System.Collections.Generic;
-
+using AviAppFinal.Server.Models;
 namespace AviFinal.Api.Models;
 
-public partial class WagonPartsInspect
+public partial class WagonPartsInspect : IInspectWagonEntity
 {
     public int Id { get; set; }
 
@@ -38,4 +39,6 @@ public partial class WagonPartsInspect
     public string? ReplacePhoto { get; set; }
 
     public string? LaborValue { get; set; }
+
+    public int Phase { get; set; }
 }

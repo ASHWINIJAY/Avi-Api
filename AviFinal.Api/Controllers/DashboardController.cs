@@ -90,6 +90,10 @@ public class DashboardController : ControllerBase
                                       .AsNoTracking()
                                       .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
 
+        var master2 = await _context.MasterWagonsTFR
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
+
         // ---------- Get WagonInfoCaptures ----------
         var wagonInfo = await _context.WagonInfoCaptures
                                       .Where(w => w.WagonNumber == wagonNumber)
@@ -344,18 +348,39 @@ public class DashboardController : ControllerBase
 
         decimal liftBarrelTotal = liftCost + barrelCost;
 
-        //PLEASE ADD
-        decimal marketValue = 0; //PLEASE ADD
+        decimal marketValue = 0;
 
-        //PLEASE ADD
-        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
-            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+        int phase = 0;
 
+        bool existsP1 = await _context.MasterWagons
+            .AnyAsync(e => e.WagonNumber == wagonNumber);
+
+        bool existsP2 = await _context.MasterWagonsTFR
+            .AnyAsync(e => e.WagonNumber == wagonNumber);
+
+        if (existsP1)
+        {
+            if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
+                decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+            phase = 1;
+        }
+        if (existsP2)
+        {
+            if (master2 != null)
+            {
+                decimal.TryParse(master2.BenchmarkValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+                phase = 2;
+            } 
+        }
+        
         //PLEASE ADD
         decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
         decimal assetValue = marketValue - repairTotal;
         string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
         string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+        string markVal = marketValue.ToString("0.00", CultureInfo.InvariantCulture);
 
         // ADD ↓
         decimal assetValueDec = assetValue;
@@ -421,7 +446,7 @@ public class DashboardController : ControllerBase
             GpsLatitude = wagonInfo.GpsLatitude,
             GpsLongitude = wagonInfo.GpsLongitude,
             StartTimeInspect = wagonInfo.StartInspectTime ?? "Not Available",
-            MarketValue = master?.MarketValue ?? "0.00", //PLEASE ADJUST
+            MarketValue = markVal ?? "0.00", //PLEASE ADJUST
             TotalLaborValue = laborTotal,
             AssetValue = totalAssetValue ?? "0.00", //PLEASE ADJUST
             AssessmentSow = "Not Ready", //PLEASE ADD
@@ -431,7 +456,8 @@ public class DashboardController : ControllerBase
             City = city,
              CalScore = score,
             CalOperateStatus = condition?.OperationalStatus ?? "Scrap Only",
-            CalCondition = condition?.Condition ?? "Beyond Repair"
+            CalCondition = condition?.Condition ?? "Beyond Repair",
+            Phase = phase,
         };
         var existingLoco = await _context.WagonDashboards
                                         .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
@@ -600,6 +626,7 @@ public class DashboardController : ControllerBase
                         existingEntry.CalScore = dashboardEntry?.CalScore;
                         existingEntry.CalOperateStatus = dashboardEntry?.CalOperateStatus ?? "Not Captured";
                         existingEntry.CalCondition = dashboardEntry?.CalCondition ?? "Not Captured";
+                        existingEntry.Phase = dashboardEntry.Phase;
                     }
                     else
                     {
@@ -6271,18 +6298,6 @@ public class DashboardController : ControllerBase
                        ReplacePhoto = p.ReplacePhoto
                    }).ToListAsync());
 
-                multiEntryTables.Add(async num => await _context.Gm36elinspects
-                   .Where(p => p.LocoNumber == num)
-                   .OrderByDescending(p => p.Id)
-                   .Select(p => new InspectLocoRow
-                   {
-                       RefurbishValue = p.RefurbishValue,
-                       MissingValue = p.MissingValue,
-                       ReplaceValue = p.ReplaceValue,
-                       MissingPhoto = p.MissingPhoto,
-                       ReplacePhoto = p.ReplacePhoto
-                   }).ToListAsync());
-
                 multiEntryTables.Add(async num => await _context.Gm36cbinspects
                    .Where(p => p.LocoNumber == num)
                    .OrderByDescending(p => p.Id)
@@ -7616,18 +7631,6 @@ public class DashboardController : ControllerBase
                    }).ToListAsync());
 
                 multiEntryTables.Add(async num => await _context.Gm36clinspects
-                   .Where(p => p.LocoNumber == num)
-                   .OrderByDescending(p => p.Id)
-                   .Select(p => new InspectLocoRow
-                   {
-                       RefurbishValue = p.RefurbishValue,
-                       MissingValue = p.MissingValue,
-                       ReplaceValue = p.ReplaceValue,
-                       MissingPhoto = p.MissingPhoto,
-                       ReplacePhoto = p.ReplacePhoto
-                   }).ToListAsync());
-
-                multiEntryTables.Add(async num => await _context.Gm36elinspects
                    .Where(p => p.LocoNumber == num)
                    .OrderByDescending(p => p.Id)
                    .Select(p => new InspectLocoRow

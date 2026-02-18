@@ -56,4 +56,6 @@ public partial class WagonInfoCapture
     public string? CreatedBy { get; set; }
 
     public string? StartInspectTime { get; set; }
+
+    public int Phase { get; set; }
 }

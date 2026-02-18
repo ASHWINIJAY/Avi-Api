@@ -1,14 +1,15 @@
-﻿using System;
+﻿using AviAppFinal.Server.Models;
+using System;
 using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
-public partial class E18ccinspect
+public partial class E18ccinspect : IInspectLocoEntity
 {
     public int Id { get; set; }
 
     public int LocoNumber { get; set; }
-
+    public int Phase { get; set; }
     public string LocoClass { get; set; } = null!;
 
     public string LocoModel { get; set; } = null!;

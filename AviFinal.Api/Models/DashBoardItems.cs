@@ -45,5 +45,5 @@ public partial class DashBoardItems
 
     public DateOnly UploadDate { get; set; }
 
-    public virtual MasterLocos LocoNumberNavigation { get; set; } = null!;
+    public virtual MasterLoco LocoNumberNavigation { get; set; } = null!;
 }
