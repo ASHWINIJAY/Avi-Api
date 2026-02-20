@@ -229,30 +229,66 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var entities = dtos.Select(d => new FloorInspect
-                {
-                    WagonNumber = d.WagonNumber,
-                    WagonGroup = d.WagonGroup ?? "",
-                    WagonType = d.WagonType ?? "",
-                    FormId = d.FormId ?? "",
-                    PartDescr = d.PartDescr ?? "",
-                    GoodCheck = d.GoodCheck ?? "No",
-                    RefurbishCheck = d.RefurbishCheck ?? "No",
-                    MissingCheck = d.MissingCheck ?? "No",
-                    ReplaceCheck = d.DamageCheck ?? "No",
-                    RefurbishValue = d.RefurbishValue,
-                    MissingValue = d.MissingValue,
-                    ReplaceValue = d.ReplaceValue,
-                    MissingPhoto = d.MissingPhoto,
-                    ReplacePhoto = d.DamagePhoto,
-                    SectionQty = d.SectionQty,
-                    LaborValue = d.LaborValue,
-                    Phase = d.Phase,
-                }).ToList();
+                var wagonNumbers = dtos.Select(d => d.WagonNumber).Distinct().ToList();
 
-                // Bulk insert
-                await _context.FloorInspects.AddRangeAsync(entities);
+                var existingRecords = await _context.FloorInspects
+                    .Where(x => wagonNumbers.Contains(x.WagonNumber))
+                    .ToListAsync();
+
+                var existingDict = existingRecords.ToDictionary(
+                    x => $"{x.WagonNumber}_{x.PartDescr}"
+                );
+
+                foreach (var d in dtos)
+                {
+                    var key = $"{d.WagonNumber}_{d.PartDescr ?? ""}";
+
+                    if (existingDict.TryGetValue(key, out var existing))
+                    {
+                        // UPDATE
+                        existing.WagonGroup = d.WagonGroup ?? "";
+                        existing.WagonType = d.WagonType ?? "";
+                        existing.FormId = d.FormId ?? "";
+                        existing.GoodCheck = d.GoodCheck ?? "No";
+                        existing.RefurbishCheck = d.RefurbishCheck ?? "No";
+                        existing.MissingCheck = d.MissingCheck ?? "No";
+                        existing.ReplaceCheck = d.DamageCheck ?? "No";
+                        existing.RefurbishValue = d.RefurbishValue;
+                        existing.MissingValue = d.MissingValue;
+                        existing.ReplaceValue = d.ReplaceValue;
+                        existing.MissingPhoto = d.MissingPhoto;
+                        existing.ReplacePhoto = d.DamagePhoto;
+                        existing.SectionQty = d.SectionQty;
+                        existing.LaborValue = d.LaborValue;
+                        existing.Phase = d.Phase;
+                    }
+                    else
+                    {
+                        await _context.FloorInspects.AddAsync(new FloorInspect
+                        {
+                            WagonNumber = d.WagonNumber,
+                            WagonGroup = d.WagonGroup ?? "",
+                            WagonType = d.WagonType ?? "",
+                            FormId = d.FormId ?? "",
+                            PartDescr = d.PartDescr ?? "",
+                            GoodCheck = d.GoodCheck ?? "No",
+                            RefurbishCheck = d.RefurbishCheck ?? "No",
+                            MissingCheck = d.MissingCheck ?? "No",
+                            ReplaceCheck = d.DamageCheck ?? "No",
+                            RefurbishValue = d.RefurbishValue,
+                            MissingValue = d.MissingValue,
+                            ReplaceValue = d.ReplaceValue,
+                            MissingPhoto = d.MissingPhoto,
+                            ReplacePhoto = d.DamagePhoto,
+                            SectionQty = d.SectionQty,
+                            LaborValue = d.LaborValue,
+                            Phase = d.Phase
+                        });
+                    }
+                }
+
                 await _context.SaveChangesAsync();
+
 
                 return Ok();
             }

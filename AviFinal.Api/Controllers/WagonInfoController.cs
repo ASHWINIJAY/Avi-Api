@@ -94,6 +94,56 @@ namespace AviAppFinal.Server.Controllers
 
             return Ok(new { BrakeType = brakeType });
         }
+        [HttpGet("CleanLocoInfoCaptures")]
+        public async Task<IActionResult> CleanLocoInfoCaptures()
+        {
+            try
+            {
+                var currentUser = User?.Identity?.Name;
+                var locoNumbersToDelete = new List<int>();
+                // 1?? Find all loco numbers matching the condition
+                var locoNumbersToDelete1 = await (
+                    from ml in _context.MasterWagons
+                    join wd in _context.WagonDashboards on ml.WagonNumber equals wd.WagonNumber into wdGroup
+                    from wd in wdGroup.DefaultIfEmpty()
+                    join wic in _context.WagonInfoCaptures on ml.WagonNumber equals wic.WagonNumber into wicGroup
+                    from wic in wicGroup.DefaultIfEmpty()
+                    where wd == null && wic != null
+                    select ml.WagonNumber
+                ).Distinct().ToListAsync();
+               locoNumbersToDelete.AddRange( locoNumbersToDelete1 );
+                var locoNumbersToDelete2 = await (
+                    from ml in _context.MasterWagonsTFR
+                    join wd in _context.WagonDashboards on ml.WagonNumber equals wd.WagonNumber into wdGroup
+                    from wd in wdGroup.DefaultIfEmpty()
+                    join wic in _context.WagonInfoCaptures on ml.WagonNumber equals wic.WagonNumber into wicGroup
+                    from wic in wicGroup.DefaultIfEmpty()
+                    where wd == null && wic != null
+                    select ml.WagonNumber
+                ).Distinct().ToListAsync();
+                locoNumbersToDelete.AddRange(locoNumbersToDelete2);
+                if (locoNumbersToDelete == null || !locoNumbersToDelete.Any())
+                {
+                    return Ok("? No records found for cleanup.");
+                }
+
+                // 2?? Delete from LocoInfoCaptures
+
+
+                return Ok(new
+                {
+                    Message = "You have the following incomplete wagon(s). Please select and recapture them again."
+,
+
+                    IncompleteWagons = locoNumbersToDelete
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning LocoInfoCaptures");
+                return StatusCode(500, "? Server error while cleaning LocoInfoCaptures.");
+            }
+        }
 
         // POST api/WagonInfo/submit
         [HttpPost("submit")]

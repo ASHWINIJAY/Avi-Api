@@ -306,182 +306,408 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
+                var locoNumbers = dtos.Select(d => d.LocoNumber).Distinct().ToList();
+
                 switch ($"{model}_{prefix}")
                 {
                     case "E18_BD":
-                        var entities1 = dtos.Select(d =>
-                        {
-                            var entity = new E18bdinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18bdinspects.AddRangeAsync(entities1);
+                        var existingRecords = await _context.E18bdinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18bdinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18bdinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_BE":
-                        var entities2 = dtos.Select(d =>
-                        {
-                            var entity = new E18beinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18beinspects.AddRangeAsync(entities2);
+                        var existingRecords1 = await _context.E18beinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords1.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18beinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18beinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_CC":
-                        var entities3 = dtos.Select(d =>
-                        {
-                            var entity = new E18ccinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18ccinspects.AddRangeAsync(entities3);
+                        var existingRecords2 = await _context.E18ccinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords2.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18ccinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18ccinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_CR":
-                        var entities4 = dtos.Select(d =>
-                        {
-                            var entity = new E18crinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18crinspects.AddRangeAsync(entities4);
+                        var existingRecords3 = await _context.E18crinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords3.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18crinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18crinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_CT":
-                        var entities5 = dtos.Select(d =>
-                        {
-                            var entity = new E18ctinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18ctinspects.AddRangeAsync(entities5);
+                        var existingRecords4 = await _context.E18ctinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords4.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18ctinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18ctinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_EE":
-                        var entities6 = dtos.Select(d =>
-                        {
-                            var entity = new E18eeinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18eeinspects.AddRangeAsync(entities6);
+                        var existingRecords5 = await _context.E18eeinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords5.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18eeinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18eeinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_EH":
-                        var entities7 = dtos.Select(d =>
-                        {
-                            var entity = new E18ehinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18ehinspects.AddRangeAsync(entities7);
+                        var existingRecords6 = await _context.E18ehinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords6.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18ehinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18ehinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_ES":
-                        var entities8 = dtos.Select(d =>
-                        {
-                            var entity = new E18esinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18esinspects.AddRangeAsync(entities8);
+                        var existingRecords7 = await _context.E18esinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords7.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18esinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18esinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_FL":
-                        var entities9 = dtos.Select(d =>
-                        {
-                            var entity = new E18flinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18flinspects.AddRangeAsync(entities9);
+                        var existingRecords8 = await _context.E18flinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords8.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18flinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18flinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_HC":
-                        var entities10 = dtos.Select(d =>
-                        {
-                            var entity = new E18hcinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18hcinspects.AddRangeAsync(entities10);
+                        var existingRecords9 = await _context.E18hcinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords9.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18hcinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18hcinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_HS":
-                        var entities11 = dtos.Select(d =>
-                        {
-                            var entity = new E18hsinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18hsinspects.AddRangeAsync(entities11);
+                        var existingRecords10 = await _context.E18hsinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords10.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18hsinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18hsinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_HV":
-                        var entities12 = dtos.Select(d =>
-                        {
-                            var entity = new E18hvinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18hvinspects.AddRangeAsync(entities12);
+                        var existingRecords11 = await _context.E18hvinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords11.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18hvinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18hvinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_LV":
-                        var entities13 = dtos.Select(d =>
-                        {
-                            var entity = new E18lvinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18lvinspects.AddRangeAsync(entities13);
+                        var existingRecords12 = await _context.E18lvinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords12.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18lvinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18lvinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_MA":
-                        var entities14 = dtos.Select(d =>
-                        {
-                            var entity = new E18mainspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18mainspects.AddRangeAsync(entities14);
+                        var existingRecords13 = await _context.E18mainspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords13.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18mainspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18mainspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_MB":
-                        var entities15 = dtos.Select(d =>
-                        {
-                            var entity = new E18mbinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18mbinspects.AddRangeAsync(entities15);
+                        var existingRecords14 = await _context.E18mbinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords14.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18mbinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18mbinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "E18_RF":
-                        var entities16 = dtos.Select(d =>
-                        {
-                            var entity = new E18rfinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.E18rfinspects.AddRangeAsync(entities16);
+                        var existingRecords15 = await _context.E18rfinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords15.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new E18rfinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.E18rfinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     default:

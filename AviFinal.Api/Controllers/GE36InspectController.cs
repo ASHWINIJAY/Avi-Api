@@ -303,127 +303,283 @@ namespace AviFinal.Api.Controllers
 
             try
             {
+                var locoNumbers = dtos.Select(d => d.LocoNumber).Distinct().ToList();
+
                 switch ($"{model}_{prefix}")
                 {
                     case "GE36_CA":
-                        var entities1 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36cainspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36cainspects.AddRangeAsync(entities1);
+                        var existingRecords = await _context.Ge36cainspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36cainspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36cainspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_BD":
-                        var entities3 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36bdinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36bdinspects.AddRangeAsync(entities3);
+                        var existingRecords1 = await _context.Ge36bdinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords1.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36bdinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36bdinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_CF":
-                        var entities5 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36cfinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36cfinspects.AddRangeAsync(entities5);
+                        var existingRecords2 = await _context.Ge36cfinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords2.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36cfinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36cfinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_CL":
-                        var entities6 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36clinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36clinspects.AddRangeAsync(entities6);
+                        var existingRecords3 = await _context.Ge36clinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords3.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36clinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36clinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_DE":
-                        var entities7 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36deinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36deinspects.AddRangeAsync(entities7);
+                        var existingRecords4 = await _context.Ge36deinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords4.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36deinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36deinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_EC":
-                        var entities8 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36ecinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36ecinspects.AddRangeAsync(entities8);
+                        var existingRecords5 = await _context.Ge36ecinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords5.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36ecinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36ecinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_ED":
-                        var entities9 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36edinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36edinspects.AddRangeAsync(entities9);
+                        var existingRecords6 = await _context.Ge36edinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords6.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36edinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36edinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_FL":
-                        var entities10 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36flinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36flinspects.AddRangeAsync(entities10);
+                        var existingRecords7 = await _context.Ge36flinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords7.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36flinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36flinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_MG":
-                        var entities11 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36mginspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36mginspects.AddRangeAsync(entities11);
+                        var existingRecords8 = await _context.Ge36mginspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords8.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36mginspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36mginspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_RF":
-                        var entities12 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36rfinspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36rfinspects.AddRangeAsync(entities12);
+                        var existingRecords9 = await _context.Ge36rfinspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords9.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36rfinspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36rfinspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     case "GE36_SN":
-                        var entities13 = dtos.Select(d =>
-                        {
-                            var entity = new Ge36sninspect();
-                            MapInspection(entity, d, phase);
-                            return entity;
-                        }).ToList();
 
-                        await _context.Ge36sninspects.AddRangeAsync(entities13);
+                        var existingRecords10 = await _context.Ge36sninspects
+                            .Where(x => locoNumbers.Contains(x.LocoNumber))
+                            .ToListAsync();
+
+                        foreach (var dto in dtos)
+                        {
+                            var existing = existingRecords10.FirstOrDefault(x =>
+                                x.LocoNumber == dto.LocoNumber &&
+                                x.PartId == dto.PartId);
+
+                            if (existing != null)
+                            {
+                                MapInspection(existing, dto, phase);
+                            }
+                            else
+                            {
+                                var entity = new Ge36sninspect();
+                                MapInspection(entity, dto, phase);
+                                await _context.Ge36sninspects.AddAsync(entity);
+                            }
+                        }
                         break;
 
                     default:

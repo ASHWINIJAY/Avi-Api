@@ -228,30 +228,68 @@ namespace AviAppFinal.Server.Controllers
 
             try
             {
-                var entities = dtos.Select(d => new VacBrakePartsInspect
-                {
-                    WagonNumber = d.WagonNumber,
-                    WagonGroup = d.WagonGroup ?? "",
-                    WagonType = d.WagonType ?? "",
-                    FormId = d.FormId ?? "",
-                    PartId = d.PartId ?? "",
-                    PartDescr = d.PartDescr ?? "",
-                    GoodCheck = d.GoodCheck ?? "No",
-                    RefurbishCheck = d.RefurbishCheck ?? "No",
-                    MissingCheck = d.MissingCheck ?? "No",
-                    ReplaceCheck = d.DamageCheck ?? "No",
-                    RefurbishValue = d.RefurbishValue,
-                    MissingValue = d.MissingValue,
-                    ReplaceValue = d.ReplaceValue,
-                    MissingPhoto = d.MissingPhoto,
-                    ReplacePhoto = d.DamagePhoto,
-                    LaborValue = d.LaborValue,
-                    Phase = d.Phase,
-                }).ToList();
+                var wagonNumbers = dtos.Select(d => d.WagonNumber).Distinct().ToList();
 
-                // Bulk insert
-                await _context.VacBrakePartsInspects.AddRangeAsync(entities);
+                // Load existing records once
+                var existingRecords = await _context.VacBrakePartsInspects
+                    .Where(x => wagonNumbers.Contains(x.WagonNumber))
+                    .ToListAsync();
+
+                foreach (var d in dtos)
+                {
+                    var existing = existingRecords.FirstOrDefault(x =>
+                        x.WagonNumber == d.WagonNumber &&
+                        x.PartId == (d.PartId ?? ""));
+
+                    if (existing != null)
+                    {
+                        // ✅ UPDATE
+                        existing.WagonGroup = d.WagonGroup ?? "";
+                        existing.WagonType = d.WagonType ?? "";
+                        existing.FormId = d.FormId ?? "";
+                        existing.PartDescr = d.PartDescr ?? "";
+                        existing.GoodCheck = d.GoodCheck ?? "No";
+                        existing.RefurbishCheck = d.RefurbishCheck ?? "No";
+                        existing.MissingCheck = d.MissingCheck ?? "No";
+                        existing.ReplaceCheck = d.DamageCheck ?? "No";
+                        existing.RefurbishValue = d.RefurbishValue;
+                        existing.MissingValue = d.MissingValue;
+                        existing.ReplaceValue = d.ReplaceValue;
+                        existing.MissingPhoto = d.MissingPhoto;
+                        existing.ReplacePhoto = d.DamagePhoto;
+                        existing.LaborValue = d.LaborValue;
+                        existing.Phase = d.Phase;
+                    }
+                    else
+                    {
+                        // ✅ INSERT
+                        var entity = new VacBrakePartsInspect
+                        {
+                            WagonNumber = d.WagonNumber,
+                            WagonGroup = d.WagonGroup ?? "",
+                            WagonType = d.WagonType ?? "",
+                            FormId = d.FormId ?? "",
+                            PartId = d.PartId ?? "",
+                            PartDescr = d.PartDescr ?? "",
+                            GoodCheck = d.GoodCheck ?? "No",
+                            RefurbishCheck = d.RefurbishCheck ?? "No",
+                            MissingCheck = d.MissingCheck ?? "No",
+                            ReplaceCheck = d.DamageCheck ?? "No",
+                            RefurbishValue = d.RefurbishValue,
+                            MissingValue = d.MissingValue,
+                            ReplaceValue = d.ReplaceValue,
+                            MissingPhoto = d.MissingPhoto,
+                            ReplacePhoto = d.DamagePhoto,
+                            LaborValue = d.LaborValue,
+                            Phase = d.Phase
+                        };
+
+                        await _context.VacBrakePartsInspects.AddAsync(entity);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
+
 
                 var group = dtos.FirstOrDefault()?.WagonGroup;
 

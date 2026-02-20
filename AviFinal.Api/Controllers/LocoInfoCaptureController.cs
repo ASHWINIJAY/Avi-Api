@@ -3,6 +3,7 @@ using AviFinal.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace AviAppFinal.Server.Controllers
@@ -91,7 +92,88 @@ namespace AviAppFinal.Server.Controllers
                 NetBookValue = netBookValue,
             });
         }
+        [HttpGet("CleanLocoInfoCaptures")]
+        public async Task<IActionResult> CleanLocoInfoCaptures()
+        {
+            try
+            {
+                var currentUser = User?.Identity?.Name;
+                var locoNumbersToDelete = new List<int>();
+                // 1️⃣ Find all loco numbers matching the condition
+                var locoNumbersToDelete1 = await (
+                    from ml in _context.MasterLocos
+                    join wd in _context.LocoDashboards on ml.LocoNumber equals wd.LocoNumber into wdGroup
+                    from wd in wdGroup.DefaultIfEmpty()
+                    join wic in _context.LocoInfoCaptures on ml.LocoNumber equals wic.LocoNumber into wicGroup
+                    from wic in wicGroup.DefaultIfEmpty()
+                    where wd == null && wic != null
+                    select ml.LocoNumber
+                ).Distinct().ToListAsync();
+                locoNumbersToDelete.AddRange(locoNumbersToDelete1);
+                var locoNumbersToDelete2 = await (
+    from ml in _context.MasterLocosTE
+    join wd in _context.LocoDashboards on ml.LocoNumber equals wd.LocoNumber into wdGroup
+    from wd in wdGroup.DefaultIfEmpty()
+    join wic in _context.LocoInfoCaptures on ml.LocoNumber equals wic.LocoNumber into wicGroup
+    from wic in wicGroup.DefaultIfEmpty()
+    where wd == null && wic != null
+    select ml.LocoNumber
+).Distinct().ToListAsync();
+                locoNumbersToDelete.AddRange(locoNumbersToDelete2);
+                var locoNumbersToDelete3 = await (
+    from ml in _context.MasterLocosTFR
+    join wd in _context.LocoDashboards on ml.LocoNumber equals wd.LocoNumber into wdGroup
+    from wd in wdGroup.DefaultIfEmpty()
+    join wic in _context.LocoInfoCaptures on ml.LocoNumber equals wic.LocoNumber into wicGroup
+    from wic in wicGroup.DefaultIfEmpty()
+    where wd == null && wic != null
+    select ml.LocoNumber
+).Distinct().ToListAsync();
+                locoNumbersToDelete.AddRange(locoNumbersToDelete1);
+                if (locoNumbersToDelete == null || !locoNumbersToDelete.Any())
+                {
+                    return Ok("✅ No records found for cleanup.");
+                }
 
+
+
+                return Ok(new
+                {
+                    Message = "We have the following incomplete loco(s). Please select and recapture them again."
+,
+
+                    IncompleteLocos = locoNumbersToDelete?.Distinct()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning LocoInfoCaptures");
+                return StatusCode(500, "❌ Server error while cleaning LocoInfoCaptures.");
+            }
+        }
+        [HttpPost("DeleteSelectedLocos")]
+        public IActionResult DeleteSelectedLocos([FromBody] LocoDeleteRequest req)
+        {
+            if (req == null || req.LocoNumbers == null || !req.LocoNumbers.Any())
+                return BadRequest("No loco numbers provided.");
+
+            var locoNum = req.LocoNumbers.First();
+            var record = _context.LocoInfoCaptures.FirstOrDefault(x => x.LocoNumber == locoNum);
+
+            if (record != null)
+            {
+               // _context.LocoInfoCaptures.Remove(record);
+                // _context.SaveChanges();
+                return Ok(new { message = $"Loco {locoNum} deleted successfully." });
+            }
+
+            return NotFound(new { message = $"Loco {locoNum} not found." });
+        }
+
+        public class LocoDeleteRequest
+        {
+            public List<int> LocoNumbers { get; set; } = new();
+        }
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitForm([FromForm] LocomotiveFormModel model)
         {
