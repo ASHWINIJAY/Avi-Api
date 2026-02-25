@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace AviFinal.Api.Models;
 
+// ADJUSTED ↓
 public partial class LocoInput
 {
     public int LocoNumber { get; set; }
@@ -46,4 +47,8 @@ public partial class LocoInput
     public string NewScrapValue { get; set; } = null!;
 
     public string? InspectStatus { get; set; }
+
+    public string MarketValue { get; set; } = null!;
+
+    public string BenchmarkValue { get; set; } = null!;
 }

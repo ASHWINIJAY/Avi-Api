@@ -32,7 +32,7 @@ namespace AviAppFinal.Server.Controllers
             return Ok(assetType);
         }
 
-        // ADJUST ENTIRE METHOD ↓
+        // ADJUSTED ↓
         [HttpGet("generateSingle/{assetType}")]
         public async Task<IActionResult> GenerateSingle(string assetType)
         {
@@ -59,16 +59,16 @@ namespace AviAppFinal.Server.Controllers
                     // HEADER ROW
                     ws.Cell("A1").Value = "Asset Type";
                     ws.Cell("B1").Value = "Asset Number";
-                    ws.Cell("C1").Value = "Scrap Value";
-                    ws.Cell("D1").Value = "Refurbishment Cost";
+                    ws.Cell("C1").Value = "Market Value";
+                    ws.Cell("D1").Value = "Return to Service Cost";
                     ws.Cell("E1").Value = "Present Value (Pre-Tax)";
                     ws.Cell("F1").Value = "Present Value (Post-Tax)";
-                    ws.Cell("G1").Value = "Transfer Value (Pre-Tax)";
-                    ws.Cell("H1").Value = "Transfer Value (Post-Tax)";
+                    ws.Cell("G1").Value = "Benchmark Value (Pre-Tax)";
+                    ws.Cell("H1").Value = "Benchmark Value (Post-Tax)";
                     ws.Range("A1:H1").Style.Font.Bold = true;
                     ws.Range("A1:H1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
-                    var allScrap = new List<double>();
+                    var allMarket = new List<double>();
                     var allRefurbish = new List<double>();
                     var allPreTax = new List<double>();
                     var allPostTax = new List<double>();
@@ -86,9 +86,9 @@ namespace AviAppFinal.Server.Controllers
 
                             var t = CalculateTotalsWagonSingle(wagon);
                             WriteAssetBlockSingle(ws, ref row, assetType, wagonNum,
-                                    t.scrap, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
+                                    t.market, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
 
-                            allScrap.Add(t.scrap);
+                            allMarket.Add(t.market);
                             allRefurbish.Add(t.refurb);
                             allPreTax.Add(t.preTax);
                             allPostTax.Add(t.postTax);
@@ -106,9 +106,9 @@ namespace AviAppFinal.Server.Controllers
 
                             var t = CalculateTotalsLocoSingle(loco);
                             WriteAssetBlockSingle(ws, ref row, assetType, locoNum,
-                                    t.scrap, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
+                                    t.market, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
 
-                            allScrap.Add(t.scrap);
+                            allMarket.Add(t.market);
                             allRefurbish.Add(t.refurb);
                             allPreTax.Add(t.preTax);
                             allPostTax.Add(t.postTax);
@@ -121,14 +121,14 @@ namespace AviAppFinal.Server.Controllers
 
                     ws.Cell($"A{endRow + 1}").Value = "Asset Type";
                     ws.Cell($"B{endRow + 1}").Value = "-";
-                    ws.Cell($"C{endRow + 1}").Value = "Total Scrap Value";
-                    ws.Cell($"D{endRow + 1}").Value = "Total Refurbishment Costs";
+                    ws.Cell($"C{endRow + 1}").Value = "Total Market Value";
+                    ws.Cell($"D{endRow + 1}").Value = "Total Return to Service Cost";
                     ws.Cell($"E{endRow + 1}").Value = "Total PV (Pre-Tax)";
                     ws.Cell($"F{endRow + 1}").Value = "Total PV (Post-Tax)";
-                    ws.Cell($"G{endRow + 1}").Value = "Total TV (Pre-Tax)";
-                    ws.Cell($"H{endRow + 1}").Value = "Total TV (Post-Tax)";
+                    ws.Cell($"G{endRow + 1}").Value = "Total BV (Pre-Tax)";
+                    ws.Cell($"H{endRow + 1}").Value = "Total BV (Post-Tax)";
 
-                    double scrapTotal = allScrap.Sum();
+                    double marketTotal = allMarket.Sum();
                     double refurbTotal = allRefurbish.Sum();
                     double preTaxTotal = allPreTax.Sum();
                     double postTaxTotal = allPostTax.Sum();
@@ -137,7 +137,7 @@ namespace AviAppFinal.Server.Controllers
 
                     ws.Cell($"A{endRow + 2}").Value = assetType;
                     ws.Cell($"B{endRow + 2}").Value = "-";
-                    ws.Cell($"C{endRow + 2}").Value = scrapTotal;
+                    ws.Cell($"C{endRow + 2}").Value = marketTotal;
                     ws.Cell($"C{endRow + 2}").Style.NumberFormat.Format = "#,##0.00";
                     ws.Cell($"D{endRow + 2}").Value = refurbTotal;
                     ws.Cell($"D{endRow + 2}").Style.NumberFormat.Format = "#,##0.00";
@@ -191,23 +191,23 @@ namespace AviAppFinal.Server.Controllers
                             numAssets = inputLoco.Count;
                         }
 
-                        formulas["C2"] = "Sum of all Scrap Values for this Asset";
-                        formulas["D2"] = "Sum of all Refurbishment Costs for this Asset";
+                        formulas["C2"] = "Market Value from the Dashboard for this Asset";
+                        formulas["D2"] = "Return to Service Cost from the Dashboard for this Asset";
                         formulas["E2"] = "Sum of all Present Values (Pre-Tax) for this Asset";
                         formulas["F2"] = "Sum of all Present Values (Post-Tax) for this Asset";
-                        formulas["G2"] = "Sum of all Transfer Values (Pre-Tax) for this Asset";
-                        formulas["H2"] = "Sum of all Transfer Values (Post-Tax) for this Asset";
+                        formulas["G2"] = "Benchmark Value (Pre-Tax) for this Asset";
+                        formulas["H2"] = "Benchmark Value (Post-Tax) for this Asset";
                         formulas["E3"] = "IF(E2 >= 0; \"Refurbish\"; \"Scrap\")";
                         formulas["F3"] = "IF(F2 >= 0; \"Refurbish\"; \"Scrap\")";
 
                         for (int r = 2; r <= numAssets; r++)
                         {
-                            formulas[$"C{r * 2}"] = "Sum of all Scrap Values for this Asset";
-                            formulas[$"D{r * 2}"] = "Sum of all Refurbishment Costs for this Asset";
+                            formulas[$"C{r * 2}"] = "Market Value from the Dashboard for this Asset";
+                            formulas[$"D{r * 2}"] = "Return to Service Cost from the Dashboard for this Asset";
                             formulas[$"E{r * 2}"] = "Sum of all Present Values (Pre-Tax) for this Asset";
                             formulas[$"F{r * 2}"] = "Sum of all Present Values (Post-Tax) for this Asset";
-                            formulas[$"G{r * 2}"] = "Sum of all Transfer Values (Pre-Tax) for this Asset";
-                            formulas[$"H{r * 2}"] = "Sum of all Transfer Values (Post-Tax) for this Asset";
+                            formulas[$"G{r * 2}"] = "Benchmark Value (Pre-Tax) for this Asset";
+                            formulas[$"H{r * 2}"] = "Benchmark Value (Post-Tax) for this Asset";
                             formulas[$"E{(r * 2) + 1}"] = $"IF(E{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                             formulas[$"F{(r * 2) + 1}"] = $"IF(F{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                         }
@@ -227,7 +227,7 @@ namespace AviAppFinal.Server.Controllers
             }
         }
 
-        // DOUBLE CHECK FOR CHANGES ↓
+        // ADJUSTED ↓
         [HttpGet("generateAll")]
         public async Task<IActionResult> GenerateAll()
         {
@@ -256,12 +256,12 @@ namespace AviAppFinal.Server.Controllers
                         // HEADER
                         ws.Cell("A1").Value = "Asset Type";
                         ws.Cell("B1").Value = "Type of Assets";
-                        ws.Cell("C1").Value = "Scrap Value";
-                        ws.Cell("D1").Value = "Refurbishment Cost";
+                        ws.Cell("C1").Value = "Market Value";
+                        ws.Cell("D1").Value = "Return to Service Cost";
                         ws.Cell("E1").Value = "Present Value (Pre-Tax)";
                         ws.Cell("F1").Value = "Present Value (Post-Tax)";
-                        ws.Cell("G1").Value = "Transfer Value (Pre-Tax)";
-                        ws.Cell("H1").Value = "Transfer Value (Post-Tax)";
+                        ws.Cell("G1").Value = "Benchmark Value (Pre-Tax)";
+                        ws.Cell("H1").Value = "Benchmark Value (Post-Tax)";
                         ws.Range("A1:H1").Style.Font.Bold = true;
                         ws.Range("A1:H1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -281,13 +281,13 @@ namespace AviAppFinal.Server.Controllers
                             {
                                 var t = CalculateTotalsWagon(wagons);
                                 WriteAssetBlock(ws, ref row, a.AssetType, "Wagon",
-                                    t.scrap, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
+                                    t.market, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
                             }
                             else if (locoLookup.TryGetValue(a.AssetType, out var locos))
                             {
                                 var t = CalculateTotalsLoco(locos);
                                 WriteAssetBlock(ws, ref row, a.AssetType, "Locomotive",
-                                    t.scrap, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
+                                    t.market, t.refurb, t.preTax, t.postTax, t.transferPre, t.transferPost);
                             }
                         }
 
@@ -305,23 +305,23 @@ namespace AviAppFinal.Server.Controllers
 
                             int numAssetTypes = assetType.Count;
 
-                            formulas["C2"] = "Sum of all Scrap Values within this Asset Type";
-                            formulas["D2"] = "Sum of all Refurbishment Costs within this Asset Type";
-                            formulas["E2"] = "Sum of all Present Values (Pre-Tax) within this Asset Type";
-                            formulas["F2"] = "Sum of all Present Values (Post-Tax) within this Asset Type";
-                            formulas["G2"] = "Sum of all Transfer Values (Pre-Tax) within this Asset Type";
-                            formulas["H2"] = "Sum of all Transfer Values (Post-Tax) within this Asset Type";
+                            formulas["C2"] = "Sum of each Market Value per Asset within this Asset Type";
+                            formulas["D2"] = "Sum of each Return to Service Cost per Asset within this Asset Type";
+                            formulas["E2"] = "Sum of all Present Values (Pre-Tax) per Asset within this Asset Type";
+                            formulas["F2"] = "Sum of all Present Values (Post-Tax) per Asset within this Asset Type";
+                            formulas["G2"] = "Sum of each Benchmark Value (Pre-Tax) per Asset within this Asset Type";
+                            formulas["H2"] = "Sum of each Benchmark Value (Post-Tax) per Asset within this Asset Type";
                             formulas["E3"] = "IF(E2 >= 0; \"Refurbish\"; \"Scrap\")";
                             formulas["F3"] = "IF(F2 >= 0; \"Refurbish\"; \"Scrap\")";
 
                             for (int r = 2; r <= numAssetTypes; r++)
                             {
-                                formulas[$"C{r * 2}"] = "Sum of all Scrap Values within this Asset Type";
-                                formulas[$"D{r * 2}"] = "Sum of all Refurbishment Costs within this Asset Type";
-                                formulas[$"E{r * 2}"] = "Sum of all Present Values (Pre-Tax) within this Asset Type";
-                                formulas[$"F{r * 2}"] = "Sum of all Present Values (Post-Tax) within this Asset Type";
-                                formulas[$"G{r * 2}"] = "Sum of all Transfer Values (Pre-Tax) within this Asset Type";
-                                formulas[$"H{r * 2}"] = "Sum of all Transfer Values (Post-Tax) within this Asset Type";
+                                formulas[$"C{r * 2}"] = "Sum of each Market Value per Asset within this Asset Type";
+                                formulas[$"D{r * 2}"] = "Sum of each Return to Service Cost per Asset within this Asset Type";
+                                formulas[$"E{r * 2}"] = "Sum of all Present Values (Pre-Tax) per Asset within this Asset Type";
+                                formulas[$"F{r * 2}"] = "Sum of all Present Values (Post-Tax) per Asset within this Asset Type";
+                                formulas[$"G{r * 2}"] = "Sum of each Benchmark Value (Pre-Tax) per Asset within this Asset Type";
+                                formulas[$"H{r * 2}"] = "Sum of each Benchmark Value (Post-Tax) per Asset within this Asset Type";
                                 formulas[$"E{(r * 2) + 1}"] = $"IF(E{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                                 formulas[$"F{(r * 2) + 1}"] = $"IF(F{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                             }
@@ -383,12 +383,11 @@ namespace AviAppFinal.Server.Controllers
             return 0m;
         }
 
-
-        // ADD ENTIRE METHOD ↓
-        (dynamic scrap, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
+        // ADJUSTED ↓
+        (dynamic market, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
         CalculateTotalsWagon<T>(List<T> items) where T : class
         {
-            double grandScrap = 0;
+            double grandMarket = 0;
             double grandRefurb = 0;
             double grandPre = 0;
             double grandPost = 0;
@@ -400,8 +399,8 @@ namespace AviAppFinal.Server.Controllers
                 var preTaxFlows = new List<double>();
                 var postTaxFlows = new List<double>();
 
-                double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
-                double scrapValue = Convert.ToDouble(ParseDecimalSafe(w.ScrapValue));
+                //double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
+                double marketValue = Convert.ToDouble(ParseDecimalSafe(w.MarketValue));
                 double refurbishCost = Convert.ToDouble(ParseDecimalSafe(w.TotalCost));
                 double corporateTax = Convert.ToDouble(ParseDecimalSafe(w.CorporateTaxRate)) / 100;
                 int leaseTerm = Convert.ToInt32(w.LeaseTerm);
@@ -413,13 +412,13 @@ namespace AviAppFinal.Server.Controllers
                 double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
                 double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
                 double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-                double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
+                double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
 
                 int maxYears = 20;
                 int minTerm = Math.Min(leaseTerm, wearTear);
 
-                double totalScrapValue = scrapValue + scrapCost;
-                double initialOutflow = (totalScrapValue + refurbishCost) * -1;
+                double totalMarketValue = marketValue;
+                double initialOutflow = (totalMarketValue + refurbishCost) * -1;
 
                 preTaxFlows.Add(initialOutflow);
                 postTaxFlows.Add(initialOutflow);
@@ -463,22 +462,21 @@ namespace AviAppFinal.Server.Controllers
 
                 grandPre += npvPre;
                 grandPost += npvPost;
-                grandScrap += totalScrapValue;
+                grandMarket += totalMarketValue;
                 grandRefurb += refurbishCost;
 
-                if (npvPre >= 0) transferPre += netBook + refurbishCost;
-                if (npvPost >= 0) transferPost += netBook + refurbishCost;
+                if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
+                if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
             }
 
-            return (grandScrap, grandRefurb, grandPre, grandPost, transferPre, transferPost);
+            return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
 
-
-        // ADD ENTIRE METHOD ↓
-        (dynamic scrap, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
+        // ADJUSTED ↓
+        (dynamic market, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
         CalculateTotalsLoco<T>(List<T> items) where T : class
         {
-            double grandScrap = 0;
+            double grandMarket = 0;
             double grandRefurb = 0;
             double grandPre = 0;
             double grandPost = 0;
@@ -490,8 +488,8 @@ namespace AviAppFinal.Server.Controllers
                 var preTaxFlows = new List<double>();
                 var postTaxFlows = new List<double>();
 
-                double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
-                double scrapValue = Convert.ToDouble(ParseDecimalSafe(w.ScrapValue));
+                //double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
+                double marketValue = Convert.ToDouble(ParseDecimalSafe(w.MarketValue));
                 double refurbishCost = Convert.ToDouble(ParseDecimalSafe(w.TotalCost));
                 double corporateTax = Convert.ToDouble(ParseDecimalSafe(w.CorporateTaxRate)) / 100;
                 int leaseTerm = Convert.ToInt32(w.LeaseTerm);
@@ -503,14 +501,14 @@ namespace AviAppFinal.Server.Controllers
                 double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
                 double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
                 double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-                double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
+                double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
 
                 int maxYears = 20;
                 int minTerm = Math.Min(leaseTerm, wearTear);
 
-                double totalScrapValue = scrapValue + scrapCost;
-                double initialOutflowPre = (totalScrapValue + refurbishCost) * -1;
-                double initialOutflowPost = totalScrapValue * 1 * (1 - corporateTax);
+                double totalMarketValue = marketValue;
+                double initialOutflowPre = (totalMarketValue + refurbishCost) * -1;
+                double initialOutflowPost = -totalMarketValue * 1 * (1 - corporateTax); // ← ADJUST
 
                 preTaxFlows.Add(initialOutflowPre);
                 postTaxFlows.Add(initialOutflowPost);
@@ -554,22 +552,21 @@ namespace AviAppFinal.Server.Controllers
 
                 grandPre += npvPre;
                 grandPost += npvPost;
-                grandScrap += totalScrapValue;
+                grandMarket += totalMarketValue;
                 grandRefurb += refurbishCost;
 
-                if (npvPre >= 0) transferPre += netBook + refurbishCost;
-                if (npvPost >= 0) transferPost += netBook + refurbishCost;
+                if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
+                if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
             }
 
-            return (grandScrap, grandRefurb, grandPre, grandPost, transferPre, transferPost);
+            return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
 
-
-        // ADD ENTIRE METHOD ↓
-        (dynamic scrap, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
+        // ADJUSTED ↓
+        (dynamic market, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
         CalculateTotalsWagonSingle(dynamic w)
         {
-            double grandScrap = 0;
+            double grandMarket = 0;
             double grandRefurb = 0;
             double grandPre = 0;
             double grandPost = 0;
@@ -579,8 +576,8 @@ namespace AviAppFinal.Server.Controllers
             var preTaxFlows = new List<double>();
             var postTaxFlows = new List<double>();
 
-            double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
-            double scrapValue = Convert.ToDouble(ParseDecimalSafe(w.ScrapValue));
+            //double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
+            double marketValue = Convert.ToDouble(ParseDecimalSafe(w.MarketValue));
             double refurbishCost = Convert.ToDouble(ParseDecimalSafe(w.TotalCost));
             double corporateTax = Convert.ToDouble(ParseDecimalSafe(w.CorporateTaxRate)) / 100;
             int leaseTerm = Convert.ToInt32(w.LeaseTerm);
@@ -592,13 +589,13 @@ namespace AviAppFinal.Server.Controllers
             double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
             double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-            double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
+            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
 
             int maxYears = 20;
             int minTerm = Math.Min(leaseTerm, wearTear);
 
-            double totalScrapValue = scrapValue + scrapCost;
-            double initialOutflow = (totalScrapValue + refurbishCost) * -1;
+            double totalMarketValue = marketValue;
+            double initialOutflow = (totalMarketValue + refurbishCost) * -1;
 
             preTaxFlows.Add(initialOutflow);
             postTaxFlows.Add(initialOutflow);
@@ -642,21 +639,20 @@ namespace AviAppFinal.Server.Controllers
 
             grandPre += npvPre;
             grandPost += npvPost;
-            grandScrap += totalScrapValue;
+            grandMarket += totalMarketValue;
             grandRefurb += refurbishCost;
 
-            if (npvPre >= 0) transferPre += netBook + refurbishCost;
-            if (npvPost >= 0) transferPost += netBook + refurbishCost;
+            if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
+            if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
 
-            return (grandScrap, grandRefurb, grandPre, grandPost, transferPre, transferPost);
+            return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
 
-
-        // ADD ENTIRE METHOD ↓
-        (dynamic scrap, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
+        // ADJUSTED ↓
+        (dynamic market, dynamic refurb, dynamic preTax, dynamic postTax, dynamic transferPre, dynamic transferPost)
         CalculateTotalsLocoSingle(dynamic w)
         {
-            double grandScrap = 0;
+            double grandMarket = 0;
             double grandRefurb = 0;
             double grandPre = 0;
             double grandPost = 0;
@@ -666,8 +662,8 @@ namespace AviAppFinal.Server.Controllers
             var preTaxFlows = new List<double>();
             var postTaxFlows = new List<double>();
 
-            double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
-            double scrapValue = Convert.ToDouble(ParseDecimalSafe(w.ScrapValue));
+            //double scrapCost = Convert.ToDouble(ParseDecimalSafe(w.ScrappingCost));
+            double marketValue = Convert.ToDouble(ParseDecimalSafe(w.MarketValue));
             double refurbishCost = Convert.ToDouble(ParseDecimalSafe(w.TotalCost));
             double corporateTax = Convert.ToDouble(ParseDecimalSafe(w.CorporateTaxRate)) / 100;
             int leaseTerm = Convert.ToInt32(w.LeaseTerm);
@@ -679,14 +675,14 @@ namespace AviAppFinal.Server.Controllers
             double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
             double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-            double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
+            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
 
             int maxYears = 20;
             int minTerm = Math.Min(leaseTerm, wearTear);
 
-            double totalScrapValue = scrapValue + scrapCost;
-            double initialOutflowPre = (totalScrapValue + refurbishCost) * -1;
-            double initialOutflowPost = totalScrapValue * 1 * (1 - corporateTax);
+            double totalMarketValue = marketValue;
+            double initialOutflowPre = (totalMarketValue + refurbishCost) * -1;
+            double initialOutflowPost = -totalMarketValue * 1 * (1 - corporateTax); // ← ADJUST
 
             preTaxFlows.Add(initialOutflowPre);
             postTaxFlows.Add(initialOutflowPost);
@@ -730,19 +726,18 @@ namespace AviAppFinal.Server.Controllers
 
             grandPre += npvPre;
             grandPost += npvPost;
-            grandScrap += totalScrapValue;
+            grandMarket += totalMarketValue;
             grandRefurb += refurbishCost;
 
-            if (npvPre >= 0) transferPre += netBook + refurbishCost;
-            if (npvPost >= 0) transferPost += netBook + refurbishCost;
+            if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
+            if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
 
-            return (grandScrap, grandRefurb, grandPre, grandPost, transferPre, transferPost);
+            return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
 
-
-        // ADD ENTIRE METHOD ↓
+        // ADJUSTED ↓
         void WriteAssetBlock(IXLWorksheet ws, ref int row, string assetType, string assetCategory,
-            double scrap, double refurb, double preTax, double postTax, double transferPre, double transferPost)
+            double market, double refurb, double preTax, double postTax, double transferPre, double transferPost)
         {
             string statPre = preTax >= 0 ? "REFURBISH" : "SCRAP";
             string statPost = postTax >= 0 ? "REFURBISH" : "SCRAP";
@@ -750,12 +745,12 @@ namespace AviAppFinal.Server.Controllers
             // VALUES ROW
             ws.Cell(row, 1).Value = assetType;
             ws.Cell(row, 2).Value = assetCategory;
-            ws.Cell(row, 3).Value = scrap;
-            ws.Cell(row, 4).Value = refurb;
-            ws.Cell(row, 5).Value = preTax;
-            ws.Cell(row, 6).Value = postTax;
-            ws.Cell(row, 7).Value = transferPre;
-            ws.Cell(row, 8).Value = transferPost;
+            ws.Cell(row, 3).Value = (Math.Round(market, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 4).Value = (Math.Round(refurb, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 5).Value = (Math.Round(preTax, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 6).Value = (Math.Round(postTax, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 7).Value = (Math.Round(transferPre, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 8).Value = (Math.Round(transferPost, MidpointRounding.AwayFromZero));
 
             ws.Range(row, 3, row, 8).Style.NumberFormat.Format = "#,##0.00";
 
@@ -774,10 +769,9 @@ namespace AviAppFinal.Server.Controllers
             row += 2;
         }
 
-
-        // ADD ENTIRE METHOD ↓
+        // ADJUSTED ↓
         void WriteAssetBlockSingle(IXLWorksheet ws, ref int row, string assetType, string assetNumber,
-            double scrap, double refurb, double preTax, double postTax, double transferPre, double transferPost)
+            double market, double refurb, double preTax, double postTax, double transferPre, double transferPost)
         {
             string statPre = preTax >= 0 ? "REFURBISH" : "SCRAP";
             string statPost = postTax >= 0 ? "REFURBISH" : "SCRAP";
@@ -785,12 +779,12 @@ namespace AviAppFinal.Server.Controllers
             // VALUES ROW
             ws.Cell(row, 1).Value = assetType;
             ws.Cell(row, 2).Value = assetNumber;
-            ws.Cell(row, 3).Value = scrap;
-            ws.Cell(row, 4).Value = refurb;
-            ws.Cell(row, 5).Value = preTax;
-            ws.Cell(row, 6).Value = postTax;
-            ws.Cell(row, 7).Value = transferPre;
-            ws.Cell(row, 8).Value = transferPost;
+            ws.Cell(row, 3).Value = (Math.Round(market, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 4).Value = (Math.Round(refurb, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 5).Value = (Math.Round(preTax, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 6).Value = (Math.Round(postTax, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 7).Value = (Math.Round(transferPre, MidpointRounding.AwayFromZero));
+            ws.Cell(row, 8).Value = (Math.Round(transferPost, MidpointRounding.AwayFromZero));
 
             ws.Range(row, 3, row, 8).Style.NumberFormat.Format = "#,##0.00";
 
@@ -810,7 +804,6 @@ namespace AviAppFinal.Server.Controllers
         }
 
 
-        // ADD ENTIRE METHOD ↓
         void StyleDecisionCell(IXLCell cell, string value)
         {
             cell.Value = value;

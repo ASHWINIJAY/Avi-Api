@@ -1,6 +1,5 @@
 ﻿using AviFinal.Api.Hubs;
 using AviFinal.Api.Models;
-using AviFinal.Api.Models;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;

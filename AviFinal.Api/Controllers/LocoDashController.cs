@@ -455,6 +455,15 @@ namespace AviAppFinal.Server.Controllers
             {
                 _context.LocoDashboards.Add(dashboardEntry);
                 await _context.SaveChangesAsync();
+                //var input = await _context.LocoInputs
+                //  .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
+
+                //if (input != null)
+                //{
+                //    input.TotalCost = repairTotalStr ?? "0.00";
+                //    _context.LocoInputs.Update(input);
+                //}
+
             }
             return Ok(new { success = true, message = "Loco dashboard entry created", id = dashboardEntry.Id });
         }
@@ -720,6 +729,37 @@ namespace AviAppFinal.Server.Controllers
             string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
             string repairTotalStr = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
 
+            decimal assetValueDec = assetValue;
+            decimal marketValueDec = marketValue;
+            int score = 0;
+
+            if (assetValueDec < 0)
+                score = 1;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.90m, 2))
+                score = 10;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.80m, 2))
+                score = 9;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.70m, 2))
+                score = 8;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.60m, 2))
+                score = 7;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.50m, 2))
+                score = 6;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.40m, 2))
+                score = 5;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.30m, 2))
+                score = 4;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.20m, 2))
+                score = 3;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.10m, 2))
+                score = 2;
+            else
+                score = 1;
+
+            var condition = await _context.ConditionRatings
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Score == score);
+
             var dash = await _context.LocoDashboards
                 .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
 
@@ -732,9 +772,19 @@ namespace AviAppFinal.Server.Controllers
             dash.TotalLaborValue = laborTotal;
             dash.AssetValue = totalAssetValue ?? "";
             dash.TotalValue = repairTotalStr ?? "";
+            dash.CalScore = score;
+            dash.CalOperateStatus = condition?.OperationalStatus ?? "Not Captured";
+            dash.CalCondition = condition?.Condition ?? "Not Captured";
 
             _context.LocoDashboards.Update(dash);
+            //var input = await _context.LocoInputs
+            //   .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
 
+            //if (input != null)
+            //{
+            //    input.TotalCost = repairTotalStr ?? "0.00";
+            //    _context.LocoInputs.Update(input);
+            //}
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Loco updated successfully." });

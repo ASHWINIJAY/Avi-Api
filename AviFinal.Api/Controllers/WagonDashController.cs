@@ -58,6 +58,7 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("insertWagon")]
         public async Task<IActionResult> InsertWagon(int wagonNumber, string userId)
         {
+            try { 
             _context.Database.SetCommandTimeout(200);
 
             // ---------- Get User Name ----------
@@ -211,13 +212,15 @@ namespace AviAppFinal.Server.Controllers
 
             decimal marketValue = 0;
 
-            var masterValueStr = await _context.MasterWagons
-                .AsNoTracking()
-                .Where(m => m.WagonNumber == wagonNumber)
-                .Select(m => m.MarketValue)
-                .FirstOrDefaultAsync();
-
-            if (!string.IsNullOrWhiteSpace(masterValueStr))
+                var master = await _context.MasterWagons
+        .AsNoTracking()
+        .FirstOrDefaultAsync(m => m.WagonNumber == wagonNumber);
+                string masterValueStr="";
+                if (master != null)
+                {
+                     masterValueStr = master?.MarketValue;
+                }
+                if (!string.IsNullOrWhiteSpace(masterValueStr))
             {
                 decimal.TryParse(
                     masterValueStr,
@@ -326,9 +329,28 @@ namespace AviAppFinal.Server.Controllers
             };
 
             _context.WagonDashboards.Add(dashboardEntry);
+            //var input = await _context.WagonInputs
+            //   .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
+
+            //if (input != null)
+            //{
+            //    input.TotalCost = repairTotalStr ?? "0.00";
+            //    _context.WagonInputs.Update(input);
+            //}
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
+        }
+            catch (Exception ex)
+    {
+                return StatusCode(500, new
+                {
+                    Message = ex.Message,
+                    InnerMessage = ex.InnerException?.Message,
+                    StackTrace = ex.StackTrace,
+                    Source = ex.Source
+                });
+            }
         }
 
         // ADJUST ↓
@@ -450,7 +472,36 @@ namespace AviAppFinal.Server.Controllers
 
             string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
             string repairTotalStr = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+            decimal assetValueDec = assetValue;
+            decimal marketValueDec = marketValue;
+            int score = 0;
 
+            if (assetValueDec < 0)
+                score = 1;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.90m, 2))
+                score = 10;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.80m, 2))
+                score = 9;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.70m, 2))
+                score = 8;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.60m, 2))
+                score = 7;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.50m, 2))
+                score = 6;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.40m, 2))
+                score = 5;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.30m, 2))
+                score = 4;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.20m, 2))
+                score = 3;
+            else if (assetValueDec >= Math.Round(marketValueDec * 0.10m, 2))
+                score = 2;
+            else
+                score = 1;
+
+            var condition = await _context.ConditionRatings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Score == score);
             var dash = await _context.WagonDashboards
                 .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
 
@@ -465,7 +516,17 @@ namespace AviAppFinal.Server.Controllers
             dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
             dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
             dash.TotalValue = repairTotalStr ?? "";
+            dash.CalScore = score;
+            dash.CalOperateStatus = condition?.OperationalStatus ?? "Not Captured";
+            dash.CalCondition = condition?.Condition ?? "Not Captured";
+            //var input = await _context.WagonInputs
+            //    .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
 
+            //if (input != null)
+            //{
+            //    input.TotalCost = repairTotalStr ?? "0.00";
+            //    _context.WagonInputs.Update(input);
+            //}
             _context.WagonDashboards.Update(dash);
 
             await _context.SaveChangesAsync();

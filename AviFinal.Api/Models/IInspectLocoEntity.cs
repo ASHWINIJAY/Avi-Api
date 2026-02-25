@@ -1,4 +1,5 @@
-﻿namespace AviAppFinal.Server.Models
+﻿// ADJUSTED ↓
+namespace AviFinal.Api.Models
 {
     public interface IInspectLocoEntity
     {

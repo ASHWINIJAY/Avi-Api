@@ -3345,7 +3345,7 @@ public class DashboardController : ControllerBase
     {
         // ---------- Get User Name ----------
         
-        var oldLocoList = await _context.LocoDashboards
+        var oldLocoList = await _context.LocoDashboards.Where(c => c.City == null)
                                       .ToListAsync();
         foreach (var loco in oldLocoList)
         {
@@ -3359,7 +3359,7 @@ public class DashboardController : ControllerBase
     {
         // ---------- Get User Name ----------
 
-        var oldLocoList = await _context.WagonDashboards.Where(c => c.City == "Not Captured")
+        var oldLocoList = await _context.WagonDashboards.Where(c => c.City == null)
                                       .ToListAsync();
         foreach (var loco in oldLocoList)
         {
@@ -3693,8 +3693,6 @@ public class DashboardController : ControllerBase
         }
     }
     //PLEASE ADD (NEW)
-
-
     [HttpPost("tickWagon")]
     public async Task<IActionResult> TickWagon([FromBody] TickWagonRequest request)
     {
@@ -8509,34 +8507,50 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
 
 
     [HttpGet("GetInspectionStatus")]
-    public async Task<IActionResult> GetInspectionStatus()
+    public async Task<IActionResult> GetInspectionStatus(string phase = "Phase1")
     {
         var result = new List<InspectionStatusDto>();
 
-        using (var cmd = _context.Database.GetDbConnection().CreateCommand())
+        try
         {
-            cmd.CommandText = "sp_GetInspectionStatus";
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            await _context.Database.OpenConnectionAsync();
-
-            using (var reader = await cmd.ExecuteReaderAsync())
+            using (var cmd = _context.Database.GetDbConnection().CreateCommand())
             {
-                while (await reader.ReadAsync())
+                cmd.CommandText = "sp_GetInspectionStatus";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                // ✅ Add Phase Parameter
+                var phaseParam = cmd.CreateParameter();
+                phaseParam.ParameterName = "@Phase";
+                phaseParam.Value = phase ?? "1";
+                phaseParam.DbType = DbType.String;
+                cmd.Parameters.Add(phaseParam);
+
+                await _context.Database.OpenConnectionAsync();
+
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    result.Add(new InspectionStatusDto
+                    while (await reader.ReadAsync())
                     {
-                        InspectionType = reader["InspectionType"].ToString(),
-                        Total = Convert.ToInt32(reader["Total"]),
-                        Inspected = Convert.ToInt32(reader["Inspected"]),
-                        Pending = Convert.ToInt32(reader["Pending"]),
-                        CompletionPercent = Convert.ToDecimal(reader["CompletionPercent"])
-                    });
+                        result.Add(new InspectionStatusDto
+                        {
+                            InspectionType = reader["InspectionType"]?.ToString(),
+                            Total = reader["Total"] != DBNull.Value ? Convert.ToInt32(reader["Total"]) : 0,
+                            Inspected = reader["Inspected"] != DBNull.Value ? Convert.ToInt32(reader["Inspected"]) : 0,
+                            Pending = reader["Pending"] != DBNull.Value ? Convert.ToInt32(reader["Pending"]) : 0,
+                            CompletionPercent = reader["CompletionPercent"] != DBNull.Value
+                                ? Convert.ToDecimal(reader["CompletionPercent"])
+                                : 0
+                        });
+                    }
                 }
             }
-        }
 
-        return Ok(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
     [HttpGet("GetLocoStatusList")]
     public async Task<IActionResult> GetLocoStatusList()
@@ -8563,7 +8577,7 @@ ORDER BY MW.LocoNumber ASC";
             .SqlQueryRaw<LocoStatusDto>(sql)
             .ToListAsync();
 
-        return Ok(result);
+        return Ok(result.Distinct());
     }
     [HttpGet("GetWagonStatusList")]
     public async Task<IActionResult> GetWagonStatusList()
@@ -8587,7 +8601,7 @@ ORDER BY MW.LocoNumber ASC";
             }
         ).ToListAsync();
 
-        return Ok(result);
+        return Ok(result.DistinctBy(x => x.WagonNumber));
     }
 
     public class WagonStatusDto

@@ -1,7 +1,7 @@
-﻿using AviAppFinal.Server.Models;
+﻿// ADJUSTED ↓
 using System;
 using System.Collections.Generic;
-using AviAppFinal.Server.Models;
+
 namespace AviFinal.Api.Models;
 
 public partial class WagonPartsInspect : IInspectWagonEntity

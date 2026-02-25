@@ -6697,6 +6697,7 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.NetBookValue).HasMaxLength(300);
         });
 
+        // ADJUSTED ↓
         modelBuilder.Entity<LocoInput>(entity =>
         {
             entity.HasKey(e => e.LocoNumber);
@@ -6723,6 +6724,8 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.ScrapValue).HasMaxLength(100);
             entity.Property(e => e.ScrappingCost).HasMaxLength(100);
             entity.Property(e => e.TotalCost).HasMaxLength(100);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
+            entity.Property(e => e.BenchmarkValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<LocoScrapValue>(entity =>
@@ -7655,6 +7658,7 @@ public partial class AviDbContext : DbContext
                 .IsUnicode(false);
         });
 
+        // ADJUSTED ↓
         modelBuilder.Entity<WagonInput>(entity =>
         {
             entity.HasKey(e => e.WagonNumber);
@@ -7681,6 +7685,8 @@ public partial class AviDbContext : DbContext
             entity.Property(e => e.WagonType)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.MarketValue).HasMaxLength(100);
+            entity.Property(e => e.BenchmarkValue).HasMaxLength(100);
         });
 
         modelBuilder.Entity<WagonPartsInspect>(entity =>
