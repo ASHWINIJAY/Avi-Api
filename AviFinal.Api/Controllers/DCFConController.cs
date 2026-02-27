@@ -1,6 +1,10 @@
-﻿
+﻿using AviAppFinal.Server.Models;
 using AviFinal.Api.Models;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Math;
+using DocumentFormat.OpenXml.Vml;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -63,8 +67,8 @@ namespace AviAppFinal.Server.Controllers
                     ws.Cell("D1").Value = "Return to Service Cost";
                     ws.Cell("E1").Value = "Present Value (Pre-Tax)";
                     ws.Cell("F1").Value = "Present Value (Post-Tax)";
-                    ws.Cell("G1").Value = "Benchmark Value (Pre-Tax)";
-                    ws.Cell("H1").Value = "Benchmark Value (Post-Tax)";
+                    ws.Cell("G1").Value = "Transnet Net Book Value (Pre-Tax)";
+                    ws.Cell("H1").Value = "Transnet Net Book Value (Post-Tax)";
                     ws.Range("A1:H1").Style.Font.Bold = true;
                     ws.Range("A1:H1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -125,8 +129,8 @@ namespace AviAppFinal.Server.Controllers
                     ws.Cell($"D{endRow + 1}").Value = "Total Return to Service Cost";
                     ws.Cell($"E{endRow + 1}").Value = "Total PV (Pre-Tax)";
                     ws.Cell($"F{endRow + 1}").Value = "Total PV (Post-Tax)";
-                    ws.Cell($"G{endRow + 1}").Value = "Total BV (Pre-Tax)";
-                    ws.Cell($"H{endRow + 1}").Value = "Total BV (Post-Tax)";
+                    ws.Cell($"G{endRow + 1}").Value = "Total TNBV (Pre-Tax)";
+                    ws.Cell($"H{endRow + 1}").Value = "Total TNBV (Post-Tax)";
 
                     double marketTotal = allMarket.Sum();
                     double refurbTotal = allRefurbish.Sum();
@@ -195,8 +199,8 @@ namespace AviAppFinal.Server.Controllers
                         formulas["D2"] = "Return to Service Cost from the Dashboard for this Asset";
                         formulas["E2"] = "Sum of all Present Values (Pre-Tax) for this Asset";
                         formulas["F2"] = "Sum of all Present Values (Post-Tax) for this Asset";
-                        formulas["G2"] = "Benchmark Value (Pre-Tax) for this Asset";
-                        formulas["H2"] = "Benchmark Value (Post-Tax) for this Asset";
+                        formulas["G2"] = "Transnet Net Book Value (Pre-Tax) for this Asset";
+                        formulas["H2"] = "Transnet Net Book Value (Post-Tax) for this Asset";
                         formulas["E3"] = "IF(E2 >= 0; \"Refurbish\"; \"Scrap\")";
                         formulas["F3"] = "IF(F2 >= 0; \"Refurbish\"; \"Scrap\")";
 
@@ -206,8 +210,8 @@ namespace AviAppFinal.Server.Controllers
                             formulas[$"D{r * 2}"] = "Return to Service Cost from the Dashboard for this Asset";
                             formulas[$"E{r * 2}"] = "Sum of all Present Values (Pre-Tax) for this Asset";
                             formulas[$"F{r * 2}"] = "Sum of all Present Values (Post-Tax) for this Asset";
-                            formulas[$"G{r * 2}"] = "Benchmark Value (Pre-Tax) for this Asset";
-                            formulas[$"H{r * 2}"] = "Benchmark Value (Post-Tax) for this Asset";
+                            formulas[$"G{r * 2}"] = "Transnet Net Book Value (Pre-Tax) for this Asset";
+                            formulas[$"H{r * 2}"] = "Transnet Net Book Value (Post-Tax) for this Asset";
                             formulas[$"E{(r * 2) + 1}"] = $"IF(E{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                             formulas[$"F{(r * 2) + 1}"] = $"IF(F{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                         }
@@ -260,8 +264,8 @@ namespace AviAppFinal.Server.Controllers
                         ws.Cell("D1").Value = "Return to Service Cost";
                         ws.Cell("E1").Value = "Present Value (Pre-Tax)";
                         ws.Cell("F1").Value = "Present Value (Post-Tax)";
-                        ws.Cell("G1").Value = "Benchmark Value (Pre-Tax)";
-                        ws.Cell("H1").Value = "Benchmark Value (Post-Tax)";
+                        ws.Cell("G1").Value = "Transnet Net Book Value (Pre-Tax)";
+                        ws.Cell("H1").Value = "Transnet Net Book Value (Post-Tax)";
                         ws.Range("A1:H1").Style.Font.Bold = true;
                         ws.Range("A1:H1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -309,8 +313,8 @@ namespace AviAppFinal.Server.Controllers
                             formulas["D2"] = "Sum of each Return to Service Cost per Asset within this Asset Type";
                             formulas["E2"] = "Sum of all Present Values (Pre-Tax) per Asset within this Asset Type";
                             formulas["F2"] = "Sum of all Present Values (Post-Tax) per Asset within this Asset Type";
-                            formulas["G2"] = "Sum of each Benchmark Value (Pre-Tax) per Asset within this Asset Type";
-                            formulas["H2"] = "Sum of each Benchmark Value (Post-Tax) per Asset within this Asset Type";
+                            formulas["G2"] = "Sum of each Transnet Net Book Value (Pre-Tax) per Asset within this Asset Type";
+                            formulas["H2"] = "Sum of each Transnet Net Book Value (Post-Tax) per Asset within this Asset Type";
                             formulas["E3"] = "IF(E2 >= 0; \"Refurbish\"; \"Scrap\")";
                             formulas["F3"] = "IF(F2 >= 0; \"Refurbish\"; \"Scrap\")";
 
@@ -320,8 +324,8 @@ namespace AviAppFinal.Server.Controllers
                                 formulas[$"D{r * 2}"] = "Sum of each Return to Service Cost per Asset within this Asset Type";
                                 formulas[$"E{r * 2}"] = "Sum of all Present Values (Pre-Tax) per Asset within this Asset Type";
                                 formulas[$"F{r * 2}"] = "Sum of all Present Values (Post-Tax) per Asset within this Asset Type";
-                                formulas[$"G{r * 2}"] = "Sum of each Benchmark Value (Pre-Tax) per Asset within this Asset Type";
-                                formulas[$"H{r * 2}"] = "Sum of each Benchmark Value (Post-Tax) per Asset within this Asset Type";
+                                formulas[$"G{r * 2}"] = "Sum of each Transnet Net Book Value (Pre-Tax) per Asset within this Asset Type";
+                                formulas[$"H{r * 2}"] = "Sum of each Transnet Net Book Value (Post-Tax) per Asset within this Asset Type";
                                 formulas[$"E{(r * 2) + 1}"] = $"IF(E{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                                 formulas[$"F{(r * 2) + 1}"] = $"IF(F{r * 2} >= 0; \"Refurbish\"; \"Scrap\")";
                             }
@@ -412,7 +416,7 @@ namespace AviAppFinal.Server.Controllers
                 double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
                 double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
                 double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-                double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
+                double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
 
                 int maxYears = 20;
                 int minTerm = Math.Min(leaseTerm, wearTear);
@@ -465,8 +469,8 @@ namespace AviAppFinal.Server.Controllers
                 grandMarket += totalMarketValue;
                 grandRefurb += refurbishCost;
 
-                if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
-                if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
+                if (npvPre >= 0) transferPre += netBook + refurbishCost;
+                if (npvPost >= 0) transferPost += netBook + refurbishCost;
             }
 
             return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
@@ -501,7 +505,7 @@ namespace AviAppFinal.Server.Controllers
                 double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
                 double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
                 double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-                double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
+                double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
 
                 int maxYears = 20;
                 int minTerm = Math.Min(leaseTerm, wearTear);
@@ -555,8 +559,8 @@ namespace AviAppFinal.Server.Controllers
                 grandMarket += totalMarketValue;
                 grandRefurb += refurbishCost;
 
-                if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
-                if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
+                if (npvPre >= 0) transferPre += netBook + refurbishCost;
+                if (npvPost >= 0) transferPost += netBook + refurbishCost;
             }
 
             return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
@@ -572,7 +576,7 @@ namespace AviAppFinal.Server.Controllers
             double grandPost = 0;
             double transferPre = 0;
             double transferPost = 0;
-
+            
             var preTaxFlows = new List<double>();
             var postTaxFlows = new List<double>();
 
@@ -589,7 +593,7 @@ namespace AviAppFinal.Server.Controllers
             double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
             double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
+            double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
 
             int maxYears = 20;
             int minTerm = Math.Min(leaseTerm, wearTear);
@@ -642,8 +646,8 @@ namespace AviAppFinal.Server.Controllers
             grandMarket += totalMarketValue;
             grandRefurb += refurbishCost;
 
-            if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
-            if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
+            if (npvPre >= 0) transferPre += netBook + refurbishCost;
+            if (npvPost >= 0) transferPost += netBook + refurbishCost;
 
             return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
@@ -675,7 +679,7 @@ namespace AviAppFinal.Server.Controllers
             double residualValue = Convert.ToDouble(ParseDecimalSafe(w.ResidualValue));
             double waccPre = Convert.ToDouble(ParseDecimalSafe(w.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(w.PostTax)) / 100;
-            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(w.BenchmarkValue));
+            double netBook = Convert.ToDouble(ParseDecimalSafe(w.NetBookValue));
 
             int maxYears = 20;
             int minTerm = Math.Min(leaseTerm, wearTear);
@@ -729,8 +733,8 @@ namespace AviAppFinal.Server.Controllers
             grandMarket += totalMarketValue;
             grandRefurb += refurbishCost;
 
-            if (npvPre >= 0) transferPre += benchmarkValue + refurbishCost;
-            if (npvPost >= 0) transferPost += benchmarkValue + refurbishCost;
+            if (npvPre >= 0) transferPre += netBook + refurbishCost;
+            if (npvPost >= 0) transferPost += netBook + refurbishCost;
 
             return (grandMarket, grandRefurb, grandPre, grandPost, transferPre, transferPost);
         }
@@ -802,7 +806,6 @@ namespace AviAppFinal.Server.Controllers
 
             row += 2;
         }
-
 
         void StyleDecisionCell(IXLCell cell, string value)
         {

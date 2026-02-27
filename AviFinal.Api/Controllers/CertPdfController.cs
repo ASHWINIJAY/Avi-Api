@@ -869,7 +869,9 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("GenerateAndSaveLocoCertPdf")]
         public async Task<IActionResult> GenerateAndSaveLocoCertPdf([FromBody] LocoCertPdfRequest request)
         {
-            if(request == null || string.IsNullOrWhiteSpace(request.LocoNumber))
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.LocoNumber))
                 return BadRequest("Invalid request: LocoNumber is required.");
 
             _context.Database.SetCommandTimeout(180);
@@ -904,8 +906,7 @@ namespace AviAppFinal.Server.Controllers
             string fileName = $"{LocoNumber}_{safeGroup}_Cert_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf";
             string filePath = Path.Combine(folderPath, fileName);
 
-            try
-            {
+            
                 using (var writer = new PdfWriter(filePath))
                 using (var pdf = new iText.Kernel.Pdf.PdfDocument(writer))
                 using (var document = new Document(pdf, PageSize.A4))
@@ -1237,14 +1238,11 @@ namespace AviAppFinal.Server.Controllers
             catch (Exception ex)
             {
                 // Remove the partial file if it was created
-                try
-                {
-                    if (System.IO.File.Exists(filePath))
-                        System.IO.File.Delete(filePath);
-                }
-                catch { /* ignore cleanup errors */ }
+                
 
-                return StatusCode(500, new { error = "PDF generation failed", detail = ex.Message });
+                return StatusCode(500, new { error = "PDF generation failed",message = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
             }
         }
 

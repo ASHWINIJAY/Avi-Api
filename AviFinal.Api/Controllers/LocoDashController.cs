@@ -455,14 +455,14 @@ namespace AviAppFinal.Server.Controllers
             {
                 _context.LocoDashboards.Add(dashboardEntry);
                 await _context.SaveChangesAsync();
-                //var input = await _context.LocoInputs
-                //  .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
+                var input = await _context.LocoInputs
+                  .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
 
-                //if (input != null)
-                //{
-                //    input.TotalCost = repairTotalStr ?? "0.00";
-                //    _context.LocoInputs.Update(input);
-                //}
+                if (input != null)
+                {
+                    input.TotalCost = repairTotalStr ?? "0.00";
+                    _context.LocoInputs.Update(input);
+                }
 
             }
             return Ok(new { success = true, message = "Loco dashboard entry created", id = dashboardEntry.Id });
@@ -982,7 +982,19 @@ namespace AviAppFinal.Server.Controllers
                 if (items == null || !items.Any())
                     return BadRequest("No locos selected for upload.");
                 string serverFolder = @"C:\LocoDashboardItemsUploaded";
-                if (!Directory.Exists(serverFolder))
+                var dashboard = await _context.LocoDashboards.FirstOrDefaultAsync(w => w.LocoNumber == items[0].LocoNumber);
+                if (dashboard != null)
+                {
+                    if(dashboard.Phase==2)
+                    {
+                        serverFolder = @"C:\TFR_LocoDashboardItemsUploaded";
+                    }
+                    if (dashboard.Phase == 3)
+                    {
+                        serverFolder = @"C:\TE_LocoDashboardItemsUploaded";
+                    }
+                }
+                    if (!Directory.Exists(serverFolder))
                     Directory.CreateDirectory(serverFolder);
 
                 //PLEASE ADD

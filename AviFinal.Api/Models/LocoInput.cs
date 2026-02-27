@@ -48,7 +48,7 @@ public partial class LocoInput
 
     public string? InspectStatus { get; set; }
 
-    public string MarketValue { get; set; } = null!;
+    public string? MarketValue { get; set; } = null!;
 
-    public string BenchmarkValue { get; set; } = null!;
+    public string? BenchmarkValue { get; set; } = null!;
 }

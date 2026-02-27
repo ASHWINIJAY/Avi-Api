@@ -326,18 +326,19 @@ namespace AviAppFinal.Server.Controllers
                 CalOperateStatus = condition?.OperationalStatus ?? "Scrap Only",
                 CalCondition = condition?.Condition ?? "Beyond Repair",
                 Phase = wagonInfo.Phase,
+                City = city,
             };
 
             _context.WagonDashboards.Add(dashboardEntry);
-            //var input = await _context.WagonInputs
-            //   .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
+                var input = await _context.WagonInputs
+                   .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
 
-            //if (input != null)
-            //{
-            //    input.TotalCost = repairTotalStr ?? "0.00";
-            //    _context.WagonInputs.Update(input);
-            //}
-            await _context.SaveChangesAsync();
+                if (input != null)
+                {
+                    input.TotalCost = repairTotalStr ?? "0.00";
+                    _context.WagonInputs.Update(input);
+                }
+                await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Wagon dashboard entry created", id = dashboardEntry.Id });
         }
@@ -1057,6 +1058,18 @@ namespace AviAppFinal.Server.Controllers
 
             // --- Ensure server folder exists ---
             string serverFolder = @"C:\WagonDashboardItemsUploaded";
+            var dashboard = await _context.WagonDashboards.FirstOrDefaultAsync(w => w.WagonNumber == items[0].WagonNumber);
+            if (dashboard != null)
+            {
+                if (dashboard.Phase == 2)
+                {
+                    serverFolder = @"C:\TFR_WagonDashboardItemsUploaded";
+                }
+                if (dashboard.Phase == 3)
+                {
+                    serverFolder = @"C:\TE_WagonDashboardItemsUploaded";
+                }
+            }
             if (!Directory.Exists(serverFolder))
                 Directory.CreateDirectory(serverFolder);
 
@@ -1218,6 +1231,18 @@ namespace AviAppFinal.Server.Controllers
 
             // --- Ensure server folder exists ---
             string serverFolder = @"C:\WagonDashboardItemsUploaded";
+            var dashboard = await _context.WagonDashboards.FirstOrDefaultAsync(w => w.WagonNumber == items[0].WagonNumber);
+            if (dashboard != null)
+            {
+                if (dashboard.Phase == 2)
+                {
+                    serverFolder = @"C:\TFR_WagonDashboardItemsUploaded";
+                }
+                if (dashboard.Phase == 3)
+                {
+                    serverFolder = @"C:\TE_WagonDashboardItemsUploaded";
+                }
+            }
             if (!Directory.Exists(serverFolder))
                 Directory.CreateDirectory(serverFolder);
 

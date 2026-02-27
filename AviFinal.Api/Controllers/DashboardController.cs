@@ -40,6 +40,7 @@ public class DashboardController : ControllerBase
         public int First { get; set; }
         public int Rows { get; set; }
         public string? GlobalFilter { get; set; }
+        public string? Phase { get; set; }
     }
 
     public class PagedResult<T>
@@ -693,10 +694,12 @@ public class DashboardController : ControllerBase
     [HttpPost("getUploadedWagonsPaged")]
     public async Task<IActionResult> GetUploadedWagonsPaged([FromBody] WagonDashboardQueryDto query)
     {
+        int phase = 1;
+        phase = Convert.ToInt32(query.Phase);
         _context.Database.SetCommandTimeout(180);
 
         IQueryable<WagonDashboardUploaded> q = _context.WagonDashboardUploadeds
-            .Where(x => x.WagonStatus == "Uploaded" || x.WagonStatus == "Re-uploaded");
+            .Where(x => x.WagonStatus == "Uploaded" && x.Phase == phase);
 
         // Global search
         if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
@@ -728,10 +731,12 @@ public class DashboardController : ControllerBase
     [HttpPost("getUploadedWagonsForExport")]
     public async Task<IActionResult> GetUploadedWagonsForExport([FromBody] WagonDashboardQueryDto query)
     {
+        int phase = 1;
+        phase = Convert.ToInt32(query.Phase);
         _context.Database.SetCommandTimeout(180);
 
         IQueryable<WagonDashboardUploaded> q = _context.WagonDashboardUploadeds
-            .Where(x => x.WagonStatus == "Uploaded" || x.WagonStatus == "Re-uploaded");
+            .Where(x => x.WagonStatus == "Uploaded" && x.Phase==phase);
 
         // Global search
         if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
@@ -760,10 +765,11 @@ public class DashboardController : ControllerBase
     [HttpPost("getUploadedLocosPaged")]
     public async Task<IActionResult> GetUploadedLocosPaged([FromBody] WagonDashboardQueryDto query)
     {
-        _context.Database.SetCommandTimeout(180); 
-
+        _context.Database.SetCommandTimeout(180);
+        int phase = 1;
+        phase = Convert.ToInt32(query.Phase);
         IQueryable<LocoDashboard> q = _context.LocoDashboards
-            .Where(x => x.UploadStatus == "Uploaded");
+            .Where(x => x.UploadStatus == "Uploaded" && x.Phase == phase);
 
         // Global search
         if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
@@ -801,11 +807,13 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetUploadedLocosForExport(
     [FromBody] WagonDashboardQueryDto query)
     {
+        int phase = 1;
+        phase = Convert.ToInt32(query.Phase);
         _context.Database.SetCommandTimeout(180);
 
         IQueryable<LocoDashboard> q = _context.LocoDashboards
             .AsNoTracking()
-            .Where(x => x.UploadStatus == "Uploaded" || x.UploadStatus == "Re-uploaded");
+            .Where(x => x.UploadStatus == "Uploaded" && x.Phase==phase);
 
         // Global search
         if (!string.IsNullOrWhiteSpace(query.GlobalFilter))
@@ -8553,9 +8561,17 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
         }
     }
     [HttpGet("GetLocoStatusList")]
-    public async Task<IActionResult> GetLocoStatusList()
+    public async Task<IActionResult> GetLocoStatusList(int phase = 1)
     {
-        var sql = @"
+        string masterTable = phase switch
+        {
+            1 => "MasterLocos",
+            2 => "MasterLocosTFR",
+            3 => "MasterLocosTE",
+            _ => "MasterLocos"
+        };
+
+        var sql = $@"
 SELECT 
     MW.LocoNumber, 
     ISNULL(MW.LocoType, '') AS LocoType,
@@ -8564,14 +8580,13 @@ SELECT
         WHEN WIC.LocoNumber IS NOT NULL THEN 'Incomplete'
         ELSE 'Not Started'
     END AS Status
-FROM MasterLocos MW
+FROM {masterTable} MW
 LEFT JOIN LocoDashboard WD 
     ON MW.LocoNumber = WD.LocoNumber
 LEFT JOIN LocoInfoCaptures WIC 
     ON MW.LocoNumber = WIC.LocoNumber
 WHERE WD.LocoNumber IS NULL
 ORDER BY MW.LocoNumber ASC";
-
 
         var result = await _context.Database
             .SqlQueryRaw<LocoStatusDto>(sql)
@@ -8580,26 +8595,58 @@ ORDER BY MW.LocoNumber ASC";
         return Ok(result.Distinct());
     }
     [HttpGet("GetWagonStatusList")]
-    public async Task<IActionResult> GetWagonStatusList()
+    public async Task<IActionResult> GetWagonStatusList(int phase = 1)
     {
-        var result = await (
-            from mw in _context.MasterWagons
-            join wd in _context.WagonDashboards
-                on mw.WagonNumber equals wd.WagonNumber into wdGroup
-            from wd in wdGroup.DefaultIfEmpty()
+        // Safety check
+        if (phase != 1 && phase != 2)
+            phase = 1;
 
-            join wic in _context.WagonInfoCaptures
-                on mw.WagonNumber equals wic.WagonNumber into wicGroup
-            from wic in wicGroup.DefaultIfEmpty()
+        IQueryable<WagonStatusDto> query;
 
-            select new WagonStatusDto
-            {
-                WagonNumber = mw.WagonNumber.ToString(),   // <-- convert INT to string
-                WagonGroup = mw.WagonClass.ToString(),
-                WagonType = mw.WagonType,
-                Status = (wic != null) ? "Incomplete" : "Not Started"
-            }
-        ).ToListAsync();
+        if (phase == 2)
+        {
+            // 🔹 PHASE 2 → MasterWagonsTFR
+            query =
+                from mw in _context.MasterWagonsTFR
+                join wd in _context.WagonDashboards
+                    on mw.WagonNumber equals wd.WagonNumber into wdGroup
+                from wd in wdGroup.DefaultIfEmpty()
+
+                join wic in _context.WagonInfoCaptures
+                    on mw.WagonNumber equals wic.WagonNumber into wicGroup
+                from wic in wicGroup.DefaultIfEmpty()
+
+                select new WagonStatusDto
+                {
+                    WagonNumber = mw.WagonNumber.ToString(),
+                    WagonGroup = mw.WagonGroup.ToString(),
+                    WagonType = mw.WagonType,
+                    Status = (wic != null) ? "Incomplete" : "Not Started"
+                };
+        }
+        else
+        {
+            // 🔹 PHASE 1 → MasterWagons
+            query =
+                from mw in _context.MasterWagons
+                join wd in _context.WagonDashboards
+                    on mw.WagonNumber equals wd.WagonNumber into wdGroup
+                from wd in wdGroup.DefaultIfEmpty()
+
+                join wic in _context.WagonInfoCaptures
+                    on mw.WagonNumber equals wic.WagonNumber into wicGroup
+                from wic in wicGroup.DefaultIfEmpty()
+
+                select new WagonStatusDto
+                {
+                    WagonNumber = mw.WagonNumber.ToString(),
+                    WagonGroup = mw.WagonClass.ToString(),
+                    WagonType = mw.WagonType,
+                    Status = (wic != null) ? "Incomplete" : "Not Started"
+                };
+        }
+
+        var result = await query.ToListAsync();
 
         return Ok(result.DistinctBy(x => x.WagonNumber));
     }
