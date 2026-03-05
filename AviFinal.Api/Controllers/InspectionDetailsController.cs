@@ -203,10 +203,35 @@ private static decimal ToDecimal(string? value)
 
         return 0;
     }
+        [HttpGet("capture/{locoNumber}")]
+        public async Task<IActionResult> GetCaptureDetails(string locoNumber)
+        {
+            int loco = Convert.ToInt32(locoNumber);
+            var result = await _context.LocoInfoCaptures
+                .Where(x => x.LocoNumber == loco)
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+                return NotFound("No capture records found.");
+
+            return Ok(result);
+        }
+        [HttpGet("wagoncapture/{wagonNumber}")]
+        public async Task<IActionResult> GetWagonCaptureDetails(string wagonNumber)
+        {
+            int loco = Convert.ToInt32(wagonNumber);
+            var result = await _context.WagonInfoCaptures
+                .Where(x => x.WagonNumber == loco)
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+                return NotFound("No capture records found.");
+
+            return Ok(result);
+        }
 
 
-
-    [HttpGet("details/{locoNumber}")]
+        [HttpGet("details/{locoNumber}")]
         public async Task<IActionResult> GetInspectionDetails(int locoNumber)
         {
             // 1️⃣ Get loco basic info

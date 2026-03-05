@@ -16,7 +16,12 @@ public partial class LeaseCoUser
     public string UserRole { get; set; } = null!;
 
     public string? Name { get; set; }
-
+    public int? Active { get; set; }
+    public int? IsDelete { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTime? CreatedDate { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedDate { get; set; }
     public virtual ICollection<BatSwitchInspect> BatSwitchInspects { get; set; } = new List<BatSwitchInspect>();
 
     public virtual ICollection<BotLeftPanInspect> BotLeftPanInspects { get; set; } = new List<BotLeftPanInspect>();

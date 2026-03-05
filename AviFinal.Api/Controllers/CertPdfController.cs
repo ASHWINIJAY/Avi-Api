@@ -887,7 +887,7 @@ namespace AviAppFinal.Server.Controllers
 
             var master = await _context.MasterLocos.AsNoTracking().FirstOrDefaultAsync(m => m.LocoNumber == locoNumber);
             var model = await _context.LocoInfoCaptures.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
-            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => locoNumber == locoNumber);
+            var dash = await _context.LocoDashboards.AsNoTracking().FirstOrDefaultAsync(p => p.LocoNumber == locoNumber);
             int? score = dash?.ConditionScore;
 
             var condition = await _context.ConditionRatings.AsNoTracking().FirstOrDefaultAsync(c => c.Score == score);
@@ -1153,9 +1153,9 @@ namespace AviAppFinal.Server.Controllers
                     AddRow("GPS Longitude", model?.GpsLongitude ?? "Not Captured");
                     AddRow("City", city);
                     AddRow("Country", "South Africa");
-                    AddRow("Net Book Value", netBookValue); //PLEASE ADJUST
-                    AddRow("Return To Service Cost", totalRepair); //PLEASE ADJUST
-                    AddRow("Market Value", assetValue);
+                    AddRow("Net Book Value", model?.NetBookValue); //PLEASE ADJUST
+                    AddRow("Return To Service Cost", dash?.TotalValue); //PLEASE ADJUST
+                    AddRow("Market Value", dash?.AssetValue);
                     AddRow("Score", dash.ConditionScore.ToString() ?? "0");
                     AddRow("Condition", condition?.Condition ?? "N/A");
                     AddRow("Operational Status", dash?.OperationalStatus ?? "N/A");

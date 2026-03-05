@@ -153,13 +153,13 @@ namespace AviAppFinal.Server.Controllers
                     if (!string.IsNullOrWhiteSpace(model?.LiftLapsed))
                     {
                         var lift = model.LiftLapsed.Trim().ToLowerInvariant();
-                        if (lift == "Yes" || lift == "y" || lift == "true") liftCost = 420982m;
+                        if (lift == "yes" || lift == "y" || lift == "true") liftCost = 420982m;
                     }
 
                     if (!string.IsNullOrWhiteSpace(model?.BarrelLapsed))
                     {
                         var barrel = model.BarrelLapsed.Trim().ToLowerInvariant();
-                        if (barrel == "Yes" || barrel == "y" || barrel == "true") barrelCost = 351893m;
+                        if (barrel == "yes" || barrel == "y" || barrel == "true") barrelCost = 351893m;
                     }
 
                     decimal liftBarrelTotal = liftCost + barrelCost;
@@ -469,13 +469,13 @@ namespace AviAppFinal.Server.Controllers
                     if (!string.IsNullOrWhiteSpace(model?.LiftLapsed))
                     {
                         var lift = model.LiftLapsed.Trim().ToLowerInvariant();
-                        if (lift == "Yes" || lift == "y" || lift == "true") liftCost = 420982m;
+                        if (lift == "yes" || lift == "y" || lift == "true") liftCost = 420982m;
                     }
 
                     if (!string.IsNullOrWhiteSpace(model?.BarrelLapsed))
                     {
                         var barrel = model.BarrelLapsed.Trim().ToLowerInvariant();
-                        if (barrel == "Yes" || barrel == "y" || barrel == "true") barrelCost = 351893m;
+                        if (barrel == "yes" || barrel == "y" || barrel == "true") barrelCost = 351893m;
                     }
 
                     decimal liftBarrelTotal = liftCost + barrelCost;

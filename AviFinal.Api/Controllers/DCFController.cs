@@ -1178,7 +1178,7 @@ namespace AviAppFinal.Server.Controllers
                 return BadRequest("Wagon does not exist.");
 
             //double scrapCost = Convert.ToDouble(ParseDecimalSafe(input.ScrappingCost));
-            double marketValue = Convert.ToDouble(ParseDecimalSafe(input.MarketValue));
+            double netBookValue = Convert.ToDouble(ParseDecimalSafe(input.NetBookValue));
             double refurbishCost = Convert.ToDouble(ParseDecimalSafe(input.TotalCost));
             double corporateTax = Convert.ToDouble(ParseDecimalSafe(input.CorporateTaxRate)) / 100;
             int leaseTerm = Convert.ToInt32(input.LeaseTerm);
@@ -1190,7 +1190,7 @@ namespace AviAppFinal.Server.Controllers
             double residualValue = Convert.ToDouble(ParseDecimalSafe(input.ResidualValue));
             double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
-            double netBook = Convert.ToDouble(ParseDecimalSafe(input.NetBookValue));
+            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(input.BenchmarkValue));
 
             double[] B = new double[21];
             double[] D = new double[21];
@@ -1205,7 +1205,7 @@ namespace AviAppFinal.Server.Controllers
             double[] N = new double[21];
 
             // YEAR 0
-            double totalMarketValue = marketValue;
+            double totalMarketValue = netBookValue;
             double J2 = (totalMarketValue + refurbishCost) * -1;
             double N2 = (totalMarketValue + refurbishCost) * -1;
 
@@ -1291,8 +1291,8 @@ namespace AviAppFinal.Server.Controllers
             double J23 = J2 + J3 + JTotal;
             double N23 = N2 + N3 + NTotal;
 
-            double O23 = (J23 >= 0) ? netBook + refurbishCost : 0;
-            double P23 = (N23 >= 0) ? netBook + refurbishCost : 0;
+            double O23 = (J23 >= 0) ? benchmarkValue + refurbishCost : 0;
+            double P23 = (N23 >= 0) ? benchmarkValue + refurbishCost : 0;
 
             // 23RD ROW
             string stat1 = (J23 >= 0) ? "REFURBISH" : "SCRAP";
@@ -1305,7 +1305,7 @@ namespace AviAppFinal.Server.Controllers
                 //HEADER ROW
                 ws.Cell("A1").Value = "Year";
                 ws.Cell("B1").Value = "Lease Revenue";
-                ws.Cell("C1").Value = "Market Value";
+                ws.Cell("C1").Value = "Transnet Net Book Value";
                 ws.Cell("D1").Value = "Wear & Tear";
                 ws.Cell("E1").Value = "Inspection Cost";
                 ws.Cell("F1").Value = "Return to Service Cost";
@@ -1317,8 +1317,8 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("L1").Value = "EBITDA";
                 ws.Cell("M1").Value = "WACC (Leveraged)";
                 ws.Cell("N1").Value = "Present Value (Post-Tax)";
-                ws.Cell("O1").Value = "Transnet Net Book Value (Pre-Tax)";
-                ws.Cell("P1").Value = "Transnet Net Book Value (Post-Tax)";
+                ws.Cell("O1").Value = "Benchmark Value (Pre-Tax)";
+                ws.Cell("P1").Value = "Benchmark Value (Post-Tax)";
                 ws.Range("A1:P1").Style.Font.Bold = true;
                 ws.Range("A1:P1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -1506,7 +1506,7 @@ namespace AviAppFinal.Server.Controllers
 
                     var formulas = new Dictionary<string, string>();
 
-                formulas["C2"] = "Market Value from Dashboard";
+                formulas["C2"] = "Net Book Value from Inputs";
                 formulas["F2"] = "Return to Service Cost from Dashboard";
                 formulas["J2"] = "(C2 + F2) * I2";
                 formulas["N2"] = "(C2 + F2) * M2";
@@ -1514,8 +1514,8 @@ namespace AviAppFinal.Server.Controllers
                 formulas["N3"] = "L3 * M3";
                 formulas["J23"] = "SUM(J2 : J22)";
                 formulas["N23"] = "SUM(N2 : N22)";
-                formulas["O23"] = "IF(J23 >= 0; (Transnet Net Book Value + F2); 0)";
-                formulas["P23"] = "IF(N23 >= 0; (Transnet Net Book Value + F2); 0)";
+                formulas["O23"] = "IF(J23 >= 0; (Benchmark Value + F2); 0)";
+                formulas["P23"] = "IF(N23 >= 0; (Benchmark Value + F2); 0)";
                 formulas["J24"] = "IF(J23 >= 0; \"Refurbish\"; \"Scrap\")";
                 formulas["N24"] = "IF(N23 >= 0; \"Refurbish\"; \"Scrap\")";
 
@@ -1559,7 +1559,7 @@ namespace AviAppFinal.Server.Controllers
                 return BadRequest("Locomotive does not exist.");
 
             //double scrapCost = Convert.ToDouble(ParseDecimalSafe(input.ScrappingCost));
-            double marketValue = Convert.ToDouble(ParseDecimalSafe(input.MarketValue));
+            double netBookValue = Convert.ToDouble(ParseDecimalSafe(input.NetBookValue));
             double refurbishCost = Convert.ToDouble(ParseDecimalSafe(input.TotalCost));
             double corporateTax = Convert.ToDouble(ParseDecimalSafe(input.CorporateTaxRate)) / 100;
 
@@ -1578,7 +1578,7 @@ namespace AviAppFinal.Server.Controllers
             double waccPre = Convert.ToDouble(ParseDecimalSafe(input.PreTax)) / 100;
             double waccPost = Convert.ToDouble(ParseDecimalSafe(input.PostTax)) / 100;
 
-            double netBook = Convert.ToDouble(ParseDecimalSafe(input.NetBookValue));
+            double benchmarkValue = Convert.ToDouble(ParseDecimalSafe(input.BenchmarkValue));
 
             double[] B = new double[21];
             double[] D = new double[21];
@@ -1593,7 +1593,7 @@ namespace AviAppFinal.Server.Controllers
 
 
             // YEAR 0
-            double totalMarketValue = marketValue;
+            double totalMarketValue = netBookValue;
             double J2 = (totalMarketValue + refurbishCost) * -1;
             double N2 = -totalMarketValue * 1 * (1 - corporateTax);
 
@@ -1678,8 +1678,8 @@ namespace AviAppFinal.Server.Controllers
             double J23 = J2 + J3 + JTotal;
             double N23 = N2 + N3 + NTotal;
 
-            double O23 = (J23 >= 0) ? netBook + refurbishCost : 0;
-            double P23 = (N23 >= 0) ? netBook + refurbishCost : 0;
+            double O23 = (J23 >= 0) ? benchmarkValue + refurbishCost : 0;
+            double P23 = (N23 >= 0) ? benchmarkValue + refurbishCost : 0;
 
             // 23RD ROW
             string stat1 = (J23 >= 0) ? "REFURBISH" : "SCRAP";
@@ -1692,7 +1692,7 @@ namespace AviAppFinal.Server.Controllers
                 //HEADER ROW
                 ws.Cell("A1").Value = "Year";
                 ws.Cell("B1").Value = "Lease Revenue";
-                ws.Cell("C1").Value = "Market Value";
+                ws.Cell("C1").Value = "Transnet Net Book Value";
                 ws.Cell("D1").Value = "Wear & Tear";
                 ws.Cell("E1").Value = "Inspection Cost";
                 ws.Cell("F1").Value = "Return to Service Cost";
@@ -1704,8 +1704,8 @@ namespace AviAppFinal.Server.Controllers
                 ws.Cell("L1").Value = "EBITDA";
                 ws.Cell("M1").Value = "WACC (Leveraged)";
                 ws.Cell("N1").Value = "Present Value (Post-Tax)";
-                ws.Cell("O1").Value = "Transnet Net Book Value (Pre-Tax)";
-                ws.Cell("P1").Value = "Transnet Net Book Value (Post-Tax)";
+                ws.Cell("O1").Value = "Benchmark Value (Pre-Tax)";
+                ws.Cell("P1").Value = "Benchmark Value Value (Post-Tax)";
                 ws.Range("A1:P1").Style.Font.Bold = true;
                 ws.Range("A1:P1").Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -1893,7 +1893,7 @@ namespace AviAppFinal.Server.Controllers
 
                     var formulas = new Dictionary<string, string>();
 
-                    formulas["C2"] = "Market Value form Dashboard";
+                    formulas["C2"] = "Net Book Value from Inputs";
                     formulas["F2"] = "Return to Service Cost from Dashboard";
                     formulas["J2"] = "(C2 + F2) * I2";
                     formulas["N2"] = "-C2 * M2 * (1 - Corporate Tax)";
@@ -1902,8 +1902,8 @@ namespace AviAppFinal.Server.Controllers
                     formulas["N3"] = "L3 * M3";
                     formulas["J23"] = "SUM(J2 : J22)";
                     formulas["N23"] = "SUM(N2 : N22)";
-                    formulas["O23"] = "IF(J23 >= 0; (Transnet Net Book Value + F2); 0)";
-                    formulas["P23"] = "IF(N23 >= 0; (Transnet Net Book Value + F2); 0)";
+                    formulas["O23"] = "IF(J23 >= 0; (Benchmark Value + F2); 0)";
+                    formulas["P23"] = "IF(N23 >= 0; (Benchmark Value + F2); 0)";
                     formulas["J24"] = "IF(J23 >= 0; \"Refurbish\"; \"Scrap\")";
                     formulas["N24"] = "IF(N23 >= 0; \"Refurbish\"; \"Scrap\")";
 

@@ -8547,6 +8547,11 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
                             Pending = reader["Pending"] != DBNull.Value ? Convert.ToInt32(reader["Pending"]) : 0,
                             CompletionPercent = reader["CompletionPercent"] != DBNull.Value
                                 ? Convert.ToDecimal(reader["CompletionPercent"])
+                                : 0,
+                            Uploaded = reader["Uploaded"] != DBNull.Value ? Convert.ToInt32(reader["Uploaded"]) : 0,
+                            PendingUploaded = reader["PendingUploaded"] != DBNull.Value ? Convert.ToInt32(reader["PendingUploaded"]) : 0,
+                            CompletionUploadedPercent = reader["CompletionUploadedPercent"] != DBNull.Value
+                                ? Convert.ToDecimal(reader["CompletionUploadedPercent"])
                                 : 0
                         });
                     }

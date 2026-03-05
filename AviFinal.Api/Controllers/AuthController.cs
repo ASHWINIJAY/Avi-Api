@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace AviFinal.Api.Controllers
 {
@@ -35,23 +36,80 @@ namespace AviFinal.Api.Controllers
             public string? Password { get; set; }
             public string? UserPassword { get; set; }
             public string UserRole { get; set; }
+            public string? CreatedBy { get; set; }
+            public int? Active { get; set; }
+
+            public int? IsDelete { get; set; }
+        }
+        public class ChangePasswordRequest
+        {
+            public string Username { get; set; }
+            public string CurrentPassword { get; set; }
+            public string NewPassword { get; set; }
+        }
+        [HttpPost("changepassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+                string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest("All fields are required.");
+            }
+
+            var user = await _context.LeaseCoUsers
+                .FirstOrDefaultAsync(u => u.UserName == request.Username);
+
+            if (user == null)
+                return BadRequest("Invalid username");
+
+            // 🔹 Hash entered current password
+            string currentHash = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: request.CurrentPassword,
+                salt: Encoding.UTF8.GetBytes("static_salt_here"),
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            // 🔹 Compare with stored hash
+            if (user.UserPassword != currentHash)
+                return BadRequest("Existing password is incorrect");
+
+            // 🔹 Hash new password
+            string newHash = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: request.NewPassword,
+                salt: Encoding.UTF8.GetBytes("static_salt_here"),
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            user.UserPassword = newHash;
+            user.UpdatedDate = DateTime.Now;
+            user.UpdatedBy = request.Username;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Password changed successfully" });
         }
         [HttpGet("list")]
         public IActionResult List()
         {
-            var users = _context.LeaseCoUsers.ToList();
+            var users = _context.LeaseCoUsers.Where(c => c.IsDelete !=1).ToList();
             return Ok(users);
         }
         [HttpPost("update")]
         public async Task<IActionResult> UpdateUser([FromBody] CreateUserRequest request)
         {
           var user =  _context.LeaseCoUsers.Where(u => u.UserName == request.Username).FirstOrDefault();
+            var userId = User.FindFirst("UserId")?.Value;
 
-
-          user.UserName = request.Username;
+            user.UserName = request.Username;
             user.UserEmail = request.UserEmail;
             user.UserRole= request.UserRole;
             user.Name = request.Name;
+            user.Active = request.Active;
+            user.UpdatedDate=DateTime.Now;
+            user.UpdatedBy = request.CreatedBy;
             // 🔒 Handle password reset (only if new password is provided)
             if (!string.IsNullOrEmpty(request.UserPassword))
             {
@@ -68,6 +126,21 @@ namespace AviFinal.Api.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "User updated successfully", userId = user.UserId });
+        }
+        [HttpPost("delete")]
+        public async Task<IActionResult> DeleteUser([FromBody] string username)
+        {
+            var user = _context.LeaseCoUsers.Where(u => u.UserName == username).FirstOrDefault();
+            var userId = User.FindFirst("UserId")?.Value;
+
+            
+            user.IsDelete = 1;
+            user.UpdatedDate = DateTime.Now;
+            user.UpdatedBy = userId;
+            
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "User Deleted successfully", userId = user.UserId });
         }
 
         [HttpPost("create")]
@@ -87,14 +160,19 @@ namespace AviFinal.Api.Controllers
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8
             ));
-
+            var userId = User.FindFirst("UserId")?.Value;
             var user = new LeaseCoUser
             {
                 UserName = request.Username,
                 Name = request.Name,
                 UserEmail = request.Email,
                 UserPassword = hashedPassword,
-                UserRole = request.UserRole
+                UserRole = request.UserRole,
+                CreatedBy = request.CreatedBy,
+                CreatedDate = DateTime.Now,
+                Active=request.Active,
+                IsDelete=0
+
             };
 
             _context.LeaseCoUsers.Add(user);
@@ -138,30 +216,48 @@ namespace AviFinal.Api.Controllers
             {
                 _logger.LogInformation("Login attempt with missing username or password: " + request.Username);
                 return BadRequest("Username and password are required.");
-
             }
 
-            // Hash the incoming password the same way
+            // 1️⃣ Check if username exists first
+            var user = _context.LeaseCoUsers
+                        .FirstOrDefault(u => u.UserName == request.Username && u.IsDelete !=1);
+
+            if (user == null)
+            {
+                return Unauthorized("Invalid username");
+            }
+            if (user.Active == 0)
+            {
+                return Unauthorized("User is not active");
+            }
+
+            // 2️⃣ Hash incoming password
             string hashedPassword = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: request.Password,
-                salt: Encoding.UTF8.GetBytes("static_salt_here"), // must match the one used in creation
+                salt: Encoding.UTF8.GetBytes("static_salt_here"), // must match creation
                 prf: KeyDerivationPrf.HMACSHA256,
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8
             ));
 
-            var user = _context.LeaseCoUsers
-                        .FirstOrDefault(u => u.UserName == request.Username && u.UserPassword==hashedPassword
-                                        );
+            // 3️⃣ Check password
+            if (user.UserPassword != hashedPassword)
+            {
+                return Unauthorized("Invalid password");
+            }
 
-            if (user == null)
-                return Unauthorized("Invalid credentials");
-
-            // Generate JWT
+            // 4️⃣ Success
             var token1 = GenerateJwtToken(user);
+
             _logger.LogInformation("User logged in: " + request.Username);
 
-            return Ok(new { token = token1, userId = user.UserId, userRole = user.UserRole,name = user.Name??string.Empty });
+            return Ok(new
+            {
+                token = token1,
+                userId = user.UserId,
+                userRole = user.UserRole,
+                name = user.Name ?? string.Empty
+            });
         }
     }
 }
