@@ -471,35 +471,37 @@ namespace AviAppFinal.Server.Controllers
         [HttpPost("recalculateLocoValues")]
         public async Task<IActionResult> RecalculateLocoValues(RecalculateRequest request)
         {
-            int locoNumber = Convert.ToInt32(request.LocoNumber);
-
-            var locoInfo = await _context.LocoInfoCaptures
-                                          .Where(w => w.LocoNumber == locoNumber)
-                                          .OrderByDescending(w => w.Id)
-                                          .Select(w => new
-                                          {
-                                              w.LocoModel
-                                          })
-                                          .FirstOrDefaultAsync();
-
-            if (locoInfo == null)
-                return NotFound(new { success = false, message = $"No LocoInfoCaptures record found for loco {locoNumber}" });
-
-            static bool TryParseDecimal(string? s, out decimal value)
+            try
             {
-                value = 0m;
-                if (string.IsNullOrWhiteSpace(s)) return false;
-                return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
-                    || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
-            }
+                int locoNumber = Convert.ToInt32(request.LocoNumber);
 
-            var multiEntryTables = new List<Func<int, Task<List<InspectLocoRow>>>>();
+                var locoInfo = await _context.LocoInfoCaptures
+                                              .Where(w => w.LocoNumber == locoNumber)
+                                              .OrderByDescending(w => w.Id)
+                                              .Select(w => new
+                                              {
+                                                  w.LocoModel
+                                              })
+                                              .FirstOrDefaultAsync();
 
-            if (locoInfo?.LocoModel == "E18")
-            {
-                multiEntryTables =
-[
-    num => GetMultiAsync<E18beinspect>(num),
+                if (locoInfo == null)
+                    return NotFound(new { success = false, message = $"No LocoInfoCaptures record found for loco {locoNumber}" });
+
+                static bool TryParseDecimal(string? s, out decimal value)
+                {
+                    value = 0m;
+                    if (string.IsNullOrWhiteSpace(s)) return false;
+                    return decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.InvariantCulture, out value)
+                        || decimal.TryParse(s, NumberStyles.Currency | NumberStyles.Number, CultureInfo.CurrentCulture, out value);
+                }
+
+                var multiEntryTables = new List<Func<int, Task<List<InspectLocoRow>>>>();
+
+                if (locoInfo?.LocoModel == "E18")
+                {
+                    multiEntryTables =
+    [
+        num => GetMultiAsync<E18beinspect>(num),
     num => GetMultiAsync<E18ccinspect>(num),
     num => GetMultiAsync<E18bdinspect>(num),
     num => GetMultiAsync<E18crinspect>(num),
@@ -517,12 +519,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<E18mbinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GE34")
-            {
-                multiEntryTables =
-[
-    num => GetMultiAsync<Ge34acinspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GE34")
+                {
+                    multiEntryTables =
+    [
+        num => GetMultiAsync<Ge34acinspect>(num),
     num => GetMultiAsync<Ge34bcinspect>(num),
     num => GetMultiAsync<Ge34bdinspect>(num),
     num => GetMultiAsync<Ge34bsinspect>(num),
@@ -537,12 +539,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Ge34edinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GE35")
-            {
-                multiEntryTables =
- [
-     num => GetMultiAsync<Ge35mginspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GE35")
+                {
+                    multiEntryTables =
+     [
+         num => GetMultiAsync<Ge35mginspect>(num),
     num => GetMultiAsync<Ge35bcinspect>(num),
     num => GetMultiAsync<Ge35bdinspect>(num),
     num => GetMultiAsync<Ge35bsinspect>(num),
@@ -557,12 +559,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Ge35edinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GE36")
-            {
-                multiEntryTables =
- [
-     num => GetMultiAsync<Ge36cainspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GE36")
+                {
+                    multiEntryTables =
+     [
+         num => GetMultiAsync<Ge36cainspect>(num),
     num => GetMultiAsync<Ge36mginspect>(num),
     num => GetMultiAsync<Ge36bdinspect>(num),
     num => GetMultiAsync<Ge36cfinspect>(num),
@@ -575,12 +577,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Ge36edinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GM34")
-            {
-                multiEntryTables =
- [
-     num => GetMultiAsync<Gm34blinspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GM34")
+                {
+                    multiEntryTables =
+     [
+         num => GetMultiAsync<Gm34blinspect>(num),
     num => GetMultiAsync<Gm34bsinspect>(num),
     num => GetMultiAsync<Gm34bdinspect>(num),
     num => GetMultiAsync<Gm34cainspect>(num),
@@ -598,12 +600,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Gm34trinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GM35")
-            {
-                multiEntryTables =
-[
-    num => GetMultiAsync<Gm35blinspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GM35")
+                {
+                    multiEntryTables =
+    [
+        num => GetMultiAsync<Gm35blinspect>(num),
     num => GetMultiAsync<Gm35bsinspect>(num),
     num => GetMultiAsync<Gm35wainspect>(num),
     num => GetMultiAsync<Gm35cainspect>(num),
@@ -621,12 +623,12 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Gm35trinspect>(num),
 ];
 
-            }
-            else if (locoInfo?.LocoModel == "GM36")
-            {
-                multiEntryTables =
-[
-    num => GetMultiAsync<Gm36bpinspect>(num),
+                }
+                else if (locoInfo?.LocoModel == "GM36")
+                {
+                    multiEntryTables =
+    [
+        num => GetMultiAsync<Gm36bpinspect>(num),
     num => GetMultiAsync<Gm36bsinspect>(num),
     num => GetMultiAsync<Gm36wainspect>(num),
     num => GetMultiAsync<Gm36cainspect>(num),
@@ -645,149 +647,169 @@ namespace AviAppFinal.Server.Controllers
     num => GetMultiAsync<Gm36clinspect>(num),
 ];
 
-            }
-
-            var results = new List<List<InspectLocoRow>>();
-
-            foreach (var table in multiEntryTables)
-            {
-                results.Add(await table(locoNumber));
-            }
-
-            decimal refurbishTotalDec = 0;
-            decimal missingTotalDec = 0;
-            decimal replaceTotalDec = 0;
-            decimal laborTotalDec = 0;
-
-            foreach (var rows in results)
-            {
-                foreach (var r in rows)
-                {
-                    if (TryParseDecimal(r.RefurbishValue, out var rv)) refurbishTotalDec += rv;
-                    if (TryParseDecimal(r.MissingValue, out var mv)) missingTotalDec += mv;
-                    if (TryParseDecimal(r.ReplaceValue, out var xv)) replaceTotalDec += xv;
-                    if (TryParseDecimal(r.LaborValue, out var lv)) laborTotalDec += lv;
                 }
-            }
 
-            string refurbishTotal = refurbishTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
-            string missingTotal = missingTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
-            string replaceTotal = replaceTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
-            string laborTotal = laborTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
+                var results = new List<List<InspectLocoRow>>();
 
-            decimal marketValue = 0;
+                foreach (var table in multiEntryTables)
+                {
+                    results.Add(await table(locoNumber));
+                }
 
-            var masterValueStr = await _context.MasterLocos
-                .AsNoTracking()
-                .Where(m => m.LocoNumber == locoNumber)
-                .Select(m => m.MarketValue)
-                .FirstOrDefaultAsync();
+                decimal refurbishTotalDec = 0;
+                decimal missingTotalDec = 0;
+                decimal replaceTotalDec = 0;
+                decimal laborTotalDec = 0;
 
-            if (!string.IsNullOrWhiteSpace(masterValueStr))
-            {
-                decimal.TryParse(
-                    masterValueStr,
-                    NumberStyles.Currency | NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out marketValue
-                );
-            }
-            else
-            {
-                var masterTfr = await _context.MasterLocosTFR
+                foreach (var rows in results)
+                {
+                    foreach (var r in rows)
+                    {
+                        if (TryParseDecimal(r.RefurbishValue, out var rv)) refurbishTotalDec += rv;
+                        if (TryParseDecimal(r.MissingValue, out var mv)) missingTotalDec += mv;
+                        if (TryParseDecimal(r.ReplaceValue, out var xv)) replaceTotalDec += xv;
+                        if (TryParseDecimal(r.LaborValue, out var lv)) laborTotalDec += lv;
+                    }
+                }
+
+                string refurbishTotal = refurbishTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
+                string missingTotal = missingTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
+                string replaceTotal = replaceTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
+                string laborTotal = laborTotalDec.ToString("0.00", CultureInfo.InvariantCulture);
+
+                decimal marketValue = 0;
+
+                var masterValueStr = await _context.MasterLocos
                     .AsNoTracking()
                     .Where(m => m.LocoNumber == locoNumber)
-                    .Select(m => (decimal?)m.BenchmarkValue)
+                    .Select(m => m.MarketValue)
                     .FirstOrDefaultAsync();
 
-                if (masterTfr != null)
+                if (!string.IsNullOrWhiteSpace(masterValueStr))
                 {
-                    marketValue = masterTfr.Value;
+                    decimal.TryParse(
+                        masterValueStr,
+                        NumberStyles.Currency | NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out marketValue
+                    );
                 }
                 else
                 {
-                    var masterTe = await _context.MasterLocosTE
-                    .AsNoTracking()
-                    .Where(m => m.LocoNumber == locoNumber)
-                    .Select(m => (decimal?)m.BenchmarkValue)
-                    .FirstOrDefaultAsync();
+                    var masterTfr = await _context.MasterLocosTFR
+                        .AsNoTracking()
+                        .Where(m => m.LocoNumber == locoNumber)
+                        .Select(m => (decimal?)m.BenchmarkValue)
+                        .FirstOrDefaultAsync();
 
-                    if (masterTe != null)
+                    if (masterTfr != null)
                     {
-                        marketValue += masterTe.Value;
+                        marketValue = masterTfr.Value;
                     }
                     else
                     {
-                        return BadRequest("Asset/Loco not found in master data.");
+                        var masterTe = await _context.MasterLocosTE
+                        .AsNoTracking()
+                        .Where(m => m.LocoNumber == locoNumber)
+                        .Select(m => (decimal?)m.BenchmarkValue)
+                        .FirstOrDefaultAsync();
+
+                        if (masterTe != null)
+                        {
+                            marketValue += masterTe.Value;
+                        }
+                        else
+                        {
+                            return BadRequest("Asset/Loco not found in master data.");
+                        }
                     }
                 }
+
+                decimal repairTotal = refurbishTotalDec + missingTotalDec + replaceTotalDec + laborTotalDec;
+                decimal assetValue = marketValue - repairTotal;
+
+                string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+                string repairTotalStr = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+                decimal assetValueDec = assetValue;
+                decimal marketValueDec = marketValue;
+                int score = 0;
+
+                if (assetValueDec < 0)
+                    score = 1;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.90m, 2))
+                    score = 10;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.80m, 2))
+                    score = 9;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.70m, 2))
+                    score = 8;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.60m, 2))
+                    score = 7;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.50m, 2))
+                    score = 6;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.40m, 2))
+                    score = 5;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.30m, 2))
+                    score = 4;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.20m, 2))
+                    score = 3;
+                else if (assetValueDec >= Math.Round(marketValueDec * 0.10m, 2))
+                    score = 2;
+                else
+                    score = 1;
+
+                var condition = await _context.ConditionRatings
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.Score == score);
+
+                var dash = await _context.LocoDashboards
+                    .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
+
+                if (dash == null)
+                    return BadRequest("Loco does not exist");
+
+                dash.RefurbishValue = refurbishTotal;
+                dash.MissingValue = missingTotal;
+                dash.ReplaceValue = replaceTotal;
+                dash.TotalLaborValue = laborTotal;
+                dash.AssetValue = totalAssetValue ?? "";
+                dash.TotalValue = repairTotalStr ?? "";
+                dash.CalScore = score;
+                dash.CalOperateStatus = condition?.OperationalStatus ?? "Not Captured";
+                dash.CalCondition = condition?.Condition ?? "Not Captured";
+
+                _context.LocoDashboards.Update(dash);
+                //var input = await _context.LocoInputs
+                //   .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
+
+                //if (input != null)
+                //{
+                //    input.TotalCost = repairTotalStr ?? "0.00";
+                //    _context.LocoInputs.Update(input);
+                //}
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Loco updated successfully." });
             }
+            catch (Exception ex)
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
 
-            decimal repairTotal = refurbishTotalDec + missingTotalDec + replaceTotalDec + laborTotalDec;
-            decimal assetValue = marketValue - repairTotal;
+                var lineNumber = frame?.GetFileLineNumber();
+                var fileName = frame?.GetFileName();
+                var method = frame?.GetMethod()?.Name;
 
-            string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
-            string repairTotalStr = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
-
-            decimal assetValueDec = assetValue;
-            decimal marketValueDec = marketValue;
-            int score = 0;
-
-            if (assetValueDec < 0)
-                score = 1;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.90m, 2))
-                score = 10;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.80m, 2))
-                score = 9;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.70m, 2))
-                score = 8;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.60m, 2))
-                score = 7;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.50m, 2))
-                score = 6;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.40m, 2))
-                score = 5;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.30m, 2))
-                score = 4;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.20m, 2))
-                score = 3;
-            else if (assetValueDec >= Math.Round(marketValueDec * 0.10m, 2))
-                score = 2;
-            else
-                score = 1;
-
-            var condition = await _context.ConditionRatings
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(x => x.Score == score);
-
-            var dash = await _context.LocoDashboards
-                .FirstOrDefaultAsync(d => d.LocoNumber == locoNumber);
-
-            if (dash == null)
-                return BadRequest("Loco does not exist");
-
-            dash.RefurbishValue = refurbishTotal;
-            dash.MissingValue = missingTotal;
-            dash.ReplaceValue = replaceTotal;
-            dash.TotalLaborValue = laborTotal;
-            dash.AssetValue = totalAssetValue ?? "";
-            dash.TotalValue = repairTotalStr ?? "";
-            dash.CalScore = score;
-            dash.CalOperateStatus = condition?.OperationalStatus ?? "Not Captured";
-            dash.CalCondition = condition?.Condition ?? "Not Captured";
-
-            _context.LocoDashboards.Update(dash);
-            //var input = await _context.LocoInputs
-            //   .FirstOrDefaultAsync(e => e.LocoNumber == locoNumber);
-
-            //if (input != null)
-            //{
-            //    input.TotalCost = repairTotalStr ?? "0.00";
-            //    _context.LocoInputs.Update(input);
-            //}
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Loco updated successfully." });
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while recalculating loco values.",
+                    error = ex.Message,
+                    method,
+                    file = fileName,
+                    line = lineNumber,
+                    innerError = ex.InnerException?.Message
+                });
+            }
         }
 
         private async Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude)
