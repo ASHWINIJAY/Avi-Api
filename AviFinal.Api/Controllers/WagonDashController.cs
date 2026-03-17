@@ -691,9 +691,10 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpGet("RecalculateUploadWagonAllNU")]
-        public async Task<IActionResult> RecalculateUploadWagonAllNU()
+        public async Task<IActionResult> RecalculateUploadWagonAllNU(string phase)
         {
-            var existingDashboard = await _context.WagonDashboards.Where(c => c.WagonStatus != "Uploaded").Select(d => d.WagonNumber).ToListAsync();
+            int phase1 = Convert.ToInt32(phase);
+            var existingDashboard = await _context.WagonDashboards.Where(c => c.WagonStatus != "Uploaded" && c.Phase == phase1).Select(d => d.WagonNumber).ToListAsync();
             foreach (var item in existingDashboard)
             {
                 var payload = new RecalculateRequest();
@@ -1380,10 +1381,11 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpGet("ReuploadAllWagonsNU")]
-        public async Task<IActionResult> ReuploadAllWagonsNU()
+        public async Task<IActionResult> ReuploadAllWagonsNU(string phase)
         {
+            int phase1 = Convert.ToInt32(phase);
             var existingDashboard = await _context.WagonDashboards
-                .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+                .Where(d => d.WagonStatus != "Uploaded" && d.Phase == phase1).ToListAsync();
             foreach (var dashboard in existingDashboard)
             {
                 var payload = new UploadRequestItem();

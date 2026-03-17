@@ -1247,10 +1247,11 @@ namespace AviAppFinal.Server.Controllers
         }
 
         [HttpGet("GenerateAndSaveCertPdfForAllLoco")]
-        public async Task<IActionResult> GenerateAndSaveCertPdfForAllLoco()
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllLoco(string phase)
         {
+            int phase1 = Convert.ToInt32(phase);
             var existingDashboard = await _context.LocoDashboards
-                .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+                .Where(d => d.UploadStatus == "Uploaded" && d.Phase == phase1).ToListAsync();
             var userId = User.FindFirst("UserId")?.Value;
             foreach (var dashboard in existingDashboard)
             {
@@ -1262,10 +1263,11 @@ namespace AviAppFinal.Server.Controllers
             return Ok(new { message = "userId.ToString()" });
         }
         [HttpGet("GenerateAndSaveCertPdfForAllWagonn")]
-        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonn()
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonn(string phase)
         {
+            int phase1 = Convert.ToInt32(phase);
             var existingDashboard = await _context.WagonDashboardUploadeds
-                .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+                .Where(d => d.WagonStatus == "Uploaded" && d.Phase == phase1).ToListAsync();
             var userId = User.FindFirst("UserId")?.Value;
             foreach (var dashboard in existingDashboard)
             {
@@ -1277,10 +1279,11 @@ namespace AviAppFinal.Server.Controllers
             return Ok(new { message = userId.ToString() });
         }
         [HttpGet("GenerateAndSaveCertPdfForAllWagonNU")]
-        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonNU()
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllWagonNU(string phase)
         {
+            int phase1 = Convert.ToInt32(phase);
             var existingDashboard = await _context.WagonDashboards
-                .Where(d => d.WagonStatus != "Uploaded").ToListAsync();
+                .Where(d => d.WagonStatus != "Uploaded" && d.Phase==phase1).ToListAsync();
             var userId = User.FindFirst("UserId")?.Value;
             foreach (var dashboard in existingDashboard)
             {
@@ -1292,10 +1295,11 @@ namespace AviAppFinal.Server.Controllers
             return Ok(new { message = userId.ToString() });
         }
         [HttpGet("GenerateAndSaveCertPdfForAllLocoNU")]
-        public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU()
+        public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU(string phase)
         {
+            int phase1 = Convert.ToInt32(phase);
             var existingDashboard = await _context.LocoDashboards
-                .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+                .Where(d => d.UploadStatus != "Uploaded" && d.Phase == phase1).ToListAsync();
             var userId = User.FindFirst("UserId")?.Value;
             foreach (var dashboard in existingDashboard)
             {

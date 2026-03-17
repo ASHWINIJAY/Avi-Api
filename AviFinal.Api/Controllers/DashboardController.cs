@@ -1068,10 +1068,11 @@ public class DashboardController : ControllerBase
         }
     }
     [HttpGet("ReuploadAllLocos")]
-    public async Task<IActionResult> ReuploadAllLocos()
+    public async Task<IActionResult> ReuploadAllLocos(string phase)
     {
+        int phase1 = Convert.ToInt32(phase);
         var existingDashboard = await _context.LocoDashboards
-            .Where(d => d.UploadStatus == "Uploaded").ToListAsync();
+            .Where(d => d.UploadStatus == "Uploaded" && d.Phase==phase1).ToListAsync();
         foreach (var dashboard in existingDashboard)
         {
             var payload = new UploadLocoItem();
@@ -1090,10 +1091,11 @@ public class DashboardController : ControllerBase
         return Ok(new { message = "PDFs generated successfully for all Locos." });
     }
     [HttpGet("ReuploadAllWagons")]
-    public async Task<IActionResult> ReuploadAllWagons()
+    public async Task<IActionResult> ReuploadAllWagons(string phase)
     {
+        int phase1 = Convert.ToInt32(phase);
         var existingDashboard = await _context.WagonDashboardUploadeds
-            .Where(d => d.WagonStatus == "Uploaded").ToListAsync();
+            .Where(d => d.WagonStatus == "Uploaded" && d.Phase == phase1).ToListAsync();
         foreach (var dashboard in existingDashboard)
         {
             var payload = new UploadRequestItem();
@@ -1142,10 +1144,11 @@ public class DashboardController : ControllerBase
         return Ok(new { message = "PDFs generated successfully for all Locos." });
     }
     [HttpGet("ReuploadAllLocosNU")]
-    public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU()
+    public async Task<IActionResult> GenerateAndSaveCertPdfForAllLocoNU(string phase)
     {
+        int phase1 = Convert.ToInt32(phase);
         var existingDashboard = await _context.LocoDashboards
-            .Where(d => d.UploadStatus != "Uploaded").ToListAsync();
+            .Where(d => d.UploadStatus != "Uploaded" && d.Phase == phase1).ToListAsync();
         foreach (var dashboard in existingDashboard)
         {
             var payload = new UploadLocoItem();
@@ -1501,10 +1504,10 @@ public class DashboardController : ControllerBase
         dash.MissingValue = missingTotal;
         dash.ReplaceValue = replaceTotal;
         dash.TotalLaborValue = laborTotal;
-        //dash.AssetValue = totalAssetValue ?? "";
+        dash.AssetValue = totalAssetValue ?? "";
         dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
         dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
-        //dash.TotalValue = rts ?? "";
+        dash.TotalValue = rts ?? "";
 
         _context.WagonDashboards.Update(dash);
 
@@ -2990,9 +2993,9 @@ public class DashboardController : ControllerBase
             existingLoco.ReplaceValue = dashboardEntry.ReplaceValue;
             existingLoco.RefurbishValue = dashboardEntry.RefurbishValue;
             existingLoco.TotalLaborValue = dashboardEntry.TotalLaborValue;
-            //existingLoco.AssetValue = dashboardEntry.AssetValue;
-           // existingLoco.TotalValue = dashboardEntry.TotalValue;
-           // existingLoco.MarketValue = dashboardEntry.MarketValue;
+            existingLoco.AssetValue = dashboardEntry.AssetValue;
+            existingLoco.TotalValue = dashboardEntry.TotalValue;
+            existingLoco.MarketValue = dashboardEntry.MarketValue;
             await _context.SaveChangesAsync();
         }
         else
@@ -3233,9 +3236,10 @@ public class DashboardController : ControllerBase
         return Ok(new { message = "Wagon updated successfully." });
     }
     [HttpGet("RecalculateUploadLocoAll")]
-    public async Task<IActionResult> RecalculateLocosAll()
-    {
-        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus == "Uploaded").Select(d => d.LocoNumber).ToListAsync();
+    public async Task<IActionResult> RecalculateLocosAll(string phase)
+        {
+        int phase1 = Convert.ToInt32(phase);
+        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus == "Uploaded" && c.Phase==phase1).Select(d => d.LocoNumber).ToListAsync();
     foreach(var item in existingDashboard)
         {
             var payload = new RecalculateRequest();
@@ -3245,9 +3249,10 @@ public class DashboardController : ControllerBase
         return Ok(new { message = "Wagon updated successfully." });
     }
     [HttpGet("RecalculateUploadWagonAll")]
-    public async Task<IActionResult> RecalculateWagonsAll()
+    public async Task<IActionResult> RecalculateWagonsAll(string phase)
     {
-        var existingDashboard = await _context.WagonDashboardUploadeds.Where(c => c.WagonStatus == "Uploaded").Select(d => d.WagonNumber).ToListAsync();
+        int phase1 = Convert.ToInt32(phase);
+        var existingDashboard = await _context.WagonDashboardUploadeds.Where(c => c.WagonStatus == "Uploaded" && c.Phase == phase1).Select(d => d.WagonNumber).ToListAsync();
         foreach (var item in existingDashboard)
         {
             var payload = new RecalculateRequest();
@@ -3270,9 +3275,10 @@ public class DashboardController : ControllerBase
         return Ok(new { message = "Wagon updated successfully." });
     }
     [HttpGet("RecalculateUploadLocoAllNU")]
-    public async Task<IActionResult> RecalculateLocosAllNU()
+    public async Task<IActionResult> RecalculateLocosAllNU(string phase)
     {
-        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus != "Uploaded").Select(d => d.LocoNumber).ToListAsync();
+        int phase1 = Convert.ToInt32(phase);
+        var existingDashboard = await _context.LocoDashboards.Where(c => c.UploadStatus != "Uploaded" && c.Phase == phase1).Select(d => d.LocoNumber).ToListAsync();
         foreach (var item in existingDashboard)
         {
             var payload = new RecalculateRequest();
