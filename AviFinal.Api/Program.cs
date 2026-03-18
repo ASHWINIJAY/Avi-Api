@@ -1,4 +1,6 @@
-﻿using AviFinal.Api.Hubs;
+﻿using AviFinal.Api;
+using AviFinal.Api.Common;
+using AviFinal.Api.Hubs;
 using AviFinal.Api.Models;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -33,7 +35,7 @@ builder.Services.Configure<IISServerOptions>(options =>
 builder.Services.AddSignalR();
 
 
-
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
@@ -117,7 +119,7 @@ app.MapGet("/weatherforecast", () =>
 app.UseCors("AllowFrontend");
 app.UseStaticFiles(); // To serve uploaded images
 app.UseRouting();
-
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

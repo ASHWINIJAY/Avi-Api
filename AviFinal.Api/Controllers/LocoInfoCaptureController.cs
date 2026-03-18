@@ -179,7 +179,7 @@ namespace AviAppFinal.Server.Controllers
         {
             if (model == null)
                 return BadRequest("No data received.");
-
+           // var t = Convert.ToInt32("test");
             var user = await _context.LeaseCoUsers
                 .FirstOrDefaultAsync(e => e.UserId == model.UserID);
 
@@ -256,6 +256,7 @@ namespace AviAppFinal.Server.Controllers
             if (file != null && file.Length > 0)
             {
                 string ext = Path.GetExtension(file.FileName);
+                
                 string fileName = $"{locoNumber}_{Sanitize(locoModel)}_Body_{sequence}_{date}_{time}{ext}";
                 string filePath = Path.Combine(folder, fileName);
                 using (var stream = new FileStream(filePath, FileMode.Create))

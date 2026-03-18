@@ -3224,10 +3224,10 @@ public class DashboardController : ControllerBase
         dash.MissingValue = missingTotal;
         dash.ReplaceValue = replaceTotal;
         dash.TotalLaborValue = laborTotal;
-        //dash.AssetValue = totalAssetValue ?? "";
+        dash.AssetValue = totalAssetValue ?? "";
         dash.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
         dash.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
-       // dash.TotalValue = rts ?? "";
+        dash.TotalValue = rts ?? "";
 
         _context.WagonDashboardUploadeds.Update(dash);
 

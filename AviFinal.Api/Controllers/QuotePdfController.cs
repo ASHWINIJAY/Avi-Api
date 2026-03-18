@@ -76,8 +76,8 @@ namespace AviAppFinal.Server.Controllers
                 { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
             };
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+            //if (inspectionSources.All(s => !s.Value.Any()))
+            //    return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
             if (!Directory.Exists(folderPath))
@@ -392,8 +392,8 @@ namespace AviAppFinal.Server.Controllers
                 { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
             };
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+           // if (inspectionSources.All(s => !s.Value.Any()))
+              //  return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "QuotePdf");
             if (!Directory.Exists(folderPath))
@@ -716,8 +716,8 @@ namespace AviAppFinal.Server.Controllers
                 { "Wagon Parts Inspection", await _context.WagonPartsInspects.Where(p => p.WagonNumber == wagonNumber).ToListAsync() }
             };
 
-            if (inspectionSources.All(s => !s.Value.Any()))
-                return Ok("No parts found for this wagon number.");
+            //if (inspectionSources.All(s => !s.Value.Any()))
+              //  return Ok("No parts found for this wagon number.");
 
             string folderPath = Path.Combine(_env.WebRootPath, "InspectionPdf", "Wagons", "SowPdf");
             if (!Directory.Exists(folderPath))
