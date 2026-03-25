@@ -314,6 +314,7 @@ public partial class AviDbContext : DbContext
     public virtual DbSet<InternalFinalPart> InternalFinalParts { get; set; }
 
     public virtual DbSet<LeaseCoUser> LeaseCoUsers { get; set; }
+    public virtual DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
 
     public virtual DbSet<LeftMidDoorInspect> LeftMidDoorInspects { get; set; }
 

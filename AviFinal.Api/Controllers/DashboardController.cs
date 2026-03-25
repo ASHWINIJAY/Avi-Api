@@ -679,8 +679,16 @@ public class DashboardController : ControllerBase
                             CalOperateStatus = dashboardEntry?.CalOperateStatus ?? "Not Captured",
                             CalCondition = dashboardEntry?.CalCondition ?? "Not Captured",
                         };
+                        var existingLoco = await _context.WagonDashboardUploadeds
+                                                       .FirstOrDefaultAsync(d => d.WagonNumber == item.WagonNumber);
+                        if (existingLoco != null)
+                        {
 
-                        _context.WagonDashboardUploadeds.Add(uploadedEntry);
+                        }
+                        else
+                        {
+                            _context.WagonDashboardUploadeds.Add(uploadedEntry);
+                        }
                     }
 
                     await _context.SaveChangesAsync();
@@ -1510,6 +1518,23 @@ public class DashboardController : ControllerBase
         dash.TotalValue = rts ?? "";
 
         _context.WagonDashboards.Update(dash);
+        var dash1 = await _context.WagonDashboardUploadeds
+            .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+
+        if (dash1 != null)
+        {
+
+            dash1.RefurbishValue = refurbishTotal;
+            dash1.MissingValue = missingTotal;
+            dash1.ReplaceValue = replaceTotal;
+            dash1.TotalLaborValue = laborTotal;
+            dash1.AssetValue = totalAssetValue ?? "";
+            dash1.LiftValue = liftCost.ToString("0.00", CultureInfo.InvariantCulture);
+            dash1.BarrelValue = barrelCost.ToString("0.00", CultureInfo.InvariantCulture);
+            dash1.TotalValue = rts ?? "";
+
+            _context.WagonDashboardUploadeds.Update(dash1);
+        }
 
         await _context.SaveChangesAsync();
 

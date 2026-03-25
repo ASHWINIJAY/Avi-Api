@@ -328,8 +328,17 @@ namespace AviAppFinal.Server.Controllers
                 Phase = wagonInfo.Phase,
                 City = city,
             };
+                var existingLoco = await _context.WagonDashboards
+                                                       .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+                if (existingLoco != null)
+                {
 
-            _context.WagonDashboards.Add(dashboardEntry);
+                }
+                else
+                {
+                    _context.WagonDashboards.Add(dashboardEntry);
+                    await _context.SaveChangesAsync();
+                }
                 var input = await _context.WagonInputs
                    .FirstOrDefaultAsync(e => e.WagonNumber == wagonNumber);
 
@@ -1214,9 +1223,18 @@ namespace AviAppFinal.Server.Controllers
                             CalCondition = dashboardEntry?.CalCondition ?? "Not Captured",
                             Phase = dashboardEntry.Phase,
                         };
+                        var existingLoco = await _context.WagonDashboardUploadeds
+                                                       .FirstOrDefaultAsync(d => d.WagonNumber == item.WagonNumber);
+                        if (existingLoco != null)
+                        {
 
-                        _context.WagonDashboardUploadeds.Add(uploadedEntry);
-                        await _context.SaveChangesAsync();
+                        }
+                        else
+                        {
+
+                            _context.WagonDashboardUploadeds.Add(uploadedEntry);
+                            await _context.SaveChangesAsync();
+                        }
                     }
                 }
             }

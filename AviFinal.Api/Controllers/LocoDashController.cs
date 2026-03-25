@@ -372,7 +372,7 @@ namespace AviAppFinal.Server.Controllers
             }
 
             decimal repairTotal = refurbishTotalDec + missingTotalDec + replaceTotalDec + laborTotalDec;
-            decimal assetValue = marketValue - repairTotal;
+            decimal assetValue = marketValue - repairTotal;// Consider Asset Value as  Market Value due to client req
 
             string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
             string repairTotalStr = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);

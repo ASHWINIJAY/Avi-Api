@@ -64,12 +64,19 @@ BROWSER:
 TIME:
 {model.Timestamp}
 ";
-
+                var toEmails = _config.GetSection("EmailSettings:To").Get<List<string>>();
                 // 🔹 Create Mail
                 var mail = new MailMessage();
                 mail.From = new MailAddress(_config["EmailSettings:From"]);
-                mail.To.Add(_config["EmailSettings:To"]);
-                mail.Subject = "🚨 Application Error - Loco Inspection";
+                foreach (var email in toEmails)
+                {
+                    mail.To.Add(email);
+                }
+                var screen = string.IsNullOrEmpty(model.ScreenName)
+    ? "Unknown Screen"
+    : model.ScreenName;
+
+                mail.Subject = $"🚨 Application Error - {screen}";
                 mail.Body = body;
 
                 // 🔹 Attach Screenshot

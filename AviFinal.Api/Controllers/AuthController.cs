@@ -26,7 +26,23 @@ namespace AviFinal.Api.Controllers
             _configuration = configuration;
             _logger = logger;
         }
+        public class ForgotPasswordRequest
+        {
+            public string Username { get; set; }
+        }
 
+        public class VerifyOtpRequest
+        {
+            public string Username { get; set; }
+            public string Otp { get; set; }
+        }
+
+        public class ResetPasswordRequest
+        {
+            public string Username { get; set; }
+            public string Otp { get; set; }
+            public string NewPassword { get; set; }
+        }
         public class CreateUserRequest
         {
             public string Username { get; set; }
@@ -46,6 +62,218 @@ namespace AviFinal.Api.Controllers
             public string Username { get; set; }
             public string CurrentPassword { get; set; }
             public string NewPassword { get; set; }
+        }
+        private async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
+        {
+            try
+            {
+                var smtpServer = _configuration["EmailSettings:SmtpServer"];
+                var port = _configuration["EmailSettings:Port"];
+                var username = _configuration["EmailSettings:Username"];
+                var password = _configuration["EmailSettings:Password"];
+                var fromEmail = _configuration["EmailSettings:From"];
+
+                using (var client = new System.Net.Mail.SmtpClient(smtpServer, int.Parse(port)))
+                {
+                    client.EnableSsl = true;
+                    client.Credentials = new System.Net.NetworkCredential(username, password);
+
+
+                    var message = new System.Net.Mail.MailMessage(fromEmail, toEmail, subject, body);
+                    await client.SendMailAsync(message);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
+                return false;
+            }
+        }
+
+        private string GenerateOtp()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+[AllowAnonymous]
+[HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username))
+            {
+                return BadRequest("Username is required.");
+            }
+
+            var user = await _context.LeaseCoUsers
+                .FirstOrDefaultAsync(u => u.UserName == request.Username && u.IsDelete != 1);
+
+            if (user == null)
+            {
+                return NotFound("Username not found.");
+            }
+
+            if (string.IsNullOrEmpty(user.UserEmail))
+            {
+                return BadRequest("No email address found for this user. Please contact support.");
+            }
+
+            // Generate 6-digit OTP
+            var otp = GenerateOtp();
+            var expiresAt = DateTime.Now.AddMinutes(5);
+
+            // Delete any existing OTPs for this user
+            var existingOtps = _context.PasswordResetOtps
+                .Where(o => o.UserName == request.Username && !o.IsUsed)
+                .ToList();
+            _context.PasswordResetOtps.RemoveRange(existingOtps);
+
+            // Create new OTP record
+            var otpRecord = new PasswordResetOtp
+            {
+                UserName = request.Username,
+                OtpCode = otp,
+                Email = user.UserEmail,
+                CreatedAt = DateTime.Now,
+                ExpiresAt = expiresAt,
+                IsUsed = false,
+                IsVerified = false
+            };
+
+            _context.PasswordResetOtps.Add(otpRecord);
+            await _context.SaveChangesAsync();
+
+            // Send email
+            var emailBody = $@"
+Dear {user.Name ?? request.Username},
+
+Your password reset OTP is: {otp}
+
+This code will expire in 5 minutes.
+
+If you did not request a password reset, please ignore this email.
+
+Best regards,
+AVI System
+";
+
+            var emailSent = await SendEmailAsync(user.UserEmail, "Password Reset OTP - AVI System", emailBody);
+
+            if (!emailSent)
+            {
+                return StatusCode(500, "Failed to send OTP email. Please try again later.");
+            }
+
+            // Return partial email for display
+            var partialEmail = MaskEmail(user.UserEmail);
+            return Ok(new
+            {
+                message = $"OTP sent to your registered email ({partialEmail})",
+                email = partialEmail
+            });
+        }
+[AllowAnonymous]
+[HttpPost("verify-otp")]
+public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Otp))
+            {
+                return BadRequest("Username and OTP are required.");
+            }
+
+            var otpRecord = await _context.PasswordResetOtps
+                .Where(o => o.UserName == request.Username &&
+                            o.OtpCode == request.Otp &&
+                            !o.IsUsed &&
+                            !o.IsVerified &&
+                            o.ExpiresAt > DateTime.Now)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord == null)
+            {
+                return BadRequest("Invalid or expired OTP.");
+            }
+
+            // Mark as verified
+            otpRecord.IsVerified = true;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { valid = true, message = "OTP verified successfully." });
+        }
+[AllowAnonymous]
+[HttpPost("reset-password")]
+public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.Otp) ||
+                string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest("All fields are required.");
+            }
+
+            if (request.NewPassword.Length < 8)
+            {
+                return BadRequest("Password must be at least 8 characters long.");
+            }
+
+            var otpRecord = await _context.PasswordResetOtps
+                .Where(o => o.UserName == request.Username &&
+                            o.OtpCode == request.Otp &&
+                            !o.IsUsed &&
+                            o.IsVerified &&
+                            o.ExpiresAt > DateTime.Now)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord == null)
+            {
+                return BadRequest("Invalid or expired OTP. Please verify your OTP first.");
+            }
+
+            var user = await _context.LeaseCoUsers
+                .FirstOrDefaultAsync(u => u.UserName == request.Username);
+
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            // Hash new password
+            string newHash = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: request.NewPassword,
+                salt: Encoding.UTF8.GetBytes("static_salt_here"),
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            user.UserPassword = newHash;
+            user.UpdatedDate = DateTime.Now;
+            user.UpdatedBy = request.Username;
+
+            // Mark OTP as used
+            otpRecord.IsUsed = true;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Password reset successfully. Please login with your new password." });
+        }
+private string MaskEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email)) return "";
+
+            var parts = email.Split('@');
+            if (parts.Length != 2) return email;
+
+            var localPart = parts[0];
+            var domain = parts[1];
+
+            if (localPart.Length <= 2)
+            {
+                return "***@" + domain;
+            }
+
+            return localPart.Substring(0, 2) + new string('*', Math.Min(localPart.Length - 2, 5)) + "@" + domain;
         }
         [HttpPost("changepassword")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)

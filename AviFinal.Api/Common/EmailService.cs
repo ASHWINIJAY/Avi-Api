@@ -5,12 +5,43 @@ namespace AviFinal.Api.Common
 {
     public class EmailService : IEmailService
     {
+        private void WriteErrorToFile(Exception ex, HttpContext context)
+        {
+            try
+            {
+                var logFolder = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+
+                if (!Directory.Exists(logFolder))
+                    Directory.CreateDirectory(logFolder);
+
+                var filePath = Path.Combine(logFolder, $"ErrorLog_{DateTime.Now:yyyyMMdd}.txt");
+
+                var errorDetails = GetExceptionDetails(ex);
+
+                var log = $@"
+===============================
+Time: {DateTime.Now}
+API: {context.Request.Path}
+Method: {context.Request.Method}
+
+{errorDetails}
+===============================
+
+";
+
+                File.AppendAllText(filePath, log);
+            }
+            catch
+            {
+                // Don't crash if logging fails
+            }
+        }
         public async Task SendErrorEmailAsync(Exception ex, HttpContext context)
         {
             try
             {
                 var errorDetails = GetExceptionDetails(ex);
-
+                WriteErrorToFile(ex, context);
                 var mail = new MailMessage();
                 mail.From = new MailAddress("codexitza@gmail.com");
                 mail.To.Add("aswini@codex-it.co.za");

@@ -240,6 +240,7 @@ namespace AviFinal.Api.Controllers
         [HttpPost("SubmitInspection")]
         public async Task<IActionResult> SubmitInspection([FromBody] List<InspectDto> dtos)
         {
+           // var t = Convert.ToInt32("test");
             if (dtos == null || !dtos.Any())
                 return BadRequest("No data received.");
             using var con = new SqlConnection(_config.GetConnectionString("DefaultConnection"));

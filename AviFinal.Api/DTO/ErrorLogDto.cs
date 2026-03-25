@@ -10,5 +10,6 @@
         public string Browser { get; set; }
         public DateTime Timestamp { get; set; }
         public string Screenshot { get; set; } // base64 image
+        public string ScreenName { get; set; }
     }
 }
