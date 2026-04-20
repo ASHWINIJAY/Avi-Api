@@ -275,7 +275,7 @@ namespace AviAppFinal.Server.Controllers
                         document.Add(table);
                     }
 
-                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
                     decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor + liftBarrelTotal;
                     decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
 
@@ -591,7 +591,7 @@ namespace AviAppFinal.Server.Controllers
                         document.Add(table);
                     }
 
-                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
                     decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor + liftBarrelTotal;
                     decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
 
@@ -2295,7 +2295,7 @@ namespace AviAppFinal.Server.Controllers
 
                     document.Add(table);
                 }
-                decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
                 decimal rts = grandTotalRefurbish + grandTotalMissing + grandTotalReplace + grandTotalLabor ;
                 decimal assetValue = ParseDecimalSafe(dash?.AssetValue);
 

@@ -216,7 +216,7 @@ namespace AviAppFinal.Server.Controllers
 
                     //PLEASE ADD
                     // market value (from master)
-                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
 
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
 
@@ -622,7 +622,7 @@ namespace AviAppFinal.Server.Controllers
 
                     //PLEASE ADD
                     // market value (from master)
-                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
 
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
                     decimal scrapPre = 0;
@@ -1016,7 +1016,7 @@ namespace AviAppFinal.Server.Controllers
 
                     //PLEASE ADD
                     // market value (from master)
-                    decimal marketValue = ParseDecimalSafe(master?.MarketValue);
+                    decimal marketValue = ParseDecimalSafe(dash?.MarketValue);
                     decimal asset = ParseDecimalSafe(dash?.AssetValue);
                     string assetValue = "R" + asset.ToString("N2", new CultureInfo("en-ZA"));
 

@@ -379,6 +379,8 @@ public class DashboardController : ControllerBase
         //PLEASE ADD
         decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
         decimal assetValue = marketValue - repairTotal;
+        if (assetValue < 0)
+            assetValue = 0;
         string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
         string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
         string markVal = marketValue.ToString("0.00", CultureInfo.InvariantCulture);
@@ -698,6 +700,15 @@ public class DashboardController : ControllerBase
         }
 
         return Ok(new { success = true, zipPath, zipName });
+    }
+    [HttpGet("GetInspectionExceptionReport")]
+    public IActionResult GetInspectionExceptionReport()
+    {
+        _context.Database.SetCommandTimeout(180);
+        var data = _context.InspectionWarnInfos.OrderByDescending(c => c.CreatedTime)
+            .ToList();
+
+        return Ok(data);
     }
     [HttpPost("getUploadedWagonsPaged")]
     public async Task<IActionResult> GetUploadedWagonsPaged([FromBody] WagonDashboardQueryDto query)
@@ -1102,28 +1113,38 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> ReuploadAllWagons(string phase)
     {
         int phase1 = Convert.ToInt32(phase);
+
         var existingDashboard = await _context.WagonDashboardUploadeds
-            .Where(d => d.WagonStatus == "Uploaded" && d.Phase == phase1).ToListAsync();
-        foreach (var dashboard in existingDashboard)
+            .Where(d => d.WagonStatus == "Uploaded" && d.Phase == phase1)
+            .ToListAsync();
+
+        int batchSize = 500;
+
+        for (int i = 0; i < existingDashboard.Count; i += batchSize)
         {
-            var payload = new UploadRequestItem();
-            var list = new List<UploadRequestItem>();
-            payload.WagonNumber = (int)dashboard.WagonNumber;
-            payload.WagonNumber = (int)dashboard.WagonNumber;
-            payload.AssessmentCert = dashboard.AssessmentCert;
-            payload.AssessmentSow = dashboard.AssessmentSow;
-            payload.AssessmentQuote = dashboard.AssessmentQuote;
-            payload.ReplacePhotos = dashboard.ReplacePhotos;
-            payload.BrakePhoto = dashboard.BrakePhoto;
-            payload.WagonPhoto = dashboard.WagonPhoto;
-            payload.LiftPhoto = dashboard.LiftPhoto;
-            payload.BarrelPhoto = dashboard.BarrelPhoto;
-            payload.BodyPhotos = dashboard.BodyPhotos;
-            payload.MissingPhotos = dashboard.MissingPhotos;
-            list.Add(payload);
-            await ReUploadWagons(list);
+            var batch = existingDashboard
+                .Skip(i)
+                .Take(batchSize)
+                .Select(d => new UploadRequestItem
+                {
+                    WagonNumber = (int)d.WagonNumber,
+                    AssessmentCert = d.AssessmentCert,
+                    AssessmentSow = d.AssessmentSow,
+                    AssessmentQuote = d.AssessmentQuote,
+                    ReplacePhotos = d.ReplacePhotos,
+                    BrakePhoto = d.BrakePhoto,
+                    WagonPhoto = d.WagonPhoto,
+                    LiftPhoto = d.LiftPhoto,
+                    BarrelPhoto = d.BarrelPhoto,
+                    BodyPhotos = d.BodyPhotos,
+                    MissingPhotos = d.MissingPhotos
+                }).ToList();
+
+            // ✅ Sequential call (NO deadlock / NO thread issue)
+            await ReUploadWagons(batch);
         }
-        return Ok(new { message = "PDFs generated successfully for all Locos." });
+
+        return Ok(new { message = "PDFs generated successfully for all Wagons." });
     }
     [HttpGet("ReuploadAllWagonsNU")]
     public async Task<IActionResult> ReuploadAllWagonsNU()
@@ -1493,20 +1514,23 @@ public class DashboardController : ControllerBase
         decimal liftBarrelTotal = liftCost + barrelCost;
 
         decimal marketValue = 0;
-
-        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
-            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
-
-        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
-        decimal assetValue = marketValue - repairTotal;
-        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
-        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
-
         var dash = await _context.WagonDashboards
-            .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
+           .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
 
         if (dash == null)
             return BadRequest("Wagon does not exist");
+
+        if (dash?.MarketValue != null && !string.IsNullOrWhiteSpace(dash.MarketValue.ToString()))
+            decimal.TryParse(dash.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
+        decimal assetValue = marketValue - repairTotal;
+        if (assetValue < 0)
+            assetValue = 0;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+        
 
         dash.RefurbishValue = refurbishTotal;
         dash.MissingValue = missingTotal;
@@ -2975,6 +2999,8 @@ public class DashboardController : ControllerBase
         //PLEASE ADD
         decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum();
         decimal assetValue = marketValue - repairTotal;
+        if (assetValue < 0)
+            assetValue = 0;
         string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
         string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
 
@@ -3231,19 +3257,23 @@ public class DashboardController : ControllerBase
 
         decimal marketValue = 0;
 
-        if (master?.MarketValue != null && !string.IsNullOrWhiteSpace(master.MarketValue.ToString()))
-            decimal.TryParse(master.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
-
-        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
-        decimal assetValue = marketValue - repairTotal;
-        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
-        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
-
         var dash = await _context.WagonDashboardUploadeds
             .FirstOrDefaultAsync(d => d.WagonNumber == wagonNumber);
 
         if (dash == null)
             return BadRequest("Wagon does not exist");
+
+        if (dash?.MarketValue != null && !string.IsNullOrWhiteSpace(dash.MarketValue.ToString()))
+            decimal.TryParse(dash.MarketValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out marketValue);
+
+        decimal repairTotal = refurbishValues.Sum() + missingValues.Sum() + replaceValues.Sum() + laborValues.Sum() + liftBarrelTotal;
+        decimal assetValue = marketValue - repairTotal;
+        if (assetValue < 0)
+            assetValue = 0;
+        string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
+        string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
+
+       
 
         dash.RefurbishValue = refurbishTotal;
         dash.MissingValue = missingTotal;
@@ -5105,6 +5135,8 @@ public class DashboardController : ControllerBase
         //PLEASE ADD
         decimal repairTotal = refurbishValues.Sum() + missingValues.Sum()+ replaceValues.Sum() + laborValues.Sum();
         decimal assetValue = marketValue - repairTotal;
+        if (assetValue < 0)
+            assetValue = 0;
         string totalAssetValue = assetValue.ToString("0.00", CultureInfo.InvariantCulture);
         string rts = repairTotal.ToString("0.00", CultureInfo.InvariantCulture);
 
@@ -8079,118 +8111,121 @@ var existingEntry = await _context.LocoDashboards.FirstOrDefaultAsync(e => e.Loc
         if (items == null || !items.Any())
             return BadRequest("No wagons selected for upload.");
 
-        // --- Ensure server folder exists ---
         string serverFolder = @"C:\WagonDashboardItemsUploaded";
         if (!Directory.Exists(serverFolder))
             Directory.CreateDirectory(serverFolder);
 
-        // --- Create ZIP file name including wagon numbers ---
-        string wagonNumbersPart = string.Join("_", items.Select(i => i.WagonNumber));
-        string zipName = $"WagonDashboardReUpload_{wagonNumbersPart}_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+        string zipName = $"WagonDashboardReUpload_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
         string zipPath = Path.Combine(serverFolder, zipName);
+
+        // ✅ Load all DB data at once
+        var wagonNumbers = items.Select(i => i.WagonNumber).ToList();
+
+        var existingData = await _context.WagonDashboardUploadeds
+            .Where(w => wagonNumbers.Contains(w.WagonNumber))
+            .ToDictionaryAsync(w => w.WagonNumber);
 
         using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
         {
-            foreach (var item in items)
-            {
-                string wagonFolderName = $"{item.WagonNumber}_Dash_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var semaphore = new SemaphoreSlim(5); // limit parallelism
 
-                // Mapping folder names for categories
-                var folderMap = new Dictionary<string, string>
+            var tasks = items.Select(async item =>
             {
-                { "BodyPhotos", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
-                { "LiftPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
-                { "BarrelPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
-                { "BrakePhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
-                { "WagonPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
-                { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
-                { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
-                { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") },
-                { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") },
-                { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") }
-            };
-
-                //PLEASE ADD (ADDING FILES USING HELPERS)
-                async Task AddFilesToZipAsync(string? source, string targetFolder)
+                await semaphore.WaitAsync();
+                try
                 {
-                    if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
+                    string wagonFolderName = $"{item.WagonNumber}_Dash_{DateTime.Now:yyyyMMdd_HHmmss}";
 
-                    List<string> paths = new();
-                    if (source.StartsWith("["))
+                    var folderMap = new Dictionary<string, string>
+                {
+                    { "BodyPhotos", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                    { "LiftPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                    { "BarrelPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                    { "BrakePhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                    { "WagonPhoto", Path.Combine(wagonFolderName, "InfoCapturePhotos") },
+                    { "MissingPhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                    { "ReplacePhotos", Path.Combine(wagonFolderName, "InspectionPhotos") },
+                    { "AssessmentQuote", Path.Combine(wagonFolderName, "InspectionQuote") },
+                    { "AssessmentCert", Path.Combine(wagonFolderName, "InspectionCert") },
+                    { "AssessmentSow", Path.Combine(wagonFolderName, "InspectionSow") }
+                };
+
+                    async Task AddFilesToZipAsync(string? source, string targetFolder)
                     {
-                        var deserialized = JsonSerializer.Deserialize<List<string>>(source);
-                        if (deserialized != null) paths.AddRange(deserialized);
-                    }
-                    else
-                    {
-                        paths.Add(source);
-                    }
+                        if (string.IsNullOrWhiteSpace(source) || source == "N/A") return;
 
-                    foreach (var p in paths)
-                    {
-                        if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+                        List<string> paths = new();
 
-                        string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
-                        if (!System.IO.File.Exists(sourcePath)) continue;
-
-                        string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
-
-                        var entry = zipArchive.CreateEntry(entryName, CompressionLevel.SmallestSize);
-                        await using var entryStream = entry.Open();
-
-                        if (IsImage(sourcePath))
+                        if (source.StartsWith("["))
                         {
-                            // REAL compression happens here
-                            await using var processedImage = await PreprocessImageAsync(sourcePath);
-                            await processedImage.CopyToAsync(entryStream);
+                            var deserialized = JsonSerializer.Deserialize<List<string>>(source);
+                            if (deserialized != null) paths.AddRange(deserialized);
                         }
                         else
                         {
-                            // Non-image files copied as-is
-                            await using var fileStream = System.IO.File.OpenRead(sourcePath);
-                            await fileStream.CopyToAsync(entryStream);
+                            paths.Add(source);
+                        }
+
+                        foreach (var p in paths)
+                        {
+                            if (string.IsNullOrWhiteSpace(p) || p == "No Photos" || p == "N/A") continue;
+
+                            string sourcePath = Path.Combine(_env.WebRootPath ?? "wwwroot", p.TrimStart('/'));
+                            if (!System.IO.File.Exists(sourcePath)) continue;
+
+                            string entryName = Path.Combine(targetFolder, Path.GetFileName(sourcePath));
+
+                            lock (zipArchive) // ✅ thread-safe ZIP access
+                            {
+                                var entry = zipArchive.CreateEntry(entryName, CompressionLevel.Fastest);
+
+                                using var entryStream = entry.Open();
+
+                                if (IsImage(sourcePath))
+                                {
+                                    using var processedImage = PreprocessImageAsync(sourcePath).Result;
+                                    processedImage.CopyTo(entryStream);
+                                }
+                                else
+                                {
+                                    using var fileStream = System.IO.File.OpenRead(sourcePath);
+                                    fileStream.CopyTo(entryStream);
+                                }
+                            }
                         }
                     }
-                }
 
-                // Use reflection to loop through all properties dynamically
-                var properties = typeof(UploadRequestItem).GetProperties();
-                foreach (var prop in properties)
-                {
-                    if (!folderMap.ContainsKey(prop.Name)) continue;
+                    var properties = typeof(UploadRequestItem).GetProperties();
 
-                    var value = prop.GetValue(item) as string;
+                    foreach (var prop in properties)
+                    {
+                        if (!folderMap.ContainsKey(prop.Name)) continue;
 
-                    //PLEASE ADD (METHOD IS NOW ASYNC)
-                    await AddFilesToZipAsync(value, folderMap[prop.Name]);
-                }
+                        var value = prop.GetValue(item) as string;
+                        await AddFilesToZipAsync(value, folderMap[prop.Name]);
+                    }
 
-                bool exists = await _context.WagonDashboardUploadeds
-                    .AnyAsync(e => e.WagonNumber == item.WagonNumber);
-
-                if (exists)
-                {
-                    var dashboardEntry = await _context.WagonDashboardUploadeds.FirstOrDefaultAsync(w => w.WagonNumber == item.WagonNumber);
-
-                    if (dashboardEntry != null)
+                    // ✅ Update DB (NO query here)
+                    if (existingData.TryGetValue(item.WagonNumber, out var dashboardEntry))
                     {
                         dashboardEntry.WagonStatus = "Uploaded";
                         dashboardEntry.UploadDate = DateTime.Now.ToString("yyyy-MM-dd");
-
-                        _context.WagonDashboardUploadeds.Update(dashboardEntry);
-                        await _context.SaveChangesAsync();
                     }
                 }
-                else
+                finally
                 {
-                    return BadRequest("Wagon does not exist.");
+                    semaphore.Release();
                 }
-            }
+            });
+
+            await Task.WhenAll(tasks);
         }
+
+        // ✅ SINGLE DB SAVE
+        await _context.SaveChangesAsync();
 
         return Ok(new { success = true, zipPath, zipName });
     }
-
     private static bool IsImage(string path)
     {
         var ext = Path.GetExtension(path).ToLowerInvariant();
